@@ -1,0 +1,94 @@
+# === NO SUS — .gitignore ===
+
+# --- Secrets & Credentials ---
+.env
+.env.local
+.env.production
+.env.development
+*.pem
+*.key
+signing_keys.json
+
+# --- Supabase temp files ---
+supabase/.temp/
+
+# --- Flutter / Dart ---
+**/doc/api/
+.dart_tool/
+.pub-cache/
+.pub/
+**/build/
+coverage/
+.flutter-plugins-dependencies
+*.flutter-plugins
+
+# --- IDE ---
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+*.swp
+*.swo
+*~
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+*.log
+*.class
+*.pyc
+
+# --- Android ---
+/android/app/debug
+/android/app/profile
+/android/app/release
+/local.properties
+/key.properties
+*.jks
+*.keystore
+
+# --- iOS ---
+**/ios/Flutter/.last_build_id
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Runner.xcworkspace/
+*.xcworkspace
+
+# --- macOS ---
+**/macos/Pods/
+**/macos/.symlinks/
+
+# --- Windows ---
+**/windows/out/
+**/windows/runner/Debug/
+**/windows/runner/Release/
+*.vcxproj.user
+
+# --- Build outputs ---
+app.*.symbols
+app.*.map.json
+*.dill
+*.dill.map
+
+# --- Generated files ---
+*.g.dart
+*.freezed.dart
+*.mocks.dart
+
+# --- Temporary ---
+migrate_working_dir/
+.history
+.svn/
+.atom/
+.build/
+.buildlog/
+.swiftpm/
+
+# --- Node / Edge Functions ---
+supabase/functions/**/node_modules/
+supabase/functions/**/dist/
+
+*.lcov
