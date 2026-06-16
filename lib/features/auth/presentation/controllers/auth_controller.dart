@@ -71,6 +71,7 @@ class AuthController extends Notifier<AsyncValue<void>> {
     state = const AsyncValue.loading();
     try {
       await ref.read(authRepositoryProvider).signOut();
+      await ref.read(isGuestModeProvider.notifier).disableGuest();
       state = const AsyncValue.data(null);
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);

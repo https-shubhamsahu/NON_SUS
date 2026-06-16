@@ -26,9 +26,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       case 3:
         return 'ACT 4: IDENTITY';
       case 4:
-        return 'ACT 5: PERSONA';
+        return 'ACT 5: YOUR ROLE';
       case 5:
-        return 'ACT 6: GET VERIFIED';
+        return 'ACT 6: COMMUNITY';
       default:
         return '';
     }
@@ -86,14 +86,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 ],
               ),
             ),
-            
+
             // Onboarding Slides PageView
             Expanded(
               child: PageView.builder(
                 controller: _pageController,
                 itemCount: 6,
                 onPageChanged: (index) {
-                  ref.read(onboardingPageIndexProvider.notifier).setIndex(index);
+                  ref
+                      .read(onboardingPageIndexProvider.notifier)
+                      .setIndex(index);
                 },
                 itemBuilder: (context, index) {
                   switch (index) {
@@ -108,7 +110,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     case 4:
                       return OnboardingPersonalizationWidget(onNext: _nextPage);
                     case 5:
-                      return const OnboardingAuthWelcomeWidget();
+                      return const OnboardingCommunityWidget();
                     default:
                       return Container();
                   }
@@ -141,7 +143,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 // Left/Right actions
                 if (currentIndex < 5)
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24.0,
+                      vertical: 16.0,
+                    ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -163,18 +168,24 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                             }
                           },
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 12,
+                            ),
                             decoration: BoxDecoration(
-                              border: Border.all(color: fg.withValues(alpha: 0.15), width: 0.75),
+                              border: Border.all(
+                                color: fg.withValues(alpha: 0.15),
+                                width: 0.75,
+                              ),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
                               currentIndex == 0 ? 'SKIP' : 'BACK',
                               style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1.0,
-                                  color: fg.withValues(alpha: 0.6),
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.0,
+                                color: fg.withValues(alpha: 0.6),
                               ),
                             ),
                           ),

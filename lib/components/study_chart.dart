@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme.dart';
-import '../features/groups/providers/groups_provider.dart';
+import '../features/focus/providers/focus_provider.dart';
 
 class StudyChart extends ConsumerStatefulWidget {
   const StudyChart({super.key});

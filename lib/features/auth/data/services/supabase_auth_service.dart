@@ -11,8 +11,7 @@ class SupabaseAuthService {
   Stream<User?> watchUser() async* {
     yield currentUser;
     yield* _client.auth.onAuthStateChange
-        .map((state) => state.session?.user)
-        .distinct((previous, next) => previous?.id == next?.id);
+        .map((state) => state.session?.user);
   }
 
   Future<User> signIn({required String email, required String password}) async {

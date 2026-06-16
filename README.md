@@ -38,10 +38,10 @@ cd no_sus
 flutter pub get
 
 # 3. Run in mock mode (no Supabase needed)
-flutter run --dart-define=SUPABASE_URL= --dart-define=SUPABASE_ANON_KEY=
+flutter run
 
-# 4. Or run with your Supabase project
-flutter run --dart-define=SUPABASE_URL=https://your-project.supabase.co --dart-define=SUPABASE_ANON_KEY=your-anon-key
+# 4. Or run with your Supabase project (requires .env)
+flutter run --dart-define-from-file=.env
 ```
 
 ## Supabase Setup
@@ -102,10 +102,10 @@ The current `CryptographyService` implements a stream cipher (XOR) labeled as "A
 
 ```bash
 # Run with mock data (no Supabase needed)
-flutter run --dart-define=SUPABASE_URL= --dart-define=SUPABASE_ANON_KEY=
+flutter run
 
-# Run with live Supabase
-flutter run --dart-define=SUPABASE_URL=https://your-project.supabase.co --dart-define=SUPABASE_ANON_KEY=your-key
+# Run with live Supabase (requires .env)
+flutter run --dart-define-from-file=.env
 
 # Run tests
 flutter test
@@ -115,6 +115,9 @@ dart analyze
 
 # Check for outdated dependencies
 flutter pub outdated
+
+# Build release APK with code obfuscation
+flutter build apk --release --obfuscate --split-debug-info=./build/app/outputs/symbols
 ```
 
 ## Project Structure

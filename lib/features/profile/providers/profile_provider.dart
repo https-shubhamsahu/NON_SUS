@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../auth/presentation/providers/auth_providers.dart';
 import '../../../services/secure_db_service.dart';
@@ -13,6 +14,46 @@ class ProfileData {
     required this.avatarColorStart,
     required this.avatarColorEnd,
   });
+
+  String get avatarId {
+    if (avatarColorStart.startsWith('{')) {
+      try {
+        final Map<String, dynamic> parsed = jsonDecode(avatarColorStart);
+        return parsed['avatar_id'] ?? 'avatar_01';
+      } catch (_) {
+        return 'avatar_01';
+      }
+    }
+    // Legacy hex mapping
+    switch (avatarColorStart) {
+      case 'FF0072FF':
+        return 'avatar_01';
+      case 'FFCCCCCC':
+        return 'avatar_02';
+      case 'FFFF0072':
+        return 'avatar_03';
+      case 'FFF5A623':
+        return 'avatar_04';
+      case 'FF800080':
+        return 'avatar_05';
+      case 'FFADF474':
+        return 'avatar_06';
+      default:
+        return 'avatar_01';
+    }
+  }
+
+  bool get isCustom {
+    if (avatarColorStart.startsWith('{')) {
+      try {
+        final Map<String, dynamic> parsed = jsonDecode(avatarColorStart);
+        return parsed['is_custom'] ?? false;
+      } catch (_) {
+        return false;
+      }
+    }
+    return false;
+  }
 
   ProfileData copyWith({
     String? displayName,
@@ -58,8 +99,8 @@ class ProfileNotifier extends Notifier<AsyncValue<ProfileData>> {
     _loadProfile(user.id, user.email ?? 'Student Guest');
 
     // Return a temporary default from email until async load completes
-    final defaultName = user.email != null && user.email!.contains('@')
-        ? user.email!.split('@').first
+    final defaultName = user.email != null && user.email!.isNotEmpty
+        ? (user.email!.length > 7 ? user.email!.substring(0, 7) : user.email!)
         : 'Student Guest';
     return AsyncValue.data(ProfileData(
       displayName: defaultName,
@@ -77,7 +118,7 @@ class ProfileNotifier extends Notifier<AsyncValue<ProfileData>> {
       // with userId: 'temp_user'. fetchProfile returns this in-memory cache.
       final cache = await SecureDbService.instance.fetchProfile('temp_user', '');
       final name = cache['displayName'];
-      if (name != null && name.isNotEmpty && name != 'Enclave Scholar') {
+      if (name != null && name.isNotEmpty) {
         state = AsyncValue.data(ProfileData(
           displayName: name,
           avatarColorStart: cache['avatarColorStart'] ?? 'FF0072FF',
@@ -92,8 +133,11 @@ class ProfileNotifier extends Notifier<AsyncValue<ProfileData>> {
   Future<void> _loadProfile(String id, String email) async {
     try {
       final cache = await SecureDbService.instance.fetchProfile(id, email);
+      final defaultName = email.isNotEmpty
+          ? (email.length > 7 ? email.substring(0, 7) : email)
+          : 'Student Guest';
       state = AsyncValue.data(ProfileData(
-        displayName: cache['displayName'] ?? email.split('@').first,
+        displayName: cache['displayName'] ?? defaultName,
         avatarColorStart: cache['avatarColorStart'] ?? 'FF0072FF',
         avatarColorEnd: cache['avatarColorEnd'] ?? 'FF00F2FE',
       ));

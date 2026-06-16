@@ -1,8 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'secure_enclave.dart';
 import 'supabase_service.dart';
 import 'secure_db_service.dart';
 import '../features/groups/models/group_file.dart';
+import '../core/constants/mock_documents.dart';
 
 /// Response payload representation returned from the Zero-Trust Gateway.
 class ZeroTrustResponse {
@@ -96,40 +97,17 @@ class ZeroTrustGateway {
 
   static String _encryptContent(String noteId) {
     final rawText = _getRawNoteText(noteId);
-    return SecureEnclave.encryptMockData(rawText, key);
+    return base64.encode(utf8.encode(rawText));
   }
 
   static String _getRawNoteText(String noteId) {
     switch (noteId) {
       case 'f1':
-        return '''Public-Key Cryptography / Introduction to Zero-Knowledge Proofs
-A Zero-Knowledge Proof (ZKP) allows a prover to convince a verifier that a statement is true without revealing any information beyond the validity of the statement itself.
-
-Key ZKP Properties
-1. Completeness: If the statement is true, an honest verifier will be convinced by an honest prover.
-2. Soundness: If the statement is false, no cheating prover can convince an honest verifier (except with tiny probability).
-3. Zero-Knowledge: If the statement is true, no verifier learns anything other than this fact.
-
-Applications in Privacy-Preserving Computations
-ZKPs are crucial in decentralized identity, anonymous transactions, and secure rollup chains.''';
+        return MockDocuments.zeroKnowledge;
       case 'f5':
-        return '''Galois Counter Mode (GCM) / AES-256-GCM Hardware Performance
-Advanced Encryption Standard (AES) with Galois/Counter Mode (GCM) provides both confidentiality and data integrity.
-
-Hardware Acceleration
-Modern CPUs provide instructions (like Intel's AES-NI or ARMv8 Cryptography extensions) that execute rounds of AES in hardware. This mitigates cache-timing side-channel attacks by executing lookup tables in constant time.
-
-Galois Multiplier
-GCM utilizes universal hashing over a binary Galois field (GF(2^128)) for authentication. The PCLMULQDQ instruction performs carry-less multiplication of two 64-bit values.''';
+        return MockDocuments.aesGcm;
       case 'f8':
-        return '''Secure Enclave Infrastructure / System Architecture & Isolation
-Secure study enclaves rely on ring-0 isolation boundaries to ensure workspace integrity.
-
-Microkernel Principles
-To minimize the Trusted Computing Base (TCB), all non-essential OS services (such as drivers and filesystems) are executed in user space rather than kernel space.
-
-Memory Protection
-Intel SGX or AMD SEV isolate memory regions by hardware-encrypting RAM pages. Any unauthorized access from higher privilege rings triggers a processor exception, preventing memory inspection.''';
+        return MockDocuments.systemArchitecture;
       default:
         return 'Empty cryptographic block';
     }

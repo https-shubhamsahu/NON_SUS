@@ -1,14 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/supabase/supabase_bootstrap.dart';
 import '../config/supabase_credentials.dart';
 import '../features/groups/domain/models/study_group.dart';
 import '../features/groups/models/group_file.dart';
-import 'secure_db_service.dart';
 
 /// Service to handle all interactions with the live Supabase project.
 ///
@@ -156,12 +154,8 @@ class SupabaseService {
               securityStatus: status,
             );
 
-            // Register credentials so local decryption works transparently
-            final key = row['encryption_key_base64'] as String?;
-            final iv = row['encryption_iv_base64'] as String?;
-            if (key != null && iv != null) {
-              SecureDbService.instance.registerCredentials(file.id, key, iv);
-            }
+            // Note: encryption keys are no longer stored in the DB (E2E fix).
+            // Keys live exclusively in device SecureKeyStore.
 
             filesMap.putIfAbsent(file.groupId, () => []).add(file);
           }
@@ -191,8 +185,8 @@ class SupabaseService {
       'is_watermarked': file.isWatermarked,
       'is_pinned': file.isPinned,
       'security_status': file.securityStatus.name,
-      'encryption_key_base64': key,
-      'encryption_iv_base64': iv,
+      // Encryption keys are NOT stored in the DB (E2E security).
+      // They are persisted device-locally via SecureKeyStore.
     });
   }
 
@@ -256,8 +250,8 @@ class SupabaseService {
 
   // ─── Storage Operations ────────────────────────────────────────────────────
 
-  /// Uploads binary file bytes to Google Drive via Supabase Edge Function.
-  /// Returns the Google Drive fileId.
+  /// Uploads binary file bytes directly to Supabase Storage.
+  /// Returns the storage file ID on success.
   Future<String?> uploadStorageFile(
     String fileId,
     Uint8List encryptedBytes,
@@ -265,91 +259,34 @@ class SupabaseService {
     if (!isConfigured) return null;
 
     try {
-      final client = HttpClient();
-      final request = await client.postUrl(
-        Uri.parse('$_driveProxyUrl/upload?name=$fileId.enc'),
-      );
-      request.headers.set(HttpHeaders.authorizationHeader, _authHeader);
-      request.headers.set(
-        HttpHeaders.contentTypeHeader,
-        'application/octet-stream',
-      );
-      request.add(encryptedBytes);
-
-      final response = await request.close();
-      final responseBody = await response.transform(utf8.decoder).join();
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(responseBody) as Map<String, dynamic>;
-        return data['fileId'] as String?;
-      } else {
-        debugPrint(
-          "SupabaseService: Upload proxy failed: ${response.statusCode} - $responseBody",
-        );
-        return null;
-      }
+      await Supabase.instance.client.storage
+          .from('secure-files')
+          .uploadBinary(fileId, encryptedBytes);
+      return fileId;
     } catch (e) {
-      debugPrint("SupabaseService: Upload proxy exception: $e");
+      debugPrint("SupabaseService: Upload storage exception: $e");
       return null;
     }
   }
 
-  /// Downloads binary file bytes from Google Drive via Supabase Edge Function.
+  /// Downloads binary file bytes directly from Supabase Storage.
   Future<Uint8List?> downloadStorageFile(String fileId) async {
     if (!isConfigured) return null;
 
     try {
-      final client = HttpClient();
-      final request = await client.getUrl(
-        Uri.parse('$_driveProxyUrl/download?fileId=$fileId'),
-      );
-      request.headers.set(HttpHeaders.authorizationHeader, _authHeader);
-
-      final response = await request.close();
-      if (response.statusCode == 200) {
-        final bytesBuilder = BytesBuilder();
-        await for (final chunk in response) {
-          bytesBuilder.add(chunk);
-        }
-        return bytesBuilder.takeBytes();
-      } else {
-        final responseBody = await response.transform(utf8.decoder).join();
-        debugPrint(
-          "SupabaseService: Download proxy failed: ${response.statusCode} - $responseBody",
-        );
-        return null;
-      }
+      return await Supabase.instance.client.storage
+          .from('secure-files')
+          .download(fileId);
     } catch (e) {
-      debugPrint("SupabaseService: Download proxy exception: $e");
+      debugPrint("SupabaseService: Download storage exception: $e");
       return null;
     }
   }
 
   /// Fetches the Google Drive Service Account Email dynamically from the proxy.
+  /// Deprecated: Not used anymore since we use native Supabase Storage.
   Future<String?> getServiceAccountEmail() async {
-    if (!isConfigured) return null;
-
-    try {
-      final client = HttpClient();
-      final request = await client.getUrl(Uri.parse('$_driveProxyUrl/info'));
-      request.headers.set(HttpHeaders.authorizationHeader, _authHeader);
-
-      final response = await request.close();
-      final responseBody = await response.transform(utf8.decoder).join();
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(responseBody) as Map<String, dynamic>;
-        return data['serviceAccountEmail'] as String?;
-      } else {
-        debugPrint(
-          "SupabaseService: Fetch service account info failed: ${response.statusCode} - $responseBody",
-        );
-        return null;
-      }
-    } catch (e) {
-      debugPrint("SupabaseService: Fetch service account info exception: $e");
-      return null;
-    }
+    return "Supabase Storage Active";
   }
 
   // ─── Audit Logging Operations ──────────────────────────────────────────────
@@ -400,7 +337,14 @@ class SupabaseService {
           .select('note_text')
           .eq('user_id', userId)
           .maybeSingle();
-      return response?['note_text'] as String? ?? '';
+      return response?['note_text'] as String? ?? 
+          "Welcome to the NO SUS Secure Workspace!\n\n"
+          "Quick Tutorial on Groups:\n"
+          "1. Open the 'Groups' tab from the bottom nav.\n"
+          "2. Tap the '+' icon to create a secure study group.\n"
+          "3. Share the invite code with classmates.\n"
+          "4. Upload notes — they are E2E encrypted locally.\n"
+          "5. Use 'REVEAL' to read in our screenshot-proof viewer.";
     } catch (e) {
       debugPrint("SupabaseService: fetchUserNote error: $e");
       return '';
@@ -497,7 +441,7 @@ class SupabaseService {
     try {
       final response = await Supabase.instance.client
           .from('profiles')
-          .select('display_name, avatar_color_start, avatar_color_end')
+          .select('display_name, avatar_color_start, avatar_color_end, onboarding_completed')
           .eq('id', userId)
           .maybeSingle();
       return response ?? {};
@@ -514,6 +458,7 @@ class SupabaseService {
     required String displayName,
     required String avatarColorStart,
     required String avatarColorEnd,
+    bool onboardingCompleted = true,
   }) async {
     if (!isConfigured) return;
     try {
@@ -523,6 +468,7 @@ class SupabaseService {
         'display_name': displayName,
         'avatar_color_start': avatarColorStart,
         'avatar_color_end': avatarColorEnd,
+        'onboarding_completed': onboardingCompleted,
         'updated_at': DateTime.now().toUtc().toIso8601String(),
       });
     } catch (e) {

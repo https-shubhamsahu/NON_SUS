@@ -7,6 +7,7 @@ import '../domain/models/study_group.dart';
 import '../widgets/group_card.dart';
 import '../widgets/empty_states.dart';
 import 'group_detail_screen.dart';
+import 'join_group_page.dart';
 import '../../../theme.dart';
 import '../../auth/presentation/providers/auth_providers.dart';
 
@@ -124,6 +125,28 @@ class _GroupsHeader extends StatelessWidget {
               ),
             ),
           ],
+        ),
+        const Spacer(),
+        Tooltip(
+          message: 'Join Group',
+          child: InkWell(
+            onTap: () {
+              HapticFeedback.lightImpact();
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const JoinGroupPage()),
+              );
+            },
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: fg.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: fg.withValues(alpha: 0.1)),
+              ),
+              child: Icon(Icons.group_add_outlined, color: fg, size: 20),
+            ),
+          ),
         ),
       ],
     );

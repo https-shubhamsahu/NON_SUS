@@ -1,9 +1,10 @@
 import 'dart:async';
-import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../services/cryptography_service.dart';
 import '../../../../services/secure_db_service.dart';
+import '../../../../services/secure_key_store.dart';
 import '../../../../services/supabase_service.dart';
 import '../../domain/models/secure_file_metadata.dart';
 import '../../domain/repositories/secure_file_repository.dart';
@@ -46,8 +47,8 @@ class SupabaseSecureFileRepository implements SecureFileRepository {
     final key = CryptographyService.generateSymmetricKey();
     final iv = CryptographyService.generateIV();
 
-    // 2. Encrypt file in-memory
-    final encryptedBytes = CryptographyService.encryptBytes(rawBytes, key, iv);
+    // 2. Encrypt file using AES-GCM
+    final encryptedBytes = await CryptographyService.encryptBytes(rawBytes, key, iv);
 
     // 3. Emulate upload progress updates
     for (int i = 1; i <= 10; i++) {
@@ -60,7 +61,7 @@ class SupabaseSecureFileRepository implements SecureFileRepository {
     // 4. Upload binary file bytes to Supabase Storage
     await _client.storage.from('secure-files').uploadBinary(tempFileId, encryptedBytes);
 
-    // 5. Insert metadata row in secure_files table
+    // 5. Insert metadata row in secure_files table (NO KEYS in DB — E2E security)
     await _client.from('secure_files').insert({
       'id': tempFileId,
       'group_id': groupId,
@@ -72,11 +73,11 @@ class SupabaseSecureFileRepository implements SecureFileRepository {
       'is_watermarked': true,
       'is_pinned': false,
       'security_status': 'secured',
-      'encryption_key_base64': key,
-      'encryption_iv_base64': iv,
     });
 
-    // 6. Cache credentials locally
+    // 6. Store the AES key ONLY on this device via flutter_secure_storage
+    await SecureKeyStore.saveFileKey(tempFileId, key, iv);
+    // Also cache in memory for immediate use this session
     SecureDbService.instance.registerCredentials(tempFileId, key, iv);
 
     // 7. Log event
@@ -145,8 +146,6 @@ class SupabaseSecureFileRepository implements SecureFileRepository {
       'is_watermarked': true,
       'is_pinned': false,
       'security_status': 'secured',
-      'encryption_key_base64': '',
-      'encryption_iv_base64': '',
     });
 
     await _client.from('audit_logs').insert({
@@ -185,25 +184,41 @@ class SupabaseSecureFileRepository implements SecureFileRepository {
       String? iv = SecureDbService.instance.getFileIV(fileId);
 
       if (key == null || iv == null || key.isEmpty || iv.isEmpty) {
-        final response = await _client
-            .from('secure_files')
-            .select('encryption_key_base64, encryption_iv_base64')
-            .eq('id', fileId)
-            .maybeSingle();
-
-        if (response != null) {
-          key = response['encryption_key_base64'] as String?;
-          iv = response['encryption_iv_base64'] as String?;
-          if (key != null && iv != null) {
-            SecureDbService.instance.registerCredentials(fileId, key, iv);
-          }
+        // Try device-local secure storage first (correct E2E model)
+        final stored = await SecureKeyStore.getFileKey(fileId);
+        if (stored != null) {
+          key = stored.key;
+          iv = stored.iv;
+          SecureDbService.instance.registerCredentials(fileId, key, iv);
         }
+      }
+
+      if (key == null || iv == null || key.isEmpty || iv.isEmpty) {
+        // Try selecting from secure_files table (shared/welcome notes fallback)
+        try {
+          final row = await _client
+              .from('secure_files')
+              .select('encryption_key_base64, encryption_iv_base64')
+              .eq('id', fileId)
+              .maybeSingle();
+          if (row != null) {
+            final dbKey = row['encryption_key_base64'] as String?;
+            final dbIv = row['encryption_iv_base64'] as String?;
+            if (dbKey != null && dbIv != null && dbKey.isNotEmpty && dbIv.isNotEmpty) {
+              key = dbKey;
+              iv = dbIv;
+              SecureDbService.instance.registerCredentials(fileId, key, iv);
+            }
+          }
+        } catch (_) {}
+        // Note: If both local storage and database keys are null, the file was uploaded 
+        // on a different device and has no database key — this is the CORRECT E2E security behavior.
       }
 
       onProgress(0.7);
 
       if (key != null && iv != null && key.isNotEmpty && iv.isNotEmpty) {
-        final decryptedBytes = CryptographyService.decryptBytes(encryptedBytes, key, iv);
+        final decryptedBytes = await CryptographyService.decryptBytes(encryptedBytes, key, iv);
         onProgress(1.0);
         return decryptedBytes;
       } else {
@@ -211,18 +226,15 @@ class SupabaseSecureFileRepository implements SecureFileRepository {
         return encryptedBytes;
       }
     } catch (e, s) {
-      print("SupabaseSecureFileRepository: downloadAndDecryptFile error: $e\n$s");
+      debugPrint("SupabaseSecureFileRepository: downloadAndDecryptFile error: $e\n$s");
       return null;
     }
   }
 
   SecureFileMetadata _mapFile(Map<String, dynamic> row) {
     final fileId = row['id'] as String;
-    final key = row['encryption_key_base64'] as String?;
-    final iv = row['encryption_iv_base64'] as String?;
-    if (key != null && iv != null) {
-      SecureDbService.instance.registerCredentials(fileId, key, iv);
-    }
+    // Note: encryption keys are NOT in the DB row anymore (E2E security fix).
+    // Keys are stored device-locally via SecureKeyStore.
 
     return SecureFileMetadata(
       id: fileId,

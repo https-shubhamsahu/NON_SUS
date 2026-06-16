@@ -47,6 +47,14 @@ class WatermarkPainter extends CustomPainter {
             fontWeight: line.$3,
             letterSpacing: 0.6,
             height: 1.15,
+            shadows: [
+              Shadow(
+                color: isDark 
+                    ? Colors.black.withValues(alpha: 0.4) 
+                    : Colors.white.withValues(alpha: 0.4),
+                blurRadius: 1.5,
+              ),
+            ],
           ),
         ),
         textDirection: TextDirection.ltr,

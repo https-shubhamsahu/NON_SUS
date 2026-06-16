@@ -5,12 +5,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:file_picker/file_picker.dart' as fp;
 import '../models/group_file.dart';
-import '../providers/groups_provider.dart';
 import '../../../theme.dart';
 import '../../files/domain/models/secure_file_metadata.dart';
 import '../../files/presentation/providers/secure_file_providers.dart';
 import '../../auth/presentation/providers/auth_providers.dart';
 import '../../profile/providers/profile_provider.dart';
+import '../../files/presentation/providers/upload_provider.dart';
 
 /// Premium upload bottom sheet. Slides up via DraggableScrollableSheet.
 /// States: pick/link → processing (animated progress) → complete (checkmark).
@@ -164,6 +164,13 @@ class _UploadModalState extends ConsumerState<UploadModal>
       }
 
       final file = result.files.first;
+      
+      // Enforce 10MB limit per file
+      if (file.size > 10 * 1024 * 1024) {
+        _showErrorSnackBar("File exceeds 10MB limit. Please select a smaller file.");
+        return;
+      }
+
       final name = file.name;
       final bytes = file.bytes;
 

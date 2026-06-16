@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../theme.dart';
 import '../controllers/auth_controller.dart';
+import '../providers/auth_providers.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
   const AuthScreen({super.key});
@@ -485,14 +486,43 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           const SizedBox(height: 12),
                           _buildOAuthIconButton(
                             icon: Icons.phone_android,
-                            label: 'CONTINUE WITH PHONE',
-                            onPressed: () {
-                              setState(() {
-                                _isPhoneAuth = true;
-                                _otpSent = false;
-                              });
-                            },
+                            label: 'CONTINUE WITH PHONE (COMING SOON)',
+                            onPressed: null,
                             fg: fg,
+                            enabled: false,
+                          ),
+                          const SizedBox(height: 12),
+                          GestureDetector(
+                            onTap: () {
+                              HapticFeedback.mediumImpact();
+                              ref.read(isGuestModeProvider.notifier).enableGuest();
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: fg.withValues(alpha: 0.15),
+                                  width: 0.75,
+                                ),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.person_outline, size: 20, color: fg),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'CONTINUE AS GUEST (OFFLINE)',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1.0,
+                                      color: fg,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ],
                       ],
@@ -536,21 +566,23 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   Widget _buildOAuthIconButton({
     required IconData icon,
     required String label,
-    required VoidCallback onPressed,
+    required VoidCallback? onPressed,
     required Color fg,
+    bool enabled = true,
   }) {
+    final displayFg = enabled ? fg : fg.withValues(alpha: 0.35);
     return GestureDetector(
-      onTap: onPressed,
+      onTap: enabled ? onPressed : null,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
-          border: Border.all(color: fg.withValues(alpha: 0.15), width: 0.75),
+          border: Border.all(color: displayFg.withValues(alpha: 0.15), width: 0.75),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 20, color: fg),
+            Icon(icon, size: 20, color: displayFg),
             const SizedBox(width: 8),
             Text(
               label,
@@ -558,7 +590,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 fontSize: 10,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.0,
-                color: fg,
+                color: displayFg,
               ),
             ),
           ],

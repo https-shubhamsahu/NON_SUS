@@ -1,5 +1,8 @@
+// ignore_for_file: avoid_print
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:no_sus/config/supabase_credentials.dart';
 
 class EmptyLocalStorage extends LocalStorage {
@@ -19,9 +22,12 @@ class EmptyLocalStorage extends LocalStorage {
 void main() {
   test('diagnose database', () async {
     try {
+      TestWidgetsFlutterBinding.ensureInitialized();
+      HttpOverrides.global = null;
+      SharedPreferences.setMockInitialValues({});
       await Supabase.initialize(
         url: SupabaseCredentials.url,
-        anonKey: SupabaseCredentials.anonKey,
+        publishableKey: SupabaseCredentials.anonKey,
         authOptions: const FlutterAuthClientOptions(
           localStorage: EmptyLocalStorage(),
         ),
@@ -58,13 +64,32 @@ void main() {
       }
 
       try {
-        final logs = await client.from('audit_logs').select('*');
-        print('--- AUDIT LOGS (${logs.length}) ---');
-        for (var l in logs) {
-          print('Log: $l');
+        final files = await client.from('secure_files').select('*');
+        print('--- SECURE FILES (${files.length}) ---');
+        for (var f in files) {
+          print('File: $f');
         }
       } catch (e) {
-        print('Error fetching audit_logs: $e');
+        print('Error fetching secure_files: $e');
+      }
+
+      final tablesToCheck = [
+        'profiles',
+        'study_groups',
+        'study_group_members',
+        'secure_files',
+        'audit_logs',
+        'focus_logs',
+        'user_notes'
+      ];
+
+      for (final table in tablesToCheck) {
+        try {
+          await client.from(table).select('*').limit(1);
+          print('Table "$table" EXISTS.');
+        } catch (e) {
+          print('Table "$table" DOES NOT EXIST or query failed: $e');
+        }
       }
 
     } catch (e, s) {

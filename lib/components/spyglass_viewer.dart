@@ -9,13 +9,14 @@ import '../features/files/presentation/providers/secure_file_providers.dart';
 import 'secure_viewer/models/watermark_config.dart';
 import 'secure_viewer/models/viewer_config.dart';
 import 'secure_viewer/secure_document_viewer.dart';
-import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
+import 'package:pdfrx/pdfrx.dart';
+import 'package:screen_protector/screen_protector.dart';
 import '../features/auth/presentation/providers/auth_providers.dart';
 import '../features/profile/providers/profile_provider.dart';
+import '../features/profile/providers/settings_provider.dart';
+import '../core/constants/mock_documents.dart';
 
-// ─── Demo user session (replace with real auth data) ─────────────────────────
-
-const _demoEmail = 'student@nosus.app';
+// ─── User identity resolved from live auth providers ────────────────────────
 
 /// The full-screen secure document viewer page.
 ///
@@ -66,13 +67,21 @@ class _SpyglassViewerState extends ConsumerState<SpyglassViewer> {
       statusBarBrightness: Brightness.dark,
     ));
 
+    _initScreenshotProtection();
     _loadSecureEnclavePayload();
+  }
+
+  Future<void> _initScreenshotProtection() async {
+    await ScreenProtector.preventScreenshotOn();
+    await ScreenProtector.protectDataLeakageOn();
   }
 
   @override
   void dispose() {
     // Purge the memory buffer immediately when leaving the viewer
     SecureEnclave.purge();
+    ScreenProtector.preventScreenshotOff();
+    ScreenProtector.protectDataLeakageOff();
     super.dispose();
   }
 
@@ -109,12 +118,11 @@ class _SpyglassViewerState extends ConsumerState<SpyglassViewer> {
       }
     }
 
-    // Fallback if streaming failed or no fileId was provided
+    // Fallback if streaming failed or no fileId was provided — load plain text into enclave.
     if (plainBytes == null) {
-      final rawText = _getDocumentText();
-      const mockKey = "NOSUS_SECRET_DRM_KEY_2026";
-      final encryptedBase64 = SecureEnclave.encryptMockData(rawText, mockKey);
-      plainBytes = await SecureEnclave.loadDocument(encryptedBase64, mockKey);
+      final rawText = MockDocuments.getByTitle(widget.documentTitle);
+      SecureEnclave.loadPlainText(rawText);
+      plainBytes = SecureEnclave.activeBuffer ?? Uint8List(0);
     }
 
     // Detect PDF by magic bytes %PDF
@@ -165,69 +173,7 @@ class _SpyglassViewerState extends ConsumerState<SpyglassViewer> {
     }
   }
 
-  String _getDocumentText() {
-    final title = widget.documentTitle;
-    if (title != null) {
-      if (title.contains('Zero-Knowledge')) {
-        return '''Public-Key Cryptography / Introduction to Zero-Knowledge Proofs
-A Zero-Knowledge Proof (ZKP) allows a prover to convince a verifier that a statement is true without revealing any information beyond the validity of the statement itself.
-
-Key ZKP Properties
-1. Completeness: If the statement is true, an honest verifier will be convinced by an honest prover.
-2. Soundness: If the statement is false, no cheating prover can convince an honest verifier (except with tiny probability).
-3. Zero-Knowledge: If the statement is true, no verifier learns anything other than this fact.
-
-Applications in Privacy-Preserving Computations
-ZKPs are crucial in decentralized identity, anonymous transactions, and secure rollup chains. By verifying computations off-chain and only committing proofs on-chain, we achieve both high throughput and extreme privacy bounds.''';
-      } else if (title.contains('AES-256-GCM')) {
-        return '''Galois Counter Mode (GCM) / AES-256-GCM Hardware Performance
-Advanced Encryption Standard (AES) with Galois/Counter Mode (GCM) provides both confidentiality and data integrity.
-
-Hardware Acceleration
-Modern CPUs provide instructions (like Intel's AES-NI or ARMv8 Cryptography extensions) that execute rounds of AES in hardware. This mitigates cache-timing side-channel attacks by executing lookup tables in constant time.
-
-Galois Multiplier
-GCM utilizes universal hashing over a binary Galois field (GF(2^128)) for authentication. The PCLMULQDQ instruction performs carry-less multiplication of two 64-bit values, accelerating the Ghash calculation significantly.''';
-      } else if (title.contains('System Architecture')) {
-        return '''Secure Enclave Infrastructure / System Architecture & Isolation
-Secure study enclaves rely on ring-0 isolation boundaries to ensure workspace integrity.
-
-Microkernel Principles
-To minimize the Trusted Computing Base (TCB), all non-essential OS services (such as drivers and filesystems) are executed in user space rather than kernel space.
-
-Memory Protection
-Intel SGX or AMD SEV isolate memory regions by hardware-encrypting RAM pages. Any unauthorized access from higher privilege rings triggers a processor exception, preventing memory inspection from rootkits or compromised hypervisors.''';
-      }
-    }
-
-    return '''Asymmetric Key Cryptography / Advanced Cryptography
-Public-Key Infrastructure uses a mathematically linked key pair: a public key that anyone may use to encrypt data, and a private key held exclusively by the recipient to decrypt it.
-
-Key Exchange — Diffie-Hellman
-The Diffie-Hellman key exchange allows two parties to establish a shared secret over an insecure channel without prior communication.
-
-Digital Signatures
-A digital signature provides authentication, integrity, and non-repudiation. RSA-PSS is the recommended padding scheme for RSA signatures. ECDSA with SHA-256 is preferred for compact signatures.''';
-  }
-
-  String _getAvatarLabel(String colorStart) {
-    switch (colorStart) {
-      case 'FF0072FF':
-        return 'THE BUILDER';
-      case 'FFCCCCCC':
-        return 'THE RESEARCHER';
-      case 'FFFF0072':
-        return 'THE CREATOR';
-      case 'FFF5A623':
-        return 'THE ACADEMIC WEAPON';
-      case 'FF800080':
-        return 'THE CHAOS AGENT';
-      case 'FFADF474':
-        return 'THE ARCHIVIST';
-      default:
-        return 'THE BUILDER';
-    }
-  }
+  // Removed _getDocumentText and _getAvatarLabel, now using MockDocuments and AppConstants
 
   @override
   Widget build(BuildContext context) {
@@ -238,24 +184,20 @@ A digital signature provides authentication, integrity, and non-repudiation. RSA
 
     final authState = ref.watch(authStateProvider);
     final profileAsync = ref.watch(profileProvider);
+    final isWatermarkVisible = ref.watch(watermarkVisibilityProvider);
 
-    final String userEmail = authState.value?.email ?? widget.email ?? _demoEmail;
+    final String userEmail = authState.value?.email ?? widget.email ?? 'student@nosus.app';
     final String displayName = profileAsync.maybeWhen(
       data: (p) => p.displayName,
       orElse: () => userEmail.contains('@') ? userEmail.split('@').first : 'Guest Scholar',
     );
-    final String startColor = profileAsync.maybeWhen(
-      data: (p) => p.avatarColorStart,
-      orElse: () => 'FF0072FF',
-    );
-    final String role = _getAvatarLabel(startColor);
 
     final watermarkConfig = WatermarkConfig(
       name: displayName.toUpperCase(),
-      role: role,
+      role: 'SECURE MEMBER',
       email: userEmail,
       timestamp: _sessionTimestamp,
-      opacity: 0.075,
+      opacity: isWatermarkVisible ? 0.12 : 0.0,
       fontSize: 10.5,
       tileSpacingX: 195.0,
       tileSpacingY: 95.0,
@@ -378,30 +320,69 @@ A digital signature provides authentication, integrity, and non-repudiation. RSA
                 ),
               ),
             )
-          : SecureDocumentViewer(
-              watermarkConfig: watermarkConfig,
-              viewerConfig: viewerConfig,
-              showHint: true,
-              child: _isPdf
-                  ? SfPdfViewer.memory(
-                      SecureEnclave.activeBuffer!,
-                      enableDoubleTapZooming: true,
-                    )
-                  : _isImage
-                      ? InteractiveViewer(
-                          child: Center(
-                            child: Image.memory(
-                              SecureEnclave.activeBuffer!,
-                            ),
-                          ),
-                        )
-                      : _DocumentContent(
-                          isDark: isDark,
-                          fg: fg,
-                          bg: bg,
-                          text: _decryptedContent,
-                        ),
+          : _buildDocumentBody(watermarkConfig, viewerConfig, isDark, fg, bg),
+    );
+  }
+
+  Widget _buildDocumentBody(
+    WatermarkConfig watermarkConfig,
+    ViewerConfig viewerConfig,
+    bool isDark,
+    Color fg,
+    Color bg,
+  ) {
+    final buffer = SecureEnclave.activeBuffer;
+
+    // Null guard — if buffer was purged (e.g. widget re-entry) show a safe error state.
+    if (buffer == null && (_isPdf || _isImage)) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.lock_reset_outlined, size: 36, color: fg.withValues(alpha: 0.3)),
+            const SizedBox(height: 16),
+            Text(
+              'SESSION EXPIRED',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 2.0,
+                color: fg.withValues(alpha: 0.4),
+              ),
             ),
+            const SizedBox(height: 8),
+            Text(
+              'Secure buffer was purged.\nReturn and open the document again.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: fg.withValues(alpha: 0.5)),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return SecureDocumentViewer(
+      watermarkConfig: watermarkConfig,
+      viewerConfig: viewerConfig,
+      showHint: true,
+      touchToRevealEnabled: ref.watch(touchToRevealProvider),
+      child: _isPdf
+          ? PdfViewer.data(
+              buffer!,
+              sourceName: widget.documentTitle ?? 'document.pdf',
+            )
+          : _isImage
+              ? InteractiveViewer(
+                  child: Center(
+                    child: Image.memory(buffer!),
+                  ),
+                )
+              : _DocumentContent(
+                  isDark: isDark,
+                  fg: fg,
+                  bg: bg,
+                  text: _decryptedContent,
+                ),
     );
   }
 }

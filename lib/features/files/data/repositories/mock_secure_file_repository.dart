@@ -91,7 +91,7 @@ class MockSecureFileRepository implements SecureFileRepository {
     required String fileId,
     required Function(double) onProgress,
   }) async {
-    final decryptedBytes = SecureDbService.instance.downloadAndDecryptFile(fileId);
+    final decryptedBytes = await SecureDbService.instance.downloadAndDecryptFile(fileId);
     if (decryptedBytes == null) return null;
 
     // Simulate progress updates

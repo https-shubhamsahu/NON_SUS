@@ -31,7 +31,7 @@ subprojects {
     project.evaluationDependsOn(":app")
 }
 subprojects {
-    if (name == "file_picker") {
+    if (name == "file_picker" || name == "screen_protector") {
         plugins.apply("org.jetbrains.kotlin.android")
     }
 }

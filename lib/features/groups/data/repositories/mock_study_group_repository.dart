@@ -15,4 +15,13 @@ class MockStudyGroupRepository implements StudyGroupRepository {
   Future<void> createGroup(StudyGroup group) {
     return SecureDbService.instance.createGroup(group);
   }
+
+  @override
+  Future<void> ensureCommunityExists(String name, String description, bool isPublic) async {}
+
+  @override
+  Future<void> joinGroupByName(String name, String userId) async {}
+
+  @override
+  Future<void> joinGroupByInviteCode(String inviteCode, String userId) async {}
 }

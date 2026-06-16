@@ -3,11 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/supabase/supabase_bootstrap.dart';
 import '../../../../core/supabase/supabase_providers.dart';
 import '../../../../services/supabase_service.dart';
+import '../../../../services/secure_db_service.dart';
 import '../../data/repositories/supabase_auth_repository.dart';
 import '../../data/repositories/mock_auth_repository.dart';
 import '../../data/services/supabase_auth_service.dart';
 import '../../domain/entities/authenticated_user.dart';
 import '../../domain/repositories/auth_repository.dart';
+import '../../domain/usecases/sign_in_use_case.dart';
+import '../../domain/usecases/sign_up_use_case.dart';
+import '../../domain/usecases/sign_out_use_case.dart';
 
 final supabaseAuthServiceProvider = Provider<SupabaseAuthService>((ref) {
   return SupabaseAuthService(ref.watch(supabaseClientProvider));
@@ -24,3 +28,35 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 final authStateProvider = StreamProvider<AuthenticatedUser?>((ref) {
   return ref.watch(authRepositoryProvider).watchAuthState();
 });
+
+class GuestModeNotifier extends Notifier<bool> {
+  @override
+  bool build() => SecureDbService.instance.isGuestMode();
+
+  Future<void> enableGuest() async {
+    state = true;
+    await SecureDbService.instance.setGuestMode(true);
+  }
+
+  Future<void> disableGuest() async {
+    state = false;
+    await SecureDbService.instance.setGuestMode(false);
+  }
+}
+
+final isGuestModeProvider = NotifierProvider<GuestModeNotifier, bool>(
+  GuestModeNotifier.new,
+);
+
+final signInUseCaseProvider = Provider<SignInUseCase>((ref) {
+  return SignInUseCase(ref.watch(authRepositoryProvider));
+});
+
+final signUpUseCaseProvider = Provider<SignUpUseCase>((ref) {
+  return SignUpUseCase(ref.watch(authRepositoryProvider));
+});
+
+final signOutUseCaseProvider = Provider<SignOutUseCase>((ref) {
+  return SignOutUseCase(ref.watch(authRepositoryProvider));
+});
+

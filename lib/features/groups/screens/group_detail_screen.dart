@@ -15,6 +15,7 @@ import '../../../theme.dart';
 import '../../../components/spyglass_viewer.dart';
 import '../../../services/zero_trust_gateway.dart';
 import '../../auth/presentation/providers/auth_providers.dart';
+import '../../audit/providers/audit_provider.dart';
 
 /// Full-screen group detail page with tabbed content:
 /// Files | Notes | Members | Activity
@@ -63,6 +64,18 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
         ? NoSusTheme.dTextSecondary
         : NoSusTheme.lTextSecondary;
     final cardBg = isDark ? NoSusTheme.dCard : NoSusTheme.lCard;
+
+    final groupsAsync = ref.watch(groupsProvider);
+    final group = groupsAsync.maybeWhen(
+      data: (list) {
+        try {
+          return list.firstWhere((g) => g.id == widget.group.id);
+        } catch (_) {
+          return widget.group;
+        }
+      },
+      orElse: () => widget.group,
+    );
 
     return Scaffold(
       backgroundColor: bg,
@@ -128,11 +141,11 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SecurityBadge(
-                      level: widget.group.securityLevel,
+                      level: group.securityLevel,
                     ).animate().fadeIn(duration: 200.ms),
                     const SizedBox(height: 12),
                     Text(
-                          widget.group.name,
+                          group.name,
                           style: TextStyle(
                             color: fg,
                             fontSize: 26,
@@ -147,13 +160,13 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
                     Row(
                       children: [
                         MemberAvatarStack(
-                          members: widget.group.members,
+                          members: group.members,
                           maxVisible: 4,
                           size: 22,
                         ),
                         const SizedBox(width: 10),
                         Text(
-                          '${widget.group.memberCount} members  ·  ${widget.group.fileCount} files',
+                          '${group.memberCount} members  ·  ${group.fileCount} files',
                           style: TextStyle(fontSize: 12, color: subtle),
                         ),
                       ],
@@ -206,15 +219,15 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
         body: TabBarView(
           controller: _tabController,
           children: [
-            _FilesTab(group: widget.group, onUpload: _openUploadModal),
+            _FilesTab(group: group, onUpload: _openUploadModal),
             _NotesTab(
-              group: widget.group,
+              group: group,
               fg: fg,
               subtle: subtle,
               cardBg: cardBg,
             ),
-            _MembersTab(members: widget.group.members, fg: fg, subtle: subtle),
-            _ActivityTab(groupId: widget.group.id, fg: fg, subtle: subtle),
+            _MembersTab(members: group.members, fg: fg, subtle: subtle),
+            _ActivityTab(groupId: group.id, fg: fg, subtle: subtle),
           ],
         ),
       ),
@@ -248,7 +261,9 @@ class _FilesTab extends ConsumerWidget {
         ),
       ),
       data: (filesMap) {
-        final files = filesMap[group.id] ?? [];
+        final allFiles = filesMap[group.id] ?? [];
+        final files = allFiles.where((f) => f.type != FileType.markdown).toList();
+        
         return files.isEmpty
             ? FilesEmptyState(onUpload: onUpload)
             : ListView.separated(
@@ -268,230 +283,12 @@ class _FilesTab extends ConsumerWidget {
                     onPin: () => ref
                         .read(groupFilesProvider.notifier)
                         .togglePin(group.id, file.id),
-                    onOpen: () async {
-                      // 1. Show dynamic security policy evaluation loading dialog
-                      showDialog(
-                        context: context,
-                        barrierDismissible: false,
-                        builder: (BuildContext dialogContext) {
-                          final isDark =
-                              Theme.of(dialogContext).brightness ==
-                              Brightness.dark;
-                          return Theme(
-                            data: Theme.of(dialogContext),
-                            child: Dialog(
-                              backgroundColor: isDark
-                                  ? NoSusTheme.dCard
-                                  : NoSusTheme.lCard,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                side: BorderSide(
-                                  color: isDark
-                                      ? const Color(0x33FFFFFF)
-                                      : const Color(0xFF1A1A1A),
-                                  width: 1.2,
-                                ),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 32.0,
-                                  horizontal: 24.0,
-                                ),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const SizedBox(
-                                      width: 28,
-                                      height: 28,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 1.5,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                              Colors.grey,
-                                            ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 20),
-                                    Text(
-                                      'EVALUATING SECURITY POLICY',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w700,
-                                        letterSpacing: 2.0,
-                                        color: isDark
-                                            ? NoSusTheme.dText.withValues(
-                                                alpha: 0.5,
-                                              )
-                                            : NoSusTheme.lText.withValues(
-                                                alpha: 0.5,
-                                              ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      'Requesting enclave access...',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: isDark
-                                            ? NoSusTheme.dText.withValues(
-                                                alpha: 0.7,
-                                              )
-                                            : NoSusTheme.lText.withValues(
-                                                alpha: 0.7,
-                                              ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      );
-
-                      // 2. Dispatch simulated HTTPS check to ZeroTrustGateway
-                      final currentUser = ref.read(authStateProvider).value;
-                      final userId = currentUser?.id ?? 'me';
-                      final response = await ZeroTrustGateway.requestDocument(
-                        userId,
-                        file.id,
-                      );
-
-                      // 3. Pop the dialog
-                      if (context.mounted) {
-                        Navigator.of(context).pop();
-                      }
-
-                      // 4. Evaluate access policy response
-                      if (response.isSuccess) {
-                        // Log successful secure document access
-                        ref
-                            .read(auditLogsProvider.notifier)
-                            .addLog(
-                              "Document Access Authorized: ${file.name}",
-                              "SUCCESS",
-                            );
-
-                        if (context.mounted) {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => SpyglassViewer(
-                                fileId: file.id,
-                                documentTitle: file.name,
-                                documentCategory: file.type.label,
-                              ),
-                            ),
-                          );
-                        }
-                      } else {
-                        // Log blocked unauthorized document access attempt
-                        ref
-                            .read(auditLogsProvider.notifier)
-                            .addLog(
-                              "Unauthorized Access Blocked: Enclave Group ${group.name}",
-                              "SECURITY",
-                            );
-
-                        // Show premium monochrome "Access Denied" explanation dialog
-                        if (context.mounted) {
-                          showDialog(
-                            context: context,
-                            builder: (BuildContext dialogContext) {
-                              final isDark =
-                                  Theme.of(dialogContext).brightness ==
-                                  Brightness.dark;
-                              return Theme(
-                                data: Theme.of(dialogContext),
-                                child: Dialog(
-                                  backgroundColor: isDark
-                                      ? NoSusTheme.dCard
-                                      : NoSusTheme.lCard,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                    side: BorderSide(
-                                      color: isDark
-                                          ? const Color(0x33FFFFFF)
-                                          : const Color(0xFF1A1A1A),
-                                      width: 1.2,
-                                    ),
-                                  ),
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(24.0),
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Icon(
-                                          Icons.gpp_bad_outlined,
-                                          color: Colors.amber,
-                                          size: 44,
-                                        ),
-                                        const SizedBox(height: 20),
-                                        Text(
-                                          'ACCESS DENIED',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w700,
-                                            letterSpacing: 2.0,
-                                            color: isDark
-                                                ? NoSusTheme.dText
-                                                : NoSusTheme.lText,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 12),
-                                        Text(
-                                          response.errorMessage ??
-                                              'You do not have permission to view this secure document.',
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            color: isDark
-                                                ? NoSusTheme.dText.withValues(
-                                                    alpha: 0.6,
-                                                  )
-                                                : NoSusTheme.lText.withValues(
-                                                    alpha: 0.6,
-                                                  ),
-                                            height: 1.5,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 24),
-                                        GestureDetector(
-                                          onTap: () =>
-                                              Navigator.of(dialogContext).pop(),
-                                          child: Container(
-                                            width: double.infinity,
-                                            alignment: Alignment.center,
-                                            padding: const EdgeInsets.symmetric(
-                                              vertical: 12,
-                                            ),
-                                            decoration:
-                                                NoSusTheme.buttonDecoration(
-                                                  dialogContext,
-                                                  radius: 10,
-                                                ),
-                                            child: Text(
-                                              'DISMISS',
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.w700,
-                                                letterSpacing: 1.5,
-                                                color: isDark
-                                                    ? NoSusTheme.dText
-                                                    : NoSusTheme.lText,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                          );
-                        }
-                      }
-                    },
+                    onOpen: () => _evaluateAndOpenFile(
+                      context: context,
+                      ref: ref,
+                      file: file,
+                      group: group,
+                    ),
                   );
                 },
               );
@@ -502,7 +299,7 @@ class _FilesTab extends ConsumerWidget {
 
 // ─── Notes tab ────────────────────────────────────────────────────────────────
 
-class _NotesTab extends StatelessWidget {
+class _NotesTab extends ConsumerWidget {
   final StudyGroup group;
   final Color fg;
   final Color subtle;
@@ -515,114 +312,374 @@ class _NotesTab extends StatelessWidget {
     required this.cardBg,
   });
 
-  static const _pinnedNotes = [
-    (
-      'Key Takeaways — RSA',
-      '## Summary\n\nModular exponentiation is the core operation.\n`c = m^e mod n`\n\nSecurity relies on the integer factorization problem.',
-    ),
-    (
-      'Meeting Notes Jun 8',
-      'Discussed:\n- Timing attacks on RSA\n- Constant-time comparisons\n- Next session: ECC deep dive',
-    ),
-  ];
-
   @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(NoSusTheme.s24),
-      physics: const BouncingScrollPhysics(),
-      children: [
-        Text(
-          'PINNED NOTES',
+  Widget build(BuildContext context, WidgetRef ref) {
+    final filesAsync = ref.watch(groupFilesProvider);
+
+    return filesAsync.when(
+      loading: () =>
+          const Center(child: CircularProgressIndicator(strokeWidth: 1.5)),
+      error: (e, _) => Center(
+        child: Text(
+          'Failed to load notes',
           style: TextStyle(
             color: subtle,
-            fontSize: 10,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 2.0,
           ),
         ),
-        const SizedBox(height: 12),
-        ..._pinnedNotes.asMap().entries.map(
-          (e) => Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: _PinnedNoteCard(
-              title: e.value.$1,
-              preview: e.value.$2,
+      ),
+      data: (filesMap) {
+        final allFiles = filesMap[group.id] ?? [];
+        final notes = allFiles.where((f) => f.type == FileType.markdown).toList();
+
+        if (notes.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.note_alt_outlined, size: 48, color: subtle),
+                const SizedBox(height: 16),
+                Text(
+                  'NO SECURE NOTES YET',
+                  style: TextStyle(
+                    color: fg,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Auto-generated group notes will appear here shortly.',
+                  style: TextStyle(color: subtle, fontSize: 13),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return ListView.separated(
+          padding: const EdgeInsets.all(NoSusTheme.s24),
+          physics: const BouncingScrollPhysics(),
+          itemCount: notes.length,
+          separatorBuilder: (context, index) =>
+              const SizedBox(height: NoSusTheme.s12),
+          itemBuilder: (context, i) {
+            final note = notes[i];
+            return _PinnedNoteCard(
+              note: note,
               fg: fg,
               subtle: subtle,
               cardBg: cardBg,
-              index: e.key,
-            ),
-          ),
-        ),
-      ],
+              index: i,
+              onOpen: () => _evaluateAndOpenFile(
+                context: context,
+                ref: ref,
+                file: note,
+                group: group,
+              ),
+              onDelete: () => ref
+                  .read(groupFilesProvider.notifier)
+                  .removeFile(group.id, note.id),
+            );
+          },
+        );
+      },
     );
   }
 }
 
 class _PinnedNoteCard extends StatelessWidget {
-  final String title;
-  final String preview;
+  final GroupFile note;
   final Color fg;
   final Color subtle;
   final Color cardBg;
   final int index;
+  final VoidCallback onOpen;
+  final VoidCallback onDelete;
 
   const _PinnedNoteCard({
-    required this.title,
-    required this.preview,
+    required this.note,
     required this.fg,
     required this.subtle,
     required this.cardBg,
     required this.index,
+    required this.onOpen,
+    required this.onDelete,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-          padding: const EdgeInsets.all(NoSusTheme.s16),
-          decoration: NoSusTheme.cardDecoration(context),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.push_pin, size: 12, color: subtle),
-                  const SizedBox(width: 6),
-                  Text(
-                    title,
+    return GestureDetector(
+      onTap: onOpen,
+      child: Container(
+        padding: const EdgeInsets.all(NoSusTheme.s16),
+        decoration: NoSusTheme.cardDecoration(context),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.push_pin, size: 12, color: subtle),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    note.name,
                     style: TextStyle(
                       color: fg,
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                preview,
-                style: TextStyle(
-                  color: fg.withValues(alpha: 0.5),
-                  fontSize: 12,
-                  height: 1.5,
-                  fontFamily: 'Courier',
                 ),
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
+                GestureDetector(
+                  onTap: onDelete,
+                  child: Icon(
+                    Icons.delete_outline,
+                    size: 14,
+                    color: subtle.withValues(alpha: 0.7),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Tap to decrypt and read secure note content...',
+              style: TextStyle(
+                color: fg.withValues(alpha: 0.4),
+                fontSize: 11,
+                fontStyle: FontStyle.italic,
               ),
-            ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Uploaded by ${note.uploadedByName}  ·  ${note.uploadedAtLabel}',
+              style: TextStyle(
+                color: subtle,
+                fontSize: 10,
+              ),
+            ),
+          ],
+        ),
+      ),
+    )
+    .animate(delay: (index * 80).ms)
+    .fadeIn(duration: 250.ms)
+    .slideY(begin: 0.03, end: 0);
+  }
+}
+
+// ─── Zero-Trust Gateway File Open Helper ──────────────────────────────────────
+
+Future<void> _evaluateAndOpenFile({
+  required BuildContext context,
+  required WidgetRef ref,
+  required GroupFile file,
+  required StudyGroup group,
+}) async {
+  // 1. Show dynamic security policy evaluation loading dialog
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (BuildContext dialogContext) {
+      final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
+      return Theme(
+        data: Theme.of(dialogContext),
+        child: Dialog(
+          backgroundColor: isDark ? NoSusTheme.dCard : NoSusTheme.lCard,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: isDark ? const Color(0x33FFFFFF) : const Color(0xFF1A1A1A),
+              width: 1.2,
+            ),
           ),
-        )
-        .animate(delay: (index * 80).ms)
-        .fadeIn(duration: 250.ms)
-        .slideY(begin: 0.03, end: 0);
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              vertical: 32.0,
+              horizontal: 24.0,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(
+                  width: 28,
+                  height: 28,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 1.5,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Colors.grey,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'EVALUATING SECURITY POLICY',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 2.0,
+                    color: isDark
+                        ? NoSusTheme.dText.withValues(
+                            alpha: 0.5,
+                          )
+                        : NoSusTheme.lText.withValues(
+                            alpha: 0.5,
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Requesting enclave access...',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark
+                        ? NoSusTheme.dText.withValues(
+                            alpha: 0.7,
+                          )
+                        : NoSusTheme.lText.withValues(
+                            alpha: 0.7,
+                          ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    },
+  );
+
+  // 2. Dispatch simulated HTTPS check to ZeroTrustGateway
+  final currentUser = ref.read(authStateProvider).value;
+  final userId = currentUser?.id ?? 'me';
+  final response = await ZeroTrustGateway.requestDocument(
+    userId,
+    file.id,
+  );
+
+  // 3. Pop the dialog
+  if (context.mounted) {
+    Navigator.of(context).pop();
+  }
+
+  // 4. Evaluate access policy response
+  if (response.isSuccess) {
+    // Log successful secure document access
+    ref.read(auditLogsProvider.notifier).addLog(
+          "Document Access Authorized: ${file.name}",
+          "SUCCESS",
+        );
+
+    if (context.mounted) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => SpyglassViewer(
+            fileId: file.id,
+            documentTitle: file.name,
+            documentCategory: file.type.label,
+          ),
+        ),
+      );
+    }
+  } else {
+    // Log blocked unauthorized document access attempt
+    ref.read(auditLogsProvider.notifier).addLog(
+          "Unauthorized Access Blocked: Enclave Group ${group.name}",
+          "SECURITY",
+        );
+
+    // Show premium monochrome "Access Denied" explanation dialog
+    if (context.mounted) {
+      showDialog(
+        context: context,
+        builder: (BuildContext dialogContext) {
+          final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
+          return Theme(
+            data: Theme.of(dialogContext),
+            child: Dialog(
+              backgroundColor: isDark ? NoSusTheme.dCard : NoSusTheme.lCard,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(
+                  color: isDark ? const Color(0x33FFFFFF) : const Color(0xFF1A1A1A),
+                  width: 1.2,
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.gpp_bad_outlined,
+                      color: Colors.amber,
+                      size: 44,
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'ACCESS DENIED',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 2.0,
+                        color: isDark ? NoSusTheme.dText : NoSusTheme.lText,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      response.errorMessage ??
+                          'You do not have permission to view this secure document.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: isDark
+                            ? NoSusTheme.dText.withValues(
+                                alpha: 0.6,
+                              )
+                            : NoSusTheme.lText.withValues(
+                                alpha: 0.6,
+                              ),
+                        height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    GestureDetector(
+                      onTap: () => Navigator.of(dialogContext).pop(),
+                      child: Container(
+                        width: double.infinity,
+                        alignment: Alignment.center,
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 12,
+                        ),
+                        decoration: NoSusTheme.buttonDecoration(
+                          dialogContext,
+                          radius: 10,
+                        ),
+                        child: Text(
+                          'DISMISS',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.5,
+                            color: isDark ? NoSusTheme.dText : NoSusTheme.lText,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    }
   }
 }
 
 // ─── Members tab ──────────────────────────────────────────────────────────────
 
-class _MembersTab extends ConsumerWidget {
+class _MembersTab extends StatelessWidget {
   final List<GroupMember> members;
   final Color fg;
   final Color subtle;
@@ -634,16 +691,8 @@ class _MembersTab extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final profilesAsync = ref.watch(allProfilesProvider);
-
-    return profilesAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator(strokeWidth: 1.5, color: Colors.grey)),
-      error: (err, _) => _buildList(context, members),
-      data: (dbMembers) {
-        return _buildList(context, dbMembers);
-      },
-    );
+  Widget build(BuildContext context) {
+    return _buildList(context, members);
   }
 
   Widget _buildList(BuildContext context, List<GroupMember> list) {

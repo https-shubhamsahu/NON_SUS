@@ -45,21 +45,37 @@ class SecureDocumentViewer extends StatelessWidget {
   /// Whether to show the "TOUCH TO REVEAL" interaction hint.
   final bool showHint;
 
+  /// Whether the touch-to-reveal blur layer is enabled.
+  final bool touchToRevealEnabled;
+
   const SecureDocumentViewer({
     super.key,
     required this.child,
     required this.watermarkConfig,
     this.viewerConfig = const ViewerConfig(),
     this.showHint = true,
+    this.touchToRevealEnabled = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    return BlurRevealLayer(
-      config: viewerConfig,
-      overlay: WatermarkOverlay(config: watermarkConfig),
-      showHint: showHint,
-      child: child,
+    if (touchToRevealEnabled) {
+      return BlurRevealLayer(
+        config: viewerConfig,
+        showHint: showHint,
+        overlay: WatermarkOverlay(config: watermarkConfig),
+        child: child,
+      );
+    }
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // ── Layer 1: Protected document content ──────────────────────────
+        RepaintBoundary(child: child),
+        // ── Layer 2: Always-visible overlay (watermark) ──────────────────
+        WatermarkOverlay(config: watermarkConfig),
+      ],
     );
   }
 }

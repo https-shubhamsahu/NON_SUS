@@ -7,9 +7,14 @@ class OnboardingNotifier extends Notifier<bool> {
     return SecureDbService.instance.isOnboardingCompleted();
   }
 
-  void complete() {
-    SecureDbService.instance.completeOnboarding();
+  Future<void> complete() async {
+    await SecureDbService.instance.completeOnboarding();
     state = true;
+  }
+
+  Future<void> reset() async {
+    await SecureDbService.instance.resetAppState();
+    state = false;
   }
 }
 
@@ -28,4 +33,16 @@ class OnboardingPageIndexNotifier extends Notifier<int> {
 
 final onboardingPageIndexProvider = NotifierProvider<OnboardingPageIndexNotifier, int>(
   OnboardingPageIndexNotifier.new,
+);
+
+class TsecCommunityNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void toggle() => state = !state;
+  void set(bool value) => state = value;
+}
+
+final tsecCommunityProvider = NotifierProvider<TsecCommunityNotifier, bool>(
+  TsecCommunityNotifier.new,
 );

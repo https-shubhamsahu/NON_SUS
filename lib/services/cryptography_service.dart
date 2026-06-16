@@ -1,11 +1,12 @@
 import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
+import 'package:cryptography/cryptography.dart';
 
-/// Client-side cryptographic helper implementing zero-trust key generation,
-/// symmetric AES-256-GCM emulation, and in-memory buffer operations.
+/// Client-side cryptographic helper implementing AES-256-GCM encryption.
 class CryptographyService {
   static final Random _secureRandom = Random.secure();
+  static final _algorithm = AesGcm.with256bits();
 
   /// Generates a cryptographically secure 256-bit symmetric key (base64 encoded).
   static String generateSymmetricKey() {
@@ -25,27 +26,34 @@ class CryptographyService {
     return base64.encode(bytes);
   }
 
-  /// Encrypts bytes in-memory using the provided key and initialization vector.
-  /// Emulates AES-256-GCM block encryption by blending a pseudorandom keystream
-  /// generated from the key and IV.
-  static Uint8List encryptBytes(Uint8List data, String keyBase64, String ivBase64) {
-    final key = base64.decode(keyBase64);
-    final iv = base64.decode(ivBase64);
+  /// Encrypts bytes using AES-256-GCM.
+  static Future<Uint8List> encryptBytes(Uint8List data, String keyBase64, String ivBase64) async {
+    final key = SecretKey(base64.decode(keyBase64));
+    final nonce = base64.decode(ivBase64);
 
-    final encrypted = Uint8List(data.length);
-    for (int i = 0; i < data.length; i++) {
-      // Key stream byte derived from index, key, and IV
-      final keyByte = key[i % key.length];
-      final ivByte = iv[i % iv.length];
-      final shift = (keyByte ^ ivByte ^ (i & 0xFF)) & 0xFF;
-      encrypted[i] = data[i] ^ shift;
-    }
-    return encrypted;
+    final secretBox = await _algorithm.encrypt(
+      data,
+      secretKey: key,
+      nonce: nonce,
+    );
+    return Uint8List.fromList(secretBox.concatenation(nonce: false));
   }
 
-  /// Decrypts bytes in-memory using the provided key and initialization vector.
-  /// Dual operation of [encryptBytes].
-  static Uint8List decryptBytes(Uint8List encryptedData, String keyBase64, String ivBase64) {
-    return encryptBytes(encryptedData, keyBase64, ivBase64); // XOR is self-inverse
+  /// Decrypts bytes using AES-256-GCM.
+  static Future<Uint8List> decryptBytes(Uint8List encryptedData, String keyBase64, String ivBase64) async {
+    final key = SecretKey(base64.decode(keyBase64));
+    final nonce = base64.decode(ivBase64);
+
+    final secretBox = SecretBox.fromConcatenation(
+      encryptedData,
+      nonceLength: 0,
+      macLength: _algorithm.macAlgorithm.macLength,
+    );
+
+    final decrypted = await _algorithm.decrypt(
+      SecretBox(secretBox.cipherText, nonce: nonce, mac: secretBox.mac),
+      secretKey: key,
+    );
+    return Uint8List.fromList(decrypted);
   }
 }
