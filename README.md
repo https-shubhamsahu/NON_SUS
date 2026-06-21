@@ -21,9 +21,9 @@ If you are reading this, you have successfully installed the client. Below is yo
 The workspace operates on a strict **monochrome protocol**. Black ink, white paper, pixelated interfaces. No distractions, just secure data transfer.
 
 <div align="center">
-  <img src="assets/no%20sus%20ss/1.png" width="200" alt="Interface View">
-  <img src="assets/no%20sus%20ss/2.png" width="200" alt="Interface View">
-  <img src="assets/no%20sus%20ss/4.png" width="200" alt="Interface View">
+  <img src="assets/screenshots/1.png" width="200" alt="Interface View">
+  <img src="assets/screenshots/2.png" width="200" alt="Interface View">
+  <img src="assets/screenshots/4.png" width="200" alt="Interface View">
 </div>
 
 ***
@@ -34,8 +34,8 @@ You will select a **Pixel Avatar** (Builder, Researcher, Agent, Archivist) and s
 This is how you will be recognized within your secure groups. Choose wisely.
 
 <div align="center">
-  <img src="assets/no%20sus%20ss/7.png" width="200" alt="Identity Creation">
-  <img src="assets/no%20sus%20ss/8.png" width="200" alt="Identity Created">
+  <img src="assets/screenshots/7.png" width="200" alt="Identity Creation">
+  <img src="assets/screenshots/8.png" width="200" alt="Identity Created">
 </div>
 
 ***
@@ -47,9 +47,9 @@ You cannot share files in the open. All intelligence must be shared within **Stu
 3. Once inside, you can access the shared intelligence pool.
 
 <div align="center">
-  <img src="assets/no%20sus%20ss/5.png" width="200" alt="Study Groups">
-  <img src="assets/no%20sus%20ss/6.png" width="200" alt="Group Details">
-  <img src="assets/no%20sus%20ss/15.png" width="200" alt="Group Details">
+  <img src="assets/screenshots/5.png" width="200" alt="Study Groups">
+  <img src="assets/screenshots/6.png" width="200" alt="Group Details">
+  <img src="assets/screenshots/15.png" width="200" alt="Group Details">
 </div>
 
 ***
@@ -61,8 +61,8 @@ To share a document (PDF, Note, Image) or a Google Drive link:
 - The file is **End-to-End Encrypted** on your device *before* it leaves your phone. Only members of your group possess the decryption keys.
 
 <div align="center">
-  <img src="assets/no%20sus%20ss/13.png" width="200" alt="Upload Interface">
-  <img src="assets/no%20sus%20ss/16.png" width="200" alt="File Uploaded">
+  <img src="assets/screenshots/13.png" width="200" alt="Upload Interface">
+  <img src="assets/screenshots/16.png" width="200" alt="File Uploaded">
 </div>
 
 ***
@@ -76,8 +76,8 @@ When you open a secure document, you will see nothing but blur and noise.
 - **Screenshot Protection**: The app prevents screenshots from being taken at the OS level. If someone tries to photograph your screen with another phone, their photo will be covered in your watermarks, proving *who* leaked it.
 
 <div align="center">
-  <img src="assets/no%20sus%20ss/19.png" width="200" alt="Spyglass Viewer">
-  <img src="assets/no%20sus%20ss/11.png" width="200" alt="Watermarked Document">
+  <img src="assets/screenshots/19.png" width="200" alt="Spyglass Viewer">
+  <img src="assets/screenshots/11.png" width="200" alt="Watermarked Document">
 </div>
 
 ***
@@ -87,8 +87,8 @@ Trust no one. The **Audit Log** tracks everything.
 Every time a user joins a group, uploads a file, or even *views* a document, it is recorded immutably on the ledger. Group members can monitor exactly who is accessing what, and when.
 
 <div align="center">
-  <img src="assets/no%20sus%20ss/17.png" width="200" alt="Audit Logs">
-  <img src="assets/no%20sus%20ss/18.png" width="200" alt="Activity Tracking">
+  <img src="assets/screenshots/17.png" width="200" alt="Audit Logs">
+  <img src="assets/screenshots/18.png" width="200" alt="Activity Tracking">
 </div>
 
 ***
@@ -97,8 +97,8 @@ Every time a user joins a group, uploads a file, or even *views* a document, it 
 You can manage your workspace security preferences in the profile section. Here you can track your "Contribution Score" and verify your security tier.
 
 <div align="center">
-  <img src="assets/no%20sus%20ss/9.png" width="200" alt="Profile Settings">
-  <img src="assets/no%20sus%20ss/10.png" width="200" alt="Account">
+  <img src="assets/screenshots/9.png" width="200" alt="Profile Settings">
+  <img src="assets/screenshots/10.png" width="200" alt="Account">
 </div>
 
 ***
