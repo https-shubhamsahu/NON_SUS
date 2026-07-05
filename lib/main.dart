@@ -113,9 +113,17 @@ class MyApp extends ConsumerWidget {
         ),
       ),
       onGenerateRoute: (settings) {
+        // Web OAuth (Google/GitHub) redirects land on e.g. "/?code=..." — not
+        // exactly "/", so Flutter treats it as a distinct route instead of
+        // falling back to `home`. By the time this builds, Supabase has
+        // already exchanged the code for a session (handled in main() before
+        // runApp), so just show the same real entry point `home` would —
+        // AuthGate reacts to the now-signed-in state normally.
         if (settings.name != null && settings.name!.contains('code=')) {
           return PageRouteBuilder(
-            pageBuilder: (context, _, _) => const SizedBox.shrink(),
+            pageBuilder: (context, _, _) => const VideoSplashScreen(
+              nextScreen: AuthGate(child: WorkspaceHome()),
+            ),
             transitionDuration: Duration.zero,
           );
         }
