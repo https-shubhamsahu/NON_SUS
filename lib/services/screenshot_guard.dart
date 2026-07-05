@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../theme.dart';
@@ -21,7 +22,9 @@ class ScreenshotGuard {
   bool _isDialogShowing = false;
 
   Future<void> initialize() async {
+    if (kIsWeb) return;
     if (!Platform.isAndroid) return;
+
 
     try {
       await _channel.invokeMethod('enableSecure');
