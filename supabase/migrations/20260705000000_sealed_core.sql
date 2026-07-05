@@ -79,6 +79,19 @@ CREATE POLICY "arenas_select_member"
 -- ===========================================================================
 -- 3. ARENA MEMBERS  (public integer id per member, unique within an arena)
 -- ===========================================================================
+-- Helper must exist BEFORE the arena_members policy that references it
+-- (Postgres validates policy expressions at creation time).
+CREATE OR REPLACE FUNCTION public.is_arena_member(p_arena_id uuid)
+RETURNS boolean
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = '' AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.arena_members
+    WHERE arena_id = p_arena_id AND user_id = auth.uid()
+  );
+END;
+$$;
+
 CREATE TABLE IF NOT EXISTS public.arena_members (
     arena_id        UUID NOT NULL REFERENCES public.arenas(id) ON DELETE CASCADE,
     user_id         UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -191,17 +204,7 @@ CREATE POLICY "invites_insert_own"
 -- ===========================================================================
 -- 7. HELPERS & RPCs
 -- ===========================================================================
--- Anti-recursion membership check (mirrors is_group_member pattern).
-CREATE OR REPLACE FUNCTION public.is_arena_member(p_arena_id uuid)
-RETURNS boolean
-LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = '' AS $$
-BEGIN
-  RETURN EXISTS (
-    SELECT 1 FROM public.arena_members
-    WHERE arena_id = p_arena_id AND user_id = auth.uid()
-  );
-END;
-$$;
+-- (is_arena_member is defined in section 3, before the policy that uses it.)
 
 -- Atomically join an arena, assigning the next free public id. Idempotent:
 -- returns the caller's existing public id if already a member.

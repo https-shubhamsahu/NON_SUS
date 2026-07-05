@@ -322,7 +322,16 @@ UI · Backend · AI · Testing · Acceptance · Complexity · Deps · Risk.
   `join_arena` RPCs + realtime on matches/seals). Added `FheConfig.enableSealed` flag (in
   `anyEnabled`). Scaffolded `lib/features/sealed/` (5 entities, repository interface,
   `SupabaseSealedRepository`, Riverpod providers, `SealedHomeScreen`). `flutter analyze` clean.
-  *Pending:* live migration apply (needs a Supabase env); arena-key encryption correctness (M2).
+- **2026-07-05 · M0 verified on live DB** — Discovered repo↔DB drift: the live project
+  (`rxfnazmusofikwaggntb`) had NONE of the repo's four recent migrations. Applied (user-approved,
+  additive-only): `fhe_replay_protection`, `fhe_subsystem`, `storage_router`, `sealed_core`.
+  Fixed an ordering bug found during apply (`is_arena_member` must be defined before the
+  `arena_members` policy that references it — Postgres validates policies at creation). Ran a
+  rollback-protected RLS test on live Postgres: **a user cannot read a counterparty's seal**;
+  participants see matches; members see rosters; prod data untouched (0 test rows persisted).
+  NOTE for fresh environments: `baseline.sql` is for new DBs only — the live project reached
+  baseline state via its own earlier migration chain; do not re-apply it there.
+  *Pending:* arena-key encryption correctness (M2).
 - **2026-07-05 · Phase A** — Pivot to Sealed decided (strategy in `~/.claude/plans/`). Rescue
   checkpoint `dff6062` on branch `pivot/sealed-foundation`: hardened `.gitignore` (`**/target/`,
   `releases/`, `.agents/`, `.cursor/`, `supabase/.branches/`); committed previously-untracked FHE
