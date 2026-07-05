@@ -33081,9 +33081,11 @@ adt:function adt(){var _=this
 _.x=_.w=null
 _.d=$
 _.c=_.a=null},
-b22:function b22(a,b,c){this.a=a
-this.b=b
-this.c=c},
+b22:function b22(a,b,c,d){var _=this
+_.a=a
+_.b=b
+_.c=c
+_.d=d},
 b23:function b23(a){this.a=a},
 b24:function b24(a){this.a=a},
 b25:function b25(a,b){this.a=a
@@ -118713,24 +118715,25 @@ a2(){return new A.adt()}}
 A.adt.prototype={
 an(){this.aE()
 this.HA()},
-HA(){var s=0,r=A.q(t.H),q,p=2,o=[],n=this,m,l,k,j,i,h,g
+HA(){var s=0,r=A.q(t.H),q,p=2,o=[],n=this,m,l,k,j,i,h,g,f
 var $async$HA=A.m(function(a,b){if(a===1){o.push(b)
 s=p}for(;;)switch(s){case 0:p=4
 s=7
 return A.h(n.gbl().aB(0,$.br1(),t.cZ).Jl(n.a.d),$async$HA)
 case 7:m=b
 if(n.c==null){s=1
-break}i=A.a4v()
-l=i.ghE(i)
-n.N(new A.b22(n,l,m))
+break}h=A.a4v()
+l=h.ghE(h)
+k=Date.now()
+n.N(new A.b22(n,l,k,m))
 p=2
 s=6
 break
 case 4:p=3
-g=o.pop()
-k=A.S(g)
-j=A.ag(g)
-A.rd().$1("ShareLinkDialog: Failed to create share link: "+A.i(k)+"\n"+A.i(j))
+f=o.pop()
+j=A.S(f)
+i=A.ag(f)
+A.rd().$1("ShareLinkDialog: Failed to create share link: "+A.i(j)+"\n"+A.i(i))
 if(n.c==null){s=1
 break}n.N(new A.b23(n))
 s=6
@@ -118758,7 +118761,8 @@ r=A.b([A.dS(B.a9l,new A.b24(a),p)],s)
 if(q.w!=null)B.b.L(r,A.b([A.dS(B.a8X,new A.b25(q,a),p),A.bgA(B.a9p,new A.b26(q))],s))
 return A.jG(r,o,n,B.a8G)}}
 A.b22.prototype={
-$0(){return this.a.w=this.b+"/#/v/"+this.c.b},
+$0(){var s=this
+return s.a.w=s.b+"/?cb="+s.c+"#/v/"+s.d.b},
 $S:0}
 A.b23.prototype={
 $0(){return this.a.x="Could not create a share link. Only the person who uploaded this file can share it."},
