@@ -78,3 +78,16 @@ pub struct PactEvaluateResponse {
     /// pact key, true iff the two parties chose each other.
     pub encrypted_match: String,
 }
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct PactDecryptResponse {
+    /// The opened pact verdict: true iff the two parties chose each other.
+    /// This boolean is the ONLY information that ever leaves ciphertext.
+    pub mutual: bool,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct PactSealResponse {
+    /// Base64 TFHE ciphertext of the choice, under the arena's pact key.
+    pub sealed_choice: String,
+}

@@ -397,6 +397,64 @@ pub async fn pact_evaluate_handler(Json(payload): Json<PactEvaluateRequest>) -> 
     }
 }
 
+/// Seals a choice under an ARENA's pact key (the shared-key context `/encrypt`
+/// cannot provide, since it keys on the caller tenant). Called by the trusted
+/// matcher service when a member seals; the plaintext choice exists only in
+/// transit and is never logged or persisted. Post-M10 this moves on-device.
+pub async fn pact_seal_handler(
+    Json(payload): Json<crate::models::PactSealRequest>,
+) -> impl IntoResponse {
+    let keys = TENANT_KEY_STORE.get_or_create(&payload.arena_id);
+    let engine = TFHEEngine;
+
+    let ct = match engine.encrypt(payload.choice, &keys.client_key) {
+        Ok(ct) => ct,
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": e })),
+            )
+                .into_response();
+        }
+    };
+    match engine.serialize_uint32(&ct) {
+        Ok(bytes) => {
+            let b64 = base64::Engine::encode(&base64::prelude::BASE64_STANDARD, &bytes);
+            (
+                StatusCode::OK,
+                Json(crate::models::PactSealResponse { sealed_choice: b64 }),
+            )
+                .into_response()
+        }
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": e })),
+        )
+            .into_response(),
+    }
+}
+
+/// Opens a pact verdict with the arena's pact key. The returned boolean is the
+/// only bit that ever leaves ciphertext (see `compute::decrypt_mutual_match`).
+pub async fn pact_decrypt_handler(
+    Json(payload): Json<crate::models::PactDecryptRequest>,
+) -> impl IntoResponse {
+    let keys = TENANT_KEY_STORE.get_or_create(&payload.arena_id);
+
+    match compute::decrypt_mutual_match(&payload.encrypted_match, &keys.client_key) {
+        Ok(mutual) => (
+            StatusCode::OK,
+            Json(crate::models::PactDecryptResponse { mutual }),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(serde_json::json!({ "error": e })),
+        )
+            .into_response(),
+    }
+}
+
 pub async fn similarity_handler(
     headers: HeaderMap,
     Json(payload): Json<SimilarityRequest>,

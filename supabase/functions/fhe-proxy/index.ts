@@ -44,6 +44,8 @@ const ROUTES: Record<string, { method: string; path: string }> = {
   policy_evaluate: { method: "POST", path: "/policy/evaluate" },
   similarity: { method: "POST", path: "/similarity" },
   pact_evaluate: { method: "POST", path: "/pact/evaluate" },
+  pact_seal: { method: "POST", path: "/pact/seal" },
+  pact_decrypt: { method: "POST", path: "/pact/decrypt" },
 };
 
 function json(body: unknown, status = 200): Response {
@@ -71,23 +73,7 @@ Deno.serve(async (req: Request) => {
     return json({ error: "FHE proxy is not configured" }, 503);
   }
 
-  // ── 1. Authenticate the client JWT ──────────────────────────────────────
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader) return json({ error: "Missing Authorization header" }, 401);
-
-  const authClient = createClient(supabaseUrl, anonKey ?? "", {
-    global: { headers: { Authorization: authHeader } },
-  });
-  const { data: userData, error: userErr } = await authClient.auth.getUser();
-  if (userErr || !userData?.user) {
-    return json({ error: "Invalid or expired session" }, 401);
-  }
-  const userId = userData.user.id;
-
-  // service-role client bypasses RLS for ledger/job writes
-  const admin = createClient(supabaseUrl, serviceRoleKey);
-
-  // ── 2. Parse & validate the envelope ────────────────────────────────────
+  // ── 1. Parse & validate the envelope ────────────────────────────────────
   let body: Record<string, unknown>;
   try {
     body = await req.json();
@@ -103,6 +89,37 @@ Deno.serve(async (req: Request) => {
   const requestId = String(body.request_id ?? crypto.randomUUID());
   const timestamp = Number(body.timestamp ?? 0);
   const payload = (body.payload ?? {}) as Record<string, unknown>;
+
+  // ── 2. Authenticate the client JWT or service_role key ──────────────────
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) return json({ error: "Missing Authorization header" }, 401);
+
+  const token = authHeader.replace("Bearer ", "");
+  // Nullable: a trusted server-to-server caller (e.g. pact-matcher) may have
+  // no specific end-user context. `null` is valid for every ledger/job column
+  // that references this (all nullable FKs to auth.users) — unlike a literal
+  // placeholder string, which is not a valid UUID and would fail those inserts.
+  let userId: string | null;
+  let isServiceRole = false;
+
+  if (token === serviceRoleKey) {
+    isServiceRole = true;
+    const hinted = req.headers.get("X-Tenant-Id") || (payload.tenant_id ? String(payload.tenant_id) : "");
+    userId = hinted || null;
+  } else {
+    const authClient = createClient(supabaseUrl, anonKey ?? "", {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: userData, error: userErr } = await authClient.auth.getUser();
+    if (userErr || !userData?.user) {
+      return json({ error: "Invalid or expired session" }, 401);
+    }
+    userId = userData.user.id;
+  }
+
+  // service-role client bypasses RLS for ledger/job writes
+  const admin = createClient(supabaseUrl, serviceRoleKey);
+
 
   // ── 3. Replay protection ────────────────────────────────────────────────
   if (!nonce || !timestamp) {
@@ -155,7 +172,10 @@ Deno.serve(async (req: Request) => {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${serviceToken}`,
-        "X-Tenant-Id": userId, // enforce tenant isolation server-side
+        // enforce tenant isolation server-side; omit when there's no specific
+        // tenant (a trusted server caller like pact-matcher supplies arena_id
+        // in the payload itself for pact endpoints, which ignore this header)
+        ...(userId ? { "X-Tenant-Id": userId } : {}),
         "X-Request-Id": requestId,
       },
       body: JSON.stringify({ ...payload, tenant_id: userId, job_id: jobId }),
@@ -250,7 +270,7 @@ async function recordEvent(
 
 async function failJob(
   admin: AdminClient,
-  userId: string,
+  userId: string | null,
   jobId: string,
   reason: string,
 ) {

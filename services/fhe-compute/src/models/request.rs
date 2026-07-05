@@ -94,3 +94,25 @@ pub struct PactEvaluateRequest {
     pub b_choice: String,
     pub b_id: u32,
 }
+
+/// Opens a pact verdict (the encrypted boolean from `/pact/evaluate`) with the
+/// arena's pact key. Interim trust model: the server holds the arena key, so
+/// the trusted matcher service calls this; post-M10 this decrypt moves on-device.
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct PactDecryptRequest {
+    /// Key context — must be the same arena the verdict was evaluated under.
+    pub arena_id: String,
+    /// Base64 encrypted boolean returned by `/pact/evaluate`.
+    pub encrypted_match: String,
+}
+
+/// Seals a choice under an ARENA's shared pact key (not the caller-tenant key
+/// that `/encrypt` uses). Used by the trusted matcher service when a member
+/// seals; post-M10 sealing moves on-device under the arena public key.
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct PactSealRequest {
+    /// Key context (the arena the seal belongs to).
+    pub arena_id: String,
+    /// The picked member's public arena id (plaintext in transit only; never stored).
+    pub choice: u32,
+}

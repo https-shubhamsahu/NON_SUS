@@ -18,7 +18,7 @@ pub use arithmetic::ZamaArithmeticEngine;
 pub use budget::{BudgetError, BudgetTracker, ComputeBudget};
 pub use comparison::ZamaComparisonEngine;
 pub use mux::ZamaMuxEngine;
-pub use pact::homomorphic_mutual_match;
+pub use pact::{decrypt_mutual_match, homomorphic_mutual_match};
 pub use similarity::ZamaSimilarityEngine;
 pub use validation::ZamaValidationEngine;
 pub use versioning::{VersionManager, VersionedCiphertext};

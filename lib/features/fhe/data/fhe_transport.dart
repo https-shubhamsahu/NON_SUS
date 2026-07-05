@@ -36,6 +36,8 @@ class FheTransport {
     'policy_evaluate': '/policy/evaluate',
     'similarity': '/similarity',
     'pact_evaluate': '/pact/evaluate',
+    'pact_seal': '/pact/seal',
+    'pact_decrypt': '/pact/decrypt',
   };
 
   /// Sends an FHE request and returns the decoded `result` object.

@@ -57,3 +57,21 @@ fn decode_uint32(b64: &str, field: &str) -> Result<FheUint32, String> {
         .map_err(|e| format!("invalid base64 for {field}: {e}"))?;
     bincode::deserialize(&bytes).map_err(|e| format!("invalid ciphertext for {field}: {e}"))
 }
+
+/// Opens the evaluator's encrypted-boolean verdict with the pact's `ClientKey`.
+///
+/// This is the ONLY sanctioned way to learn a pact outcome: the boolean is the
+/// sole bit that ever leaves ciphertext, and only a pact-key holder can open
+/// it. Interim trust model (pre-v9/M10): the server holds the arena key, so the
+/// matcher service opens the verdict; once keys move client-side, this same
+/// decrypt runs on-device instead.
+pub fn decrypt_mutual_match(
+    encrypted_match: &str,
+    client_key: &tfhe::ClientKey,
+) -> Result<bool, String> {
+    let bytes = base64::Engine::decode(&base64::prelude::BASE64_STANDARD, encrypted_match)
+        .map_err(|e| format!("invalid base64 for encrypted_match: {e}"))?;
+    let ct: FheBool = bincode::deserialize(&bytes)
+        .map_err(|e| format!("invalid ciphertext for encrypted_match: {e}"))?;
+    Ok(ct.decrypt(client_key))
+}

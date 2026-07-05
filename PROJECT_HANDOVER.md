@@ -317,6 +317,48 @@ UI · Backend · AI · Testing · Acceptance · Complexity · Deps · Risk.
 
 ## Changelog
 
+- **2026-07-05 · M1+M2 continuation (seal flow + matcher, gap closure).**
+  M1 (seal flow) and the M2 `pact-matcher` edge function were built to an
+  explicit spec (see `ORIGINAL_REQUEST.md`) with their own passing Dart
+  (`test/features/sealed/sealed_repository_test.dart`) and Deno
+  (`supabase/functions/pact-matcher/test.ts`) test suites. Rust gained
+  `/pact/seal` and `/pact/decrypt` endpoints (`pact_seal_handler`,
+  `pact_decrypt_handler`, `compute::decrypt_mutual_match`) so the arena-key
+  encrypt/decrypt steps the matcher needs actually exist — verified by
+  `cargo test --test pact_test` (4/4, including a new decrypt round-trip).
+  **Gap found and closed:** nothing was actually invoking `pact-matcher` — it's
+  designed for a Supabase Database Webhook on `seals` INSERT, but no such
+  webhook exists (checked: no trigger, no config), so sealing wrote a row, the
+  poll loop found nothing, and matches never fired. Rather than embed a
+  webhook trigger via SQL migration (real risk of committing the service-role
+  key into versioned SQL), `SealedApiClient.runMatcher()` was added so the
+  client triggers `pact-matcher` directly right after sealing (best-effort,
+  wrapped so a failure can't break `sealChoice`; the existing poll loop stays
+  authoritative). This required broadening `pact-matcher`'s auth to accept a
+  real user JWT in addition to the service-role key — **but only when
+  `sealer_id` in the payload equals the caller's own `auth.uid()`**, so this
+  path can never be used to probe or reveal another user's match.
+  **Two more bugs fixed:** `fhe-proxy`'s new service-role branch fell back to
+  the literal string `"service_role"` as `userId`, which isn't a valid UUID
+  and would break the audit-ledger insert on the (rare) replay-detected path
+  — changed to `string | null` throughout (`deno check` now clean on all three
+  functions: `fhe-proxy`, `pact-matcher`, `sealed-api`). And `seals` RLS didn't
+  require arena membership on INSERT (a non-member could write dead,
+  permanently-unmatchable rows) — migration `20260705010000_
+  sealed_seals_membership_check.sql` tightens `seals_insert_own` to also
+  require `is_arena_member(arena_id)`; applied live and verified via
+  `pg_policy`.
+  **Verified:** `flutter analyze` clean (project-wide); `flutter test` passing
+  (both sealed tests, including the mocked seal→matcher→poll flow — note
+  postgrest's builders implement `Future<T>` directly, so faking a resolved
+  value means stubbing `.then()` on the returned mock, not the chain method
+  itself — see `_resolveFilter`/`_resolveTransform` in the test file);
+  `deno test` passing for `pact-matcher`.
+  **Recommended next manual step (not done here — needs dashboard access):**
+  configure a real Supabase Database Webhook on `seals` INSERT → `pact-matcher`
+  for instant, no-client-round-trip matching. The client-invoke path already
+  makes matching work today without it; once configured, both triggers coexist
+  safely (match insert is idempotent via the unique constraint).
 - **2026-07-05 · M0 (foundation)** — Added migration `20260705000000_sealed_core.sql`
   (sealed_profiles, arenas, arena_members, seals, matches, invites + RLS + `is_arena_member`/
   `join_arena` RPCs + realtime on matches/seals). Added `FheConfig.enableSealed` flag (in

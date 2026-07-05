@@ -66,6 +66,30 @@ fn test_pact_stays_sealed_when_unrequited() {
 }
 
 #[test]
+fn test_pact_decrypt_roundtrip_via_library_api() {
+    // Exercises the exact path the /pact/seal -> /pact/evaluate -> /pact/decrypt
+    // service pipeline uses: compute::decrypt_mutual_match must open the
+    // evaluator's verdict identically to a manual FheBool decrypt.
+    let engine = TFHEEngine;
+    let pact = TENANT_KEY_STORE.get_or_create("pact-arena-decrypt-api");
+    tfhe::set_server_key(pact.server_key.clone());
+
+    let (alice, bob) = (7u32, 9u32);
+    let alice_choice = seal_choice(&engine, &pact.client_key, bob);
+    let bob_choice = seal_choice(&engine, &pact.client_key, alice);
+
+    let sealed_result =
+        compute::homomorphic_mutual_match(&alice_choice, alice, &bob_choice, bob).unwrap();
+
+    let mutual = compute::decrypt_mutual_match(&sealed_result, &pact.client_key)
+        .expect("decrypt_mutual_match must open a valid verdict");
+    assert!(mutual, "library decrypt must agree with a mutual pick");
+
+    // Garbage input must error, not panic.
+    assert!(compute::decrypt_mutual_match("not-base64!!!", &pact.client_key).is_err());
+}
+
+#[test]
 fn test_pact_requires_both_directions() {
     // One-directional even when the id space overlaps: Alice picks Bob, Bob picks
     // Alice's id-minus-one. Guards against an evaluator that checks only one side.

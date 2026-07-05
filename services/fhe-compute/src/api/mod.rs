@@ -27,6 +27,8 @@ pub fn build_router(settings: crate::config::Settings) -> Router {
         .route("/mux", post(compute_handler::mux_handler))
         .route("/similarity", post(compute_handler::similarity_handler))
         .route("/pact/evaluate", post(compute_handler::pact_evaluate_handler))
+        .route("/pact/seal", post(compute_handler::pact_seal_handler))
+        .route("/pact/decrypt", post(compute_handler::pact_decrypt_handler))
         .route("/memory/search", post(compute_handler::memory_search_handler))
         .route("/policy/evaluate", post(compute_handler::policy_evaluate_handler))
         .route("/jobs/:id", get(compute_handler::get_job_handler))
