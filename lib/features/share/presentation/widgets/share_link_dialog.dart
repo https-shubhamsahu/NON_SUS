@@ -47,8 +47,8 @@ class _ShareLinkDialogState extends ConsumerState<_ShareLinkDialog> {
           await ref.read(shareRepositoryProvider).createShareLink(widget.fileId);
       if (!mounted) return;
       // Uri.base.origin is only supported on Web. On native platforms, we use the
-      // production deployed Firebase Hosting web app URL so anonymous recipients can view.
-      final origin = kIsWeb ? Uri.base.origin : 'https://nosus-pivot.web.app';
+      // production deployed GitHub Pages web app URL so anonymous recipients can view.
+      final origin = kIsWeb ? Uri.base.origin : 'https://https-shubhamsahu.github.io/NON_SUS';
       setState(() => _url = '$origin/#/v/${link.token}');
     } catch (e, s) {
       debugPrint('ShareLinkDialog: Failed to create share link: $e\n$s');
