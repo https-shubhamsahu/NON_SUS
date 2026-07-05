@@ -14,6 +14,7 @@ class FileCard extends StatefulWidget {
   final int animationIndex;
 
   final VoidCallback? onRename;
+  final VoidCallback? onShare;
 
   const FileCard({
     super.key,
@@ -22,6 +23,7 @@ class FileCard extends StatefulWidget {
     this.onPin,
     this.onOpen,
     this.onRename,
+    this.onShare,
     required this.uploaderName,
     this.animationIndex = 0,
   });
@@ -246,6 +248,8 @@ class _FileCardState extends State<FileCard> {
                               widget.onPin?.call();
                             } else if (val == 'rename') {
                               widget.onRename?.call();
+                            } else if (val == 'share') {
+                              widget.onShare?.call();
                             } else if (val == 'delete') {
                               widget.onDelete?.call();
                             }
@@ -285,6 +289,16 @@ class _FileCardState extends State<FileCard> {
                                   Icon(Icons.edit_outlined, size: 14, color: theme.colorScheme.onSurface),
                                   const SizedBox(width: 8),
                                   const Text('Rename Document', style: TextStyle(fontSize: 12)),
+                                ],
+                              ),
+                            ),
+                            PopupMenuItem(
+                              value: 'share',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.ios_share_rounded, size: 14, color: theme.colorScheme.onSurface),
+                                  const SizedBox(width: 8),
+                                  const Text('Share Link', style: TextStyle(fontSize: 12)),
                                 ],
                               ),
                             ),

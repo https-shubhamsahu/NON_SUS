@@ -25,16 +25,42 @@ import 'services/share_intent_service.dart';
 import 'features/workspace/presentation/widgets/save_to_no_sus_dialog.dart';
 import 'features/focus/providers/focus_provider.dart';
 import 'core/utils/debug_logger.dart';
+import 'features/share/presentation/screens/anonymous_share_viewer_screen.dart';
 
 import 'package:app_links/app_links.dart';
+
+/// Extracts a SecureSend share token from a `/v/<token>` URL, checking both
+/// the fragment (default hash-based web routing, e.g. `#/v/abc123`) and the
+/// path, so the link works regardless of URL strategy. Returns null on any
+/// other platform/URL shape — this only ever matches an intentional share link.
+String? _extractShareToken(Uri uri) {
+  for (final raw in [uri.fragment, uri.path]) {
+    final cleaned = raw.startsWith('/') ? raw.substring(1) : raw;
+    final parts = cleaned.split('/');
+    if (parts.length >= 2 && parts[0] == 'v' && parts[1].isNotEmpty) {
+      return parts[1];
+    }
+  }
+  return null;
+}
 
 void main() async {
   await runZonedGuarded(
     () async {
       WidgetsFlutterBinding.ensureInitialized();
+
+      // SecureSend anonymous path: a share-link recipient may have no NO SUS
+      // account at all, so this branch skips Supabase/auth entirely and never
+      // rejoins the normal app below.
+      final shareToken = _extractShareToken(Uri.base);
+      if (shareToken != null) {
+        runApp(AnonymousShareViewerScreen(token: shareToken));
+        return;
+      }
+
       // 1. Supabase MUST come first
       await SupabaseService.instance.initialize();
-      
+
       // Listen to deep links for manual session recovery from OAuth redirects
       final appLinks = AppLinks();
       appLinks.uriLinkStream.listen((uri) async {
@@ -54,7 +80,7 @@ void main() async {
       AuditService.instance.init();
       // 2. Block screenshots (FLAG_SECURE on Android) + funny popup on attempt
       await ScreenshotGuard.instance.initialize();
-      
+
       runApp(const ProviderScope(child: MyApp()));
     },
     (error, stack) {

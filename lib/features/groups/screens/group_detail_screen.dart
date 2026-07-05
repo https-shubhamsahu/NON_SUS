@@ -8,6 +8,7 @@ import '../providers/groups_provider.dart';
 import '../widgets/file_card.dart';
 import '../widgets/member_avatar_stack.dart';
 import '../widgets/upload_modal.dart';
+import '../../share/presentation/widgets/share_link_dialog.dart';
 import '../widgets/empty_states.dart';
 import '../../../theme.dart';
 import '../../../components/spyglass_viewer.dart';
@@ -534,6 +535,7 @@ class _FilesTab extends ConsumerWidget {
                     animationIndex: i,
                     onDelete: () => _confirmDeleteFile(context, ref, group.id, file.id, file.name),
                     onRename: () => _renameFile(context, ref, file.id, file.name),
+                    onShare: () => showShareLinkDialog(context, ref, file.id),
                     onPin: () => ref
                         .read(groupFilesProvider.notifier)
                         .togglePin(group.id, file.id),

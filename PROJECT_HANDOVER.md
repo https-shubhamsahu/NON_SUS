@@ -5,18 +5,124 @@
 > should be able to continue development from this file + the repository alone. Keep it in sync
 > after **every** coding session (see [Daily Workflow](#daily-workflow)).
 >
-> **Status (2026-07-05):** mid-pivot. The shipped app is **NO SUS** (secure study-group document
-> workspace). We are pivoting to **Sealed** (a reciprocity-gated *intent graph*) on the same
-> stack. Both are documented here; the pivot is additive and reuses the existing FHE spine.
+> **Status (2026-07-05, updated):** **NO SUS is now SecureSend** — a secure document-link
+> product (send a file as a tracked, watermarked link; the recipient views it in a browser with
+> NO account required). This supersedes the earlier "pivot to Sealed" direction below.
+> **Sealed is shelved, not deleted**: it is fully built (M0–M2, see its own section), tested, and
+> live-verified on the Supabase project — kept as a proven asset for a possible future pivot, but
+> it is NOT the active product. Do not build further Sealed milestones (M3+) without an explicit
+> founder decision to un-shelve it.
 
 ---
 
-## Vision
+## Current Product: SecureSend
+
+**Send a document as a link. The recipient views it — with or without a NO SUS account — but the
+document is watermarked to their identity, blurred until touched, and every view is logged.**
+
+This reuses the existing in-app secure-viewer stack (watermark + blur-until-touch, built for
+signed-in group members) and adds exactly one new capability: an anonymous, tracked, revocable
+access path for people who have no account at all.
+
+### Architecture
+
+```
+Sender (signed in)                     Recipient (no account needed)
+  file_card.dart "Share Link"            opens https://host/#/v/<token> in ANY browser
+        │                                        │
+        ▼                                        ▼
+  share_links INSERT (RLS: file owner only) main.dart boot fork (before Supabase/auth init)
+        │                                        │
+        │                                        ▼
+        │                              AnonymousShareViewerScreen
+        │                                 (email gate — becomes the watermark identity)
+        │                                        │
+        │                                        ▼
+        │                              share-fetch Edge Function (verify_jwt: false)
+        │                                 validates token (service role) → logs view →
+        │                                 mints a 5-min Storage signed URL
+        │                                        │
+        │                                        ▼
+        │                              http.get(signed_url) → bytes
+        │                                        │
+        │                                        ▼
+        └──────────────────────────► SecureDocumentViewer + WatermarkConfig(email: entered)
+                                        (same widget the in-app viewer uses)
+```
+
+### Key files
+- Migration: `supabase/migrations/20260705020000_securesend_share_links.sql` — `share_links`
+  (token, file_id, created_by, revoked, expires_at, max_views, view_count) + `share_link_views`
+  (append-only view log). RLS: only the file's **owner** may create a link
+  (`share_links_insert_owner`); only the creator may read/revoke their own links; no policy
+  grants public SELECT on the token — resolution happens only through `share-fetch`.
+- Edge function: `supabase/functions/share-fetch/index.ts` — public (`verify_jwt: false`, same
+  trust model already used by this project's `drive-proxy`). Takes `{token, viewer_email}` →
+  validates not-revoked/not-expired/under-view-limit → logs the view + bumps `view_count` →
+  mints a Storage signed URL (service role) → returns `{file_name, type, signed_url}`.
+  GDrive-linked files are explicitly rejected (out of scope for v1).
+- Flutter feature: `lib/features/share/{domain,data,presentation}` — `ShareRepository`
+  (authenticated create/list/revoke via direct RLS-scoped Supabase calls) and
+  `ShareFetchClient` (a deliberately separate, always-anonymous HTTP client — no Supabase
+  session, ever, since a recipient may have none). `ShareLinkDialog` wires "Share Link" into
+  `file_card.dart`'s popup menu. `AnonymousShareViewerScreen` is a **plain `StatefulWidget`**
+  (not `ConsumerWidget`) with its own `MaterialApp` — a fully standalone entrypoint.
+- Boot fork: `lib/main.dart`'s `_extractShareToken(Uri.base)` runs **before** any Supabase/auth
+  initialization. If the URL matches `/v/<token>` (checks both hash fragment and path, so it
+  works regardless of URL strategy), `runApp(AnonymousShareViewerScreen(token))` fires directly
+  and the function returns — the normal app, Supabase init, and `AuthGate` are never touched for
+  this path.
+
+### Honesty rule (load-bearing — put in all copy)
+**Screenshot-blocking is impossible in a browser.** The anonymous web view's protection is
+watermark-with-identity + blur-until-touch + view logging — deterrence and attribution, not a
+hard block. The Android app's `FLAG_SECURE` hard block only applies to users who have the
+installed app. `AnonymousShareViewerScreen`'s copy already says "watermarked · view logged," never
+"screenshot-proof" — keep it that way in any future copy changes.
+
+### Verified this session
+- `flutter analyze`: clean project-wide (only 2 pre-existing unrelated info-lints in `sealed/`).
+- `share-fetch` deployed live; smoke-tested with an invalid token → correct `404 "This link is
+  invalid"` (confirms the function boots, authenticates via service role, and fails closed).
+- **Rollback-protected RLS test on live Postgres** (real owner/non-owner users, zero rows
+  persisted): a non-owner's INSERT into `share_links` for someone else's file is **rejected**; a
+  non-owner cannot SELECT another user's `share_links` row; the owner CAN select/update
+  (revoke) their own row. This is the core trust boundary and it holds.
+- **NOT verified interactively in-browser this session** — see "Known limitation" below.
+
+### Known limitation: interactive browser verification blocked by the preview harness
+Extensive investigation (documented so it isn't repeated): the sandboxed preview browser used in
+this session never renders ANY Flutter web build (debug or release) — `main.dart.js` and
+`canvaskit.wasm`/`.js` all fetch successfully (200 OK, confirmed via network inspection),
+`window._flutter.loader` initializes correctly, WebGL is available, but the Dart entrypoint's
+`main()` never executes (confirmed via temporary diagnostic `print()` calls placed at the very
+first line of `main()` — even that never fired). This points to the CanvasKit/WASM engine
+bootstrap hanging specifically inside this harness's browser, not a defect in app code — likely a
+sandboxing/resource constraint on WASM instantiation. This Flutter version has no HTML-renderer
+fallback to route around it (`flutter build web --help` shows no `--web-renderer` flag anymore).
+**Action for a human:** open `build/web` (already built) in a real browser to confirm visually —
+e.g. `python -m http.server 5051 --directory build/web` then open `http://localhost:5051`, or
+`flutter run -d chrome --dart-define-from-file=.env`. A `.claude/launch.json` config
+(`web-release-static`) already serves `build/web` on port 5051 for this purpose.
+
+### Explicitly out of scope for v1 (say so, don't silently drop)
+- GDrive-linked files (only Supabase-Storage-backed `secure_files` rows are shareable).
+- Native deep-link handoff into the installed app (the web link works everywhere regardless).
+- Per-view IP capture (email + timestamp is enough tracking for v1).
+- A "manage my links" UI (revoke exists in the repository/RLS layer; no screen surfaces it yet).
+
+---
+
+## Sealed (SHELVED — fully built, not the active product)
 
 **Sealed lets people privately express an intent toward a specific person — romantic, platonic,
 professional, or reconnection — that is revealed only if it is mutual.** A non-mutual signal is
 never exposed. The reveal is computed over ciphertext by an existing FHE mutual-match primitive,
 so the platform's trust story is cryptographic, not policy-based.
+
+**This is not currently being built on.** It is preserved below exactly as documented when active,
+for a possible future pivot back. M0 (foundation), M1 (seal flow), and M2 (pact-matcher) are
+complete and were live-tested this same session (RLS proven, matcher gap closed, auth hardened).
 
 Why it can grow with zero marketing budget: **to learn if someone reciprocates, you must invite
 them** → the product recruits its own users (built-in viral loop). This is the deliberate answer
@@ -317,6 +423,21 @@ UI · Backend · AI · Testing · Acceptance · Complexity · Deps · Risk.
 
 ## Changelog
 
+- **2026-07-05 · Product decision: NO SUS = SecureSend; Sealed shelved.** Founder clarified the
+  intended product was always "send a document link; recipient views it securely, with or
+  without the app" — built the full SecureSend feature this session (see its dedicated section
+  above): migration `20260705020000_securesend_share_links.sql`, edge function `share-fetch`
+  (deployed, live-smoke-tested), Flutter feature `lib/features/share/*`, `file_card.dart` "Share
+  Link" wiring, `AnonymousShareViewerScreen` + `main.dart` boot fork. Verified: `flutter analyze`
+  clean; live rollback-protected RLS test proves a non-owner cannot create or read another user's
+  share link. **Not verified interactively in-browser** — the sandboxed preview harness in this
+  session could not render any Flutter web build (debug or release); root-caused to the
+  CanvasKit/WASM engine bootstrap never completing in that specific sandbox (network fetches all
+  succeeded, WebGL available, but Dart's `main()` never executed even with diagnostic `print()`
+  at its first line) — not a defect in the SecureSend code. A human should open the already-built
+  `build/web` in a real browser to confirm visually (see the "Known limitation" note above for
+  exact commands). Sealed (M0–M2) is fully built, tested, and live-verified but is now shelved —
+  preserved in its own section below rather than deleted, in case of a future pivot back.
 - **2026-07-05 · M1+M2 continuation (seal flow + matcher, gap closure).**
   M1 (seal flow) and the M2 `pact-matcher` edge function were built to an
   explicit spec (see `ORIGINAL_REQUEST.md`) with their own passing Dart
