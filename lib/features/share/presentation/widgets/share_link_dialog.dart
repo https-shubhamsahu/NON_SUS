@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,7 +15,7 @@ Future<void> showShareLinkDialog(
   BuildContext context,
   WidgetRef ref,
   String fileId,
-) async {
+ ) async {
   showDialog(
     context: context,
     barrierDismissible: false,
@@ -45,16 +46,19 @@ class _ShareLinkDialogState extends ConsumerState<_ShareLinkDialog> {
       final link =
           await ref.read(shareRepositoryProvider).createShareLink(widget.fileId);
       if (!mounted) return;
-      // Uri.base is the origin the web app is currently served from — no
-      // hardcoded host, works identically in dev and on the deployed URL.
-      setState(() => _url = '${Uri.base.origin}/#/v/${link.token}');
-    } catch (_) {
+      // Uri.base.origin is only supported on Web. On native platforms, we use the
+      // production deployed Firebase Hosting web app URL so anonymous recipients can view.
+      final origin = kIsWeb ? Uri.base.origin : 'https://nosus-pivot.web.app';
+      setState(() => _url = '$origin/#/v/${link.token}');
+    } catch (e, s) {
+      debugPrint('ShareLinkDialog: Failed to create share link: $e\n$s');
       if (!mounted) return;
       setState(() => _error =
           'Could not create a share link. Only the person who uploaded '
           'this file can share it.');
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
