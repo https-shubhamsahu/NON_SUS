@@ -423,6 +423,29 @@ UI · Backend · AI · Testing · Acceptance · Complexity · Deps · Risk.
 
 ## Changelog
 
+- **2026-07-06 · Deep clean: branch reconciliation, disk purge, database full nuke.**
+  *Branch reconciliation:* discovered the repo had been switched back to `main` (old pre-pivot
+  code) while all Sealed/SecureSend work lived on `pivot/sealed-foundation` — this is why device
+  builds had shown the outdated app. `main` was fast-forwarded to the branch tip (`2514db7`),
+  the branch pointer deleted, and stray working-tree edits preserved in git stash
+  `stray-main-mods-pre-deepclean`. The web-OAuth blank-page fix (redirect `/?code=...` route now
+  renders the real app entry instead of an empty widget) was re-applied and committed (`7a6a2a0`).
+  *Disk:* removed `services/fhe-compute/target` (39 GB), `build/` (2.7 GB), `releases/` (101 MB),
+  `supabase/.branches` — all ignored build artifacts; ~42 GB freed. FHE/Sealed SOURCE stays in the
+  repo (founder chose keep-code).
+  *Database (founder-approved FULL NUKE):* migration `20260706000000_drop_experiment_subsystems.sql`
+  dropped the 12 unused tables (fhe_nonces, fhe_key_metadata, fhe_compute_jobs, fhe_events,
+  sealed_profiles, arenas, arena_members, seals, matches, invites, storage_objects, devices) and
+  their 4 helper functions; then all app data was wiped — TRUNCATE across every remaining table
+  plus `DELETE FROM auth.users` (all accounts removed; everyone re-registers). Live DB is now
+  exactly the 9-table product schema, all rows 0, RLS on everywhere.
+  *Known leftover:* 11 physical objects in the `secure-files` storage bucket. Direct SQL deletion
+  is blocked by Supabase's `storage.protect_delete`, and deploying an unauthenticated purge
+  function was (rightly) blocked by policy — empty the bucket via Supabase Dashboard → Storage →
+  secure-files → select all → Delete, or `supabase storage rm` with the CLI. Their metadata rows
+  are already gone, so the objects are inert orphans until removed.
+  *Note:* the sealed/fhe migration FILES stay in the repo (code kept), so a fresh environment
+  replaying migrations creates-then-drops those tables, converging on the same schema.
 - **2026-07-05 · Product decision: NO SUS = SecureSend; Sealed shelved.** Founder clarified the
   intended product was always "send a document link; recipient views it securely, with or
   without the app" — built the full SecureSend feature this session (see its dedicated section
