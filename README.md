@@ -1,5 +1,10 @@
 # NO SUS
 
+> ⚠️ **This document is secondary and partly out of date.** The authoritative, current source of
+> truth is [PROJECT_HANDOVER.md](PROJECT_HANDOVER.md). The project is mid-pivot from the
+> research-collaboration framing below to **Sealed** (a reciprocity-gated intent graph on the same
+> stack). Read the handover first.
+
 **NO SUS** is a privacy-first research collaboration workspace where organizations can compare confidential documents, discover overlap, find contradictions, and generate AI-assisted collaboration insights without exposing their raw documents to each other.
 
 The core idea is simple:

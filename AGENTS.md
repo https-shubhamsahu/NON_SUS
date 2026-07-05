@@ -1,5 +1,10 @@
 # NO SUS — AI Agent Instructions
 
+> ⚠️ **Secondary document.** The authoritative source of truth is
+> [PROJECT_HANDOVER.md](PROJECT_HANDOVER.md). The product is mid-pivot to **Sealed** (a
+> reciprocity-gated intent graph). The build commands, architecture patterns, and conventions
+> below remain valid; the *product framing* (study groups) is being retired.
+
 **NO SUS** is a secure document-sharing workspace for study groups, built with Flutter, Supabase, and cryptographic audit logging. This guide helps AI agents understand architecture, conventions, and requirements for productive development.
 
 ## Quick Start
