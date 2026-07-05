@@ -415,3 +415,8 @@ s3_secret_key = "env(S3_SECRET_KEY)"
 [functions.drive-proxy]
 verify_jwt = false
 
+[functions.account-manager]
+verify_jwt = true
+
+[functions.storage-router]
+verify_jwt = true

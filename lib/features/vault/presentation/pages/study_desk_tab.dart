@@ -67,7 +67,7 @@ class _StudyDeskTabState extends ConsumerState<StudyDeskTab>
             ),
             const SizedBox(height: 16),
             Text(
-              'NO DOCUMENT SECURED',
+              'NO DOCUMENT SELECTED',
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
@@ -180,6 +180,7 @@ class _StudyDeskTabState extends ConsumerState<StudyDeskTab>
                 MaterialPageRoute(
                   builder: (_) => SpyglassViewer(
                     fileId: selectedFile.id,
+                    groupId: selectedFile.groupId,
                     documentTitle: '${selectedFile.name}${selectedFile.type.extension}',
                     documentCategory: selectedFile.type.label,
                   ),

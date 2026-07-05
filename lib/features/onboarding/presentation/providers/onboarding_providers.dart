@@ -1,19 +1,16 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../services/secure_db_service.dart';
 
 class OnboardingNotifier extends Notifier<bool> {
   @override
   bool build() {
-    return SecureDbService.instance.isOnboardingCompleted();
+    return false;
   }
 
-  Future<void> complete() async {
-    await SecureDbService.instance.completeOnboarding();
+  void complete() {
     state = true;
   }
 
-  Future<void> reset() async {
-    await SecureDbService.instance.resetAppState();
+  void reset() {
     state = false;
   }
 }

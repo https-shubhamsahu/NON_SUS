@@ -11,6 +11,7 @@ signing_keys.json
 
 # --- Supabase temp files ---
 supabase/.temp/
+supabase/.branches/
 
 # --- Flutter / Dart ---
 **/doc/api/
@@ -21,6 +22,19 @@ supabase/.temp/
 coverage/
 .flutter-plugins-dependencies
 *.flutter-plugins
+
+# --- Rust (fhe-compute) ---
+# CRITICAL: target/ is the Rust build cache (~39GB). Never commit it.
+**/target/
+**/*.rs.bk
+
+# --- Release artifacts ---
+# Built APKs/bundles are large; keep them out of git (archive separately).
+releases/
+
+# --- Agent / editor tooling ---
+.agents/
+.cursor/
 
 # --- IDE ---
 .idea/
@@ -44,6 +58,7 @@ Thumbs.db
 /android/app/profile
 /android/app/release
 /local.properties
+android/local.properties
 /key.properties
 *.jks
 *.keystore

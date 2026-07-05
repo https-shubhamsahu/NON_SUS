@@ -6,13 +6,7 @@
 ///   SUPABASE_URL=https://your-project.supabase.co
 ///   SUPABASE_ANON_KEY=your-anon-key
 class SupabaseCredentials {
-  static const String url = String.fromEnvironment(
-    'SUPABASE_URL',
-    defaultValue: '',
-  );
+  static const String url = 'https://rxfnazmusofikwaggntb.supabase.co';
 
-  static const String anonKey = String.fromEnvironment(
-    'SUPABASE_ANON_KEY',
-    defaultValue: '',
-  );
+  static const String anonKey = 'sb_publishable_4Gi8cVhWyKPcBEu69tEFrQ_Elq-uRzM';
 }

@@ -7,6 +7,7 @@ import '../../../services/supabase_service.dart';
 import '../presentation/providers/group_dependencies.dart';
 import '../../files/domain/models/secure_file_metadata.dart';
 import '../../files/presentation/providers/secure_file_providers.dart';
+import '../../../core/utils/debug_logger.dart';
 
 // ─── Search query ─────────────────────────────────────────────────────────────
 
@@ -35,14 +36,15 @@ class GroupsNotifier extends AsyncNotifier<List<StudyGroup>> {
         state = AsyncValue.data(data);
       },
       onError: (err, stack) {
-        state = AsyncValue.error(err, stack);
+        debugLog("GroupsNotifier: Realtime stream error: $err");
       },
     );
     ref.onDispose(() => _sub?.cancel());
 
     try {
-      return await repo.watchGroups().first;
-    } catch (_) {
+      return await repo.getGroups();
+    } catch (e) {
+      debugLog("GroupsNotifier: REST fetch error: $e");
       return const [];
     }
   }
@@ -85,11 +87,29 @@ class GroupsNotifier extends AsyncNotifier<List<StudyGroup>> {
     }
   }
 
+  Future<void> leaveGroup(String groupId) async {
+    final repo = ref.read(studyGroupRepositoryProvider);
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId != null) {
+      await repo.leaveGroup(groupId, userId);
+    }
+  }
+
+  Future<void> deleteGroup(String groupId) async {
+    final repo = ref.read(studyGroupRepositoryProvider);
+    await repo.deleteGroup(groupId);
+  }
+
+  Future<void> removeMember(String groupId, String memberId) async {
+    final repo = ref.read(studyGroupRepositoryProvider);
+    await repo.removeMember(groupId, memberId);
+  }
+
   Future<void> refresh() async {
     state = const AsyncValue.loading();
     try {
       final repo = ref.read(studyGroupRepositoryProvider);
-      final groups = await repo.watchGroups().first;
+      final groups = await repo.getGroups();
       state = AsyncValue.data(groups);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
@@ -137,20 +157,22 @@ class GroupFilesNotifier extends AsyncNotifier<Map<String, List<GroupFile>>> {
         state = AsyncValue.data(filesMap);
       },
       onError: (err, stack) {
-        state = AsyncValue.error(err, stack);
+        // Just log the error (e.g. websocket offline) to keep the REST data visible
+        debugLog("GroupFilesNotifier: Realtime stream error: $err");
       },
     );
     ref.onDispose(() => _sub?.cancel());
 
     try {
-      final initialData = await repo.watchAllFiles().first;
+      final initialData = await repo.getAllFiles();
       final Map<String, List<GroupFile>> filesMap = {};
       for (final file in initialData) {
         final groupFile = _mapMetadata(file);
         filesMap.putIfAbsent(file.groupId, () => []).add(groupFile);
       }
       return filesMap;
-    } catch (_) {
+    } catch (e) {
+      debugLog("GroupFilesNotifier: REST fetch error: $e");
       return const {};
     }
   }
@@ -169,6 +191,11 @@ class GroupFilesNotifier extends AsyncNotifier<Map<String, List<GroupFile>>> {
     await repo.togglePin(groupId, fileId);
   }
 
+  Future<void> renameFile(String fileId, String newName) async {
+    final repo = ref.read(secureFileRepositoryProvider);
+    await repo.renameFile(fileId, newName);
+  }
+
   GroupFile _mapMetadata(SecureFileMetadata metadata) {
     final fileType = metadata.type == SecureFileType.note
         ? FileType.markdown
@@ -182,19 +209,14 @@ class GroupFilesNotifier extends AsyncNotifier<Map<String, List<GroupFile>>> {
       orElse: () => FileSecurityStatus.secured,
     );
 
-    final initials = metadata.uploaderName.isNotEmpty && metadata.uploaderName.contains('@')
-        ? metadata.uploaderName.split('@').first.substring(0, 2).toUpperCase()
-        : metadata.uploaderName.isNotEmpty
-            ? metadata.uploaderName.substring(0, 2).toUpperCase()
-            : 'AN';
 
     return GroupFile(
       id: metadata.id,
       name: metadata.name,
       type: fileType,
       groupId: metadata.groupId,
-      uploadedByName: metadata.uploaderName,
-      uploadedByInitials: initials,
+      uploadedBy: metadata.uploaderName,
+      ownerId: metadata.uploaderName,
       uploadedAt: metadata.uploadedAt,
       sizeBytes: metadata.sizeBytes,
       isWatermarked: metadata.isWatermarked,
@@ -220,7 +242,7 @@ final allProfilesProvider = FutureProvider<List<GroupMember>>((ref) async {
       final list = <GroupMember>[];
       for (var r in response as List) {
         final id = r['id'] as String;
-        final name = r['display_name'] as String? ?? (r['email'] as String? ?? 'Scholar').split('@').first;
+        final name = r['display_name'] as String? ?? (r['email'] as String? ?? 'User').split('@').first;
         final initials = name.isNotEmpty
             ? name.substring(0, name.length >= 2 ? 2 : name.length).toUpperCase()
             : 'SC';
@@ -237,9 +259,67 @@ final allProfilesProvider = FutureProvider<List<GroupMember>>((ref) async {
       }
     } catch (_) {}
   }
-  // Fallback to mock profiles if offline or query fails
-  return const [
-    GroupMember(id: 'm1', name: 'Alice Chen', initials: 'AC', isAdmin: true),
-    GroupMember(id: 'm2', name: 'You (Sync)', initials: 'ME'),
-  ];
+  // Fallback to empty list if offline or query fails
+  return const [];
+});
+
+final groupMembersProvider = StreamProvider.family<List<GroupMember>, String>((ref, groupId) {
+  if (SupabaseService.instance.isConfigured && SupabaseService.instance.isReachable) {
+    final client = Supabase.instance.client;
+    final controller = StreamController<List<GroupMember>>();
+    StreamSubscription? sub;
+
+    void fetchAndAdd() async {
+      try {
+        final rows = await client
+            .from('study_group_members')
+            .select('user_id, is_admin, profiles(display_name, email)')
+            .eq('group_id', groupId);
+
+        final list = <GroupMember>[];
+        for (var r in rows as List) {
+          final id = r['user_id'] as String;
+          final profile = r['profiles'] ?? {};
+          final name = profile['display_name'] as String? ??
+              (profile['email'] as String? ?? 'User').split('@').first;
+          final initials = name.isNotEmpty
+              ? name.substring(0, name.length >= 2 ? 2 : name.length).toUpperCase()
+              : 'US';
+          list.add(GroupMember(
+            id: id,
+            name: name,
+            initials: initials,
+            isAdmin: r['is_admin'] as bool? ?? false,
+          ));
+        }
+
+        if (!controller.isClosed) {
+          controller.add(list);
+        }
+      } catch (e) {
+        if (!controller.isClosed) {
+          controller.addError(e);
+        }
+      }
+    }
+
+    // Listen to changes in the study_group_members table for this group
+    sub = client
+        .from('study_group_members')
+        .stream(primaryKey: ['group_id', 'user_id'])
+        .eq('group_id', groupId)
+        .listen((_) => fetchAndAdd());
+
+    // Initial fetch
+    fetchAndAdd();
+
+    ref.onDispose(() {
+      sub?.cancel();
+      controller.close();
+    });
+
+    return controller.stream;
+  } else {
+    return Stream.value(<GroupMember>[]);
+  }
 });

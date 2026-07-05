@@ -89,7 +89,7 @@ class _OnboardingSolutionWidgetState extends State<OnboardingSolutionWidget>
           ),
           const SizedBox(height: 8),
           Text(
-            'Drag the file into the vault to encrypt and track.',
+            'Upload files to the vault to store and track.',
             style: theme.textTheme.bodyMedium?.copyWith(
               fontSize: 13,
               color: fg.withValues(alpha: 0.6),

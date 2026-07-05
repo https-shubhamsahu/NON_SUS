@@ -1,9 +1,9 @@
-import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../domain/entities/authenticated_user.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../services/supabase_auth_service.dart';
+import '../../../../core/utils/debug_logger.dart';
 
 class SupabaseAuthRepository implements AuthRepository {
   final SupabaseAuthService _service;
@@ -20,7 +20,7 @@ class SupabaseAuthRepository implements AuthRepository {
   Stream<AuthenticatedUser?> watchAuthState() {
     return _service.watchUser().handleError((error, stackTrace) {
       // Log the error for diagnostic visibility
-      debugPrint('NO SUS Auth Stream Error: $error');
+      debugLog('NO SUS Auth Stream Error: $error');
       // Swallow the error to prevent authStateProvider from terminating/entering
       // an AsyncValue.error state, which displays the blocking AuthGate error screen.
     }).map(

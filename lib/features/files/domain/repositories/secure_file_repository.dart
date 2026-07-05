@@ -31,8 +31,12 @@ abstract interface class SecureFileRepository {
 
   Future<String?> getServiceAccountEmail();
 
-  Future<Uint8List?> downloadAndDecryptFile({
+  Future<Uint8List?> downloadFile({
     required String fileId,
     required Function(double) onProgress,
   });
+
+  Future<void> renameFile(String fileId, String newName);
+
+  Future<List<SecureFileMetadata>> getAllFiles();
 }

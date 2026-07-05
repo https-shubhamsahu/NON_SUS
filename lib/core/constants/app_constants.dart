@@ -94,7 +94,7 @@ class AppConstants {
       "1. Open the 'Groups' tab from the bottom nav.\n"
       "2. Tap the '+' icon to create a secure study group.\n"
       "3. Share the invite code with classmates.\n"
-      "4. Upload notes — they are E2E encrypted locally.\n"
+      "4. Upload notes for secure sharing.\n"
       "5. Use 'REVEAL' to read in our screenshot-proof viewer.";
 
   // ─── SharedPreferences Keys ───────────────────────────────────────────────

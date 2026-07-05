@@ -1,16 +1,17 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class VideoSplashScreen extends StatefulWidget {
+class VideoSplashScreen extends ConsumerStatefulWidget {
   final Widget nextScreen;
 
   const VideoSplashScreen({super.key, required this.nextScreen});
 
   @override
-  State<VideoSplashScreen> createState() => _VideoSplashScreenState();
+  ConsumerState<VideoSplashScreen> createState() => _VideoSplashScreenState();
 }
 
-class _VideoSplashScreenState extends State<VideoSplashScreen>
+class _VideoSplashScreenState extends ConsumerState<VideoSplashScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   bool _navigated = false;
@@ -57,7 +58,7 @@ class _VideoSplashScreenState extends State<VideoSplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF060606),
+      backgroundColor: const Color(0xFFFAFAFA),
       body: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: _navigateToNextScreen,
@@ -71,6 +72,7 @@ class _VideoSplashScreenState extends State<VideoSplashScreen>
                 progress: _controller.value,
                 random: _random,
                 frameSeed: frameSeed,
+                isLight: true,
               ),
               child: const SizedBox.expand(),
             );
@@ -85,11 +87,13 @@ class PixelSplashPainter extends CustomPainter {
   final double progress;
   final math.Random random;
   final int frameSeed;
+  final bool isLight;
 
   PixelSplashPainter({
     required this.progress,
     required this.random,
     required this.frameSeed,
+    this.isLight = true,
   });
 
   // Live per-frame random seeded by frameSeed
@@ -121,13 +125,17 @@ class PixelSplashPainter extends CustomPainter {
       for (int r = 0; r < rows; r++) {
         for (int c = 0; c < cols; c++) {
           if (liveRng.nextDouble() < noiseDensity) {
-            final grayVal = 8 + liveRng.nextInt(55);
+            final grayVal = isLight ? (200 + liveRng.nextInt(47)) : (8 + liveRng.nextInt(55));
             // Occasional color pop: red, blue, green channel glitch
             final colorBias = liveRng.nextInt(10);
             if (colorBias < 2) {
-              paint.color = Color.fromARGB(255, grayVal + 40, grayVal ~/ 2, grayVal ~/ 2);
+              paint.color = isLight
+                  ? Color.fromARGB(255, grayVal - 30, grayVal, grayVal)
+                  : Color.fromARGB(255, grayVal + 40, grayVal ~/ 2, grayVal ~/ 2);
             } else if (colorBias < 4) {
-              paint.color = Color.fromARGB(255, grayVal ~/ 2, grayVal ~/ 2, grayVal + 40);
+              paint.color = isLight
+                  ? Color.fromARGB(255, grayVal, grayVal, grayVal - 30)
+                  : Color.fromARGB(255, grayVal ~/ 2, grayVal ~/ 2, grayVal + 40);
             } else {
               paint.color = Color.fromARGB(255, grayVal, grayVal, grayVal);
             }
@@ -151,7 +159,9 @@ class PixelSplashPainter extends CustomPainter {
         final double tearH = 2.0 + liveRng.nextDouble() * 12.0;
         final double tearShift = (liveRng.nextDouble() - 0.5) * 80.0;
         final alpha = (liveRng.nextDouble() * 0.6 + 0.2);
-        paint.color = Color.fromARGB((alpha * 255).toInt(), 200, 200, 220);
+        paint.color = isLight
+            ? Color.fromARGB((alpha * 255).toInt(), 30, 30, 45)
+            : Color.fromARGB((alpha * 255).toInt(), 200, 200, 220);
         canvas.save();
         canvas.translate(tearShift, 0);
         canvas.drawRect(Rect.fromLTWH(0, tearY, size.width, tearH), paint);
@@ -159,7 +169,7 @@ class PixelSplashPainter extends CustomPainter {
       }
 
       // c) CRT scanlines (thin dark lines every 3px)
-      paint.color = const Color(0x22000000);
+      paint.color = isLight ? const Color(0x0C000000) : const Color(0x22000000);
       for (double sy = 0; sy < size.height; sy += 3) {
         canvas.drawRect(Rect.fromLTWH(0, sy, size.width, 1), paint);
       }
@@ -173,14 +183,14 @@ class PixelSplashPainter extends CustomPainter {
     final double dissolveT = isDissolving ? (mainT - 0.75) / 0.25 : 0.0;
     final double assembleT = isDissolving ? 1.0 : (mainT / 0.75).clamp(0.0, 1.0);
 
-    // 1. Dark CRT noise background (persists at low density)
+    // 1. Dark/Light CRT noise background (persists at low density)
     const int bgPx = 28;
     final int bgCols = (size.width / bgPx).ceil();
     final int bgRows = (size.height / bgPx).ceil();
     for (int r = 0; r < bgRows; r++) {
       for (int c = 0; c < bgCols; c++) {
         if (liveRng.nextDouble() < 0.025) {
-          paint.color = const Color(0xFF141414);
+          paint.color = isLight ? const Color(0xFFF5F5F5) : const Color(0xFF141414);
           canvas.drawRect(
             Rect.fromLTWH(c * bgPx.toDouble(), r * bgPx.toDouble(), bgPx.toDouble(), bgPx.toDouble()),
             paint,
@@ -190,7 +200,7 @@ class PixelSplashPainter extends CustomPainter {
     }
 
     // 2. CRT scanlines overlay
-    paint.color = const Color(0x15000000);
+    paint.color = isLight ? const Color(0x0C000000) : const Color(0x15000000);
     for (double sy = 0; sy < size.height; sy += 3) {
       canvas.drawRect(Rect.fromLTWH(0, sy, size.width, 1), paint);
     }
@@ -200,7 +210,9 @@ class PixelSplashPainter extends CustomPainter {
       final double tearY = liveRng.nextDouble() * size.height;
       final double tearH = 1.0 + liveRng.nextDouble() * 6.0;
       final double tearShift = (liveRng.nextDouble() - 0.5) * 40.0;
-      paint.color = Color.fromARGB((40 + liveRng.nextInt(60)), 255, 255, 255);
+      paint.color = isLight
+          ? Color.fromARGB((40 + liveRng.nextInt(60)), 0, 0, 0)
+          : Color.fromARGB((40 + liveRng.nextInt(60)), 255, 255, 255);
       canvas.save();
       canvas.translate(tearShift, 0);
       canvas.drawRect(Rect.fromLTWH(0, tearY, size.width, tearH), paint);
@@ -265,13 +277,13 @@ class PixelSplashPainter extends CustomPainter {
           canvas.drawRect(Rect.fromLTWH(x + aberrationOffset, y, pxW, pxH), paint);
         }
 
-        // Main white pixel
-        paint.color = Colors.white.withValues(alpha: alpha);
+        // Main pixel color
+        paint.color = (isLight ? Colors.black : Colors.white).withValues(alpha: alpha);
         canvas.drawRect(Rect.fromLTWH(x, y, pxW, pxH), paint);
 
         // Occasional pixel "spark" during assembly (random bright flicker)
         if (!isDissolving && liveRng.nextDouble() < 0.04) {
-          paint.color = const Color(0xFFFFFFFF).withValues(alpha: 0.7);
+          paint.color = (isLight ? Colors.black : Colors.white).withValues(alpha: 0.7);
           final sparkSize = textBlockSize * 1.4;
           canvas.drawRect(
             Rect.fromLTWH(x - sparkSize / 4, y - sparkSize / 4, sparkSize, sparkSize),
@@ -291,7 +303,7 @@ class PixelSplashPainter extends CustomPainter {
     final double barAlpha = isDissolving ? (1.0 - dissolveT).clamp(0.0, 1.0) : 0.22;
 
     // Border
-    paint.color = Colors.white.withValues(alpha: barAlpha);
+    paint.color = (isLight ? Colors.black : Colors.white).withValues(alpha: barAlpha);
     paint.style = PaintingStyle.stroke;
     paint.strokeWidth = 1.0;
     canvas.drawRect(Rect.fromLTWH(barLeft - 3, barTop - 3, barWidth + 6, barHeight + 6), paint);
@@ -313,8 +325,8 @@ class PixelSplashPainter extends CustomPainter {
       // Occasional flicker
       final flicker = liveRng.nextDouble();
       paint.color = flicker < 0.05
-          ? Colors.white.withValues(alpha: fillAlpha * 0.3)
-          : Colors.white.withValues(alpha: fillAlpha);
+          ? (isLight ? Colors.black : Colors.white).withValues(alpha: fillAlpha * 0.3)
+          : (isLight ? Colors.black : Colors.white).withValues(alpha: fillAlpha);
       canvas.drawRect(Rect.fromLTWH(bx, by, blockW - 2.0, barHeight), paint);
     }
 
@@ -334,7 +346,7 @@ class PixelSplashPainter extends CustomPainter {
       text: TextSpan(
         text: glitchText,
         style: TextStyle(
-          color: Colors.white.withValues(
+          color: (isLight ? Colors.black : Colors.white).withValues(
             alpha: isDissolving ? (1.0 - dissolveT).clamp(0.0, 1.0) : 0.48,
           ),
           fontFamily: 'Courier',
@@ -360,10 +372,10 @@ class PixelSplashPainter extends CustomPainter {
     textPainter.paint(canvas, Offset(tx, ty));
     textPainter.dispose();
 
-    // 7. Flash burst on first appear (very brief white flash at t≈0.31)
+    // 7. Flash burst on first appear (very brief white/black flash)
     if (mainT < 0.05) {
       final double flashAlpha = (1.0 - mainT / 0.05).clamp(0.0, 1.0) * 0.6;
-      paint.color = Colors.white.withValues(alpha: flashAlpha);
+      paint.color = (isLight ? Colors.black : Colors.white).withValues(alpha: flashAlpha);
       canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
     }
   }

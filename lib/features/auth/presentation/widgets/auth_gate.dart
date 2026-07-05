@@ -5,10 +5,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:no_sus/theme.dart';
 import '../providers/auth_providers.dart';
 import '../screens/auth_screen.dart';
+import '../../../../services/supabase_service.dart';
 import '../../../onboarding/presentation/screens/onboarding_screen.dart';
 import '../../../onboarding/presentation/providers/onboarding_providers.dart';
-import '../../../profile/providers/profile_provider.dart';
-import '../../../../services/supabase_service.dart';
 
 class AuthGate extends ConsumerWidget {
   final Widget child;
@@ -17,19 +16,9 @@ class AuthGate extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final onboardingCompleted = ref.watch(onboardingCompletedProvider);
-    final isGuest = ref.watch(isGuestModeProvider);
     final authState = ref.watch(authStateProvider);
 
-    // ── 1. Guest mode bypass ───────────────────────────────────────────────────
-    if (isGuest) {
-      if (!onboardingCompleted) {
-        return const OnboardingScreen();
-      }
-      return child;
-    }
-
-    // ── 2. Auth state ──────────────────────────────────────────────────────────
+    // ── 1. Auth state ──────────────────────────────────────────────────────────
     return authState.when(
       data: (user) {
         // If not logged in, force AuthScreen first
@@ -47,9 +36,9 @@ class AuthGate extends ConsumerWidget {
 
         // ── 2b. Profile / Onboarding Gate ──────────────────────────────────────
         if (!SupabaseService.instance.isReachable) {
-          // Offline mode fallback
-          if (onboardingCompleted) return child;
-          return const OnboardingScreen();
+          return const Scaffold(
+            body: Center(child: Text("Network connection required for secure enclave.")),
+          );
         }
 
         return FutureBuilder<Map<String, dynamic>>(
@@ -141,17 +130,12 @@ class AuthGate extends ConsumerWidget {
 
             final profileData = snapshot.data ?? {};
             final hasCompletedRemoteOnboarding = profileData['onboarding_completed'] == true;
+            final localCompleted = ref.watch(onboardingCompletedProvider);
 
-            if (hasCompletedRemoteOnboarding && !onboardingCompleted) {
-              // Remote profile onboarding is complete but local state is out of sync.
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                ref.read(onboardingCompletedProvider.notifier).complete();
-                ref.invalidate(profileProvider);
-              });
+            if (!hasCompletedRemoteOnboarding && !localCompleted) {
+              return const OnboardingScreen();
             }
 
-            // Always allow entering workspace directly.
-            // Onboarding popup will prompt inside WorkspaceHome if not completed.
             return child;
           },
         );

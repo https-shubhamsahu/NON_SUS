@@ -10,7 +10,10 @@ class FileCard extends StatefulWidget {
   final VoidCallback? onDelete;
   final VoidCallback? onPin;
   final VoidCallback? onOpen;
+  final String uploaderName;
   final int animationIndex;
+
+  final VoidCallback? onRename;
 
   const FileCard({
     super.key,
@@ -18,6 +21,8 @@ class FileCard extends StatefulWidget {
     this.onDelete,
     this.onPin,
     this.onOpen,
+    this.onRename,
+    required this.uploaderName,
     this.animationIndex = 0,
   });
 
@@ -140,47 +145,60 @@ class _FileCardState extends State<FileCard> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                '${widget.file.uploadedByName}  ·  ${widget.file.uploadedAtLabel}  ·  ${widget.file.sizeLabel}',
+                                '${widget.uploaderName}  ·  ${widget.file.uploadedAtLabel}  ·  ${widget.file.sizeLabel}',
                                 style: TextStyle(fontSize: 11, color: subtle),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                               const SizedBox(height: 8),
-                              Row(
+                              Wrap(
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                spacing: 10,
+                                runSpacing: 4,
                                 children: [
-                                  // Security status dot
-                                  _SecurityDot(
-                                    status: widget.file.securityStatus,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    widget.file.securityStatus ==
-                                            FileSecurityStatus.secured
-                                        ? 'SECURED'
-                                        : 'PROCESSING',
-                                    style: TextStyle(
-                                      fontSize: 9,
-                                      color: subtle,
-                                      fontWeight: FontWeight.w600,
-                                      letterSpacing: 1.0,
-                                    ),
-                                  ),
-                                  if (widget.file.isWatermarked) ...[
-                                    const SizedBox(width: 10),
-                                    Icon(
-                                      Icons.water_drop_outlined,
-                                      size: 10,
-                                      color: subtle,
-                                    ),
-                                    const SizedBox(width: 3),
-                                    Text(
-                                      'WATERMARKED',
-                                      style: TextStyle(
-                                        fontSize: 9,
-                                        color: subtle,
-                                        fontWeight: FontWeight.w600,
-                                        letterSpacing: 1.0,
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      // Security status dot
+                                      _SecurityDot(
+                                        status: widget.file.securityStatus,
                                       ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        widget.file.securityStatus ==
+                                                FileSecurityStatus.secured
+                                            ? 'READY'
+                                            : 'PROCESSING',
+                                        style: TextStyle(
+                                          fontSize: 9,
+                                          color: subtle,
+                                          fontWeight: FontWeight.w600,
+                                          letterSpacing: 1.0,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  if (widget.file.isWatermarked)
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.water_drop_outlined,
+                                          size: 10,
+                                          color: subtle,
+                                        ),
+                                        const SizedBox(width: 3),
+                                        Text(
+                                          'WATERMARKED',
+                                          style: TextStyle(
+                                            fontSize: 9,
+                                            color: subtle,
+                                            fontWeight: FontWeight.w600,
+                                            letterSpacing: 1.0,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  ],
                                 ],
                               ),
                             ],
@@ -206,6 +224,84 @@ class _FileCardState extends State<FileCard> {
                               color: theme.colorScheme.onSurface,
                             ),
                           ),
+                        ),
+
+                        // Options Popup Menu
+                        const SizedBox(width: 8),
+                        PopupMenuButton<String>(
+                          icon: Icon(
+                            Icons.more_vert,
+                            size: 18,
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                          ),
+                          padding: EdgeInsets.zero,
+                          style: IconButton.styleFrom(
+                            minimumSize: Size.zero,
+                            padding: EdgeInsets.zero,
+                          ),
+                          onSelected: (val) {
+                            if (val == 'open') {
+                              widget.onOpen?.call();
+                            } else if (val == 'pin') {
+                              widget.onPin?.call();
+                            } else if (val == 'rename') {
+                              widget.onRename?.call();
+                            } else if (val == 'delete') {
+                              widget.onDelete?.call();
+                            }
+                          },
+                          itemBuilder: (context) => [
+                            PopupMenuItem(
+                              value: 'open',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.open_in_new_rounded, size: 14, color: theme.colorScheme.onSurface),
+                                  const SizedBox(width: 8),
+                                  const Text('Open Document', style: TextStyle(fontSize: 12)),
+                                ],
+                              ),
+                            ),
+                            PopupMenuItem(
+                              value: 'pin',
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    widget.file.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
+                                    size: 14,
+                                    color: theme.colorScheme.onSurface,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    widget.file.isPinned ? 'Unpin Document' : 'Pin Document',
+                                    style: const TextStyle(fontSize: 12),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            PopupMenuItem(
+                              value: 'rename',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.edit_outlined, size: 14, color: theme.colorScheme.onSurface),
+                                  const SizedBox(width: 8),
+                                  const Text('Rename Document', style: TextStyle(fontSize: 12)),
+                                ],
+                              ),
+                            ),
+                            PopupMenuItem(
+                              value: 'delete',
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.delete_outline, size: 14, color: Colors.redAccent),
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    'Delete Document',
+                                    style: TextStyle(fontSize: 12, color: Colors.redAccent),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),

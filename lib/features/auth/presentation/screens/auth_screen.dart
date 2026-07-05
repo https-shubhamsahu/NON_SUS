@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../theme.dart';
 import '../controllers/auth_controller.dart';
-import '../providers/auth_providers.dart';
+
 
 class AuthScreen extends ConsumerStatefulWidget {
   const AuthScreen({super.key});
@@ -86,6 +86,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               ),
             ),
           );
+          if (mounted) {
+            setState(() {
+              _isSignUp = false;
+              _passwordController.clear();
+            });
+          }
         }
       }
       next.whenOrNull(
@@ -94,7 +100,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             SnackBar(
               backgroundColor: Colors.redAccent,
               content: Text(
-                error.toString().replaceAll('Exception: ', '').replaceAll('StateError: ', ''),
+                error.toString().replaceAll('Exception: ', '').replaceAll('StateError: ', '').replaceAll('AuthException: ', ''),
                 style: const TextStyle(color: Colors.white),
               ),
             ),
@@ -491,39 +497,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                             fg: fg,
                             enabled: false,
                           ),
-                          const SizedBox(height: 12),
-                          GestureDetector(
-                            onTap: () {
-                              HapticFeedback.mediumImpact();
-                              ref.read(isGuestModeProvider.notifier).enableGuest();
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                  color: fg.withValues(alpha: 0.15),
-                                  width: 0.75,
-                                ),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.person_outline, size: 20, color: fg),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'CONTINUE AS GUEST (OFFLINE)',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 1.0,
-                                      color: fg,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
+
                         ],
                       ],
                     ),

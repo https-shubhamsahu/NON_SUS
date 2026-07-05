@@ -71,19 +71,27 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
 
         // ── Group list ─────────────────────────────────────────────────────
         Expanded(
-          child: groupsAsync.when(
-            loading: () => _SkeletonList(),
-            error: (e, _) =>
-                _ErrorState(onRetry: () => ref.invalidate(groupsProvider)),
-            data: (groups) => groups.isEmpty
-                ? GroupsEmptyState(onCreateGroup: _openCreateGroup)
-                : _GroupList(
-                    groups: groups,
-                    onCreateGroup: _openCreateGroup,
-                    onGroupTap: (group) => Navigator.of(
-                      context,
-                    ).push(_slideRoute(GroupDetailScreen(group: group))),
-                  ),
+          child: RefreshIndicator(
+            onRefresh: () async {
+              ref.invalidate(groupsProvider);
+              await ref.read(groupsProvider.future);
+            },
+            color: fg,
+            backgroundColor: isDark ? NoSusTheme.dCard : NoSusTheme.lCard,
+            child: groupsAsync.when(
+              loading: () => _SkeletonList(),
+              error: (e, _) =>
+                  _ErrorState(onRetry: () => ref.invalidate(groupsProvider)),
+              data: (groups) => groups.isEmpty
+                  ? GroupsEmptyState(onCreateGroup: _openCreateGroup)
+                  : _GroupList(
+                      groups: groups,
+                      onCreateGroup: _openCreateGroup,
+                      onGroupTap: (group) => Navigator.of(
+                        context,
+                      ).push(_slideRoute(GroupDetailScreen(group: group))),
+                    ),
+            ),
           ),
         ),
       ],
@@ -223,7 +231,9 @@ class _GroupList extends StatelessWidget {
       children: [
         ListView.separated(
           padding: const EdgeInsets.only(bottom: 90),
-          physics: const BouncingScrollPhysics(),
+          physics: const AlwaysScrollableScrollPhysics(
+            parent: BouncingScrollPhysics(),
+          ),
           itemCount: groups.length,
           separatorBuilder: (context, index) =>
               const SizedBox(height: NoSusTheme.s12),
@@ -333,7 +343,6 @@ class _CreateGroupModal extends ConsumerStatefulWidget {
 class _CreateGroupModalState extends ConsumerState<_CreateGroupModal> {
   final _nameController = TextEditingController();
   final _descController = TextEditingController();
-  SecurityLevel _selectedLevel = SecurityLevel.encrypted;
   bool _enableInviteCode = true;
 
   @override
@@ -350,8 +359,9 @@ class _CreateGroupModalState extends ConsumerState<_CreateGroupModal> {
     final currentUser = ref.read(authRepositoryProvider).currentUser;
     final userId = currentUser?.id ?? 'me';
     final userEmail = currentUser?.email ?? 'You';
-    final userInitials = userEmail.isNotEmpty && userEmail.contains('@')
-        ? userEmail.split('@').first.substring(0, 2).toUpperCase()
+    final cleanEmailPrefix = userEmail.contains('@') ? userEmail.split('@').first : '';
+    final userInitials = cleanEmailPrefix.isNotEmpty
+        ? cleanEmailPrefix.substring(0, cleanEmailPrefix.length >= 2 ? 2 : cleanEmailPrefix.length).toUpperCase()
         : 'ME';
 
     final newGroup = StudyGroup(
@@ -360,13 +370,12 @@ class _CreateGroupModalState extends ConsumerState<_CreateGroupModal> {
       description: _descController.text.trim().isEmpty
           ? 'Private study group'
           : _descController.text.trim(),
-      securityLevel: _selectedLevel,
       members: [
         GroupMember(id: userId, name: userEmail, initials: userInitials, isAdmin: true),
       ],
       fileCount: 0,
       lastActivity: DateTime.now(),
-      isWatermarkEnabled: _selectedLevel != SecurityLevel.open,
+      isWatermarkEnabled: true,
       inviteCode: _enableInviteCode
           ? 'GRP-${DateTime.now().millisecondsSinceEpoch % 9999}'
           : null,
@@ -447,62 +456,6 @@ class _CreateGroupModalState extends ConsumerState<_CreateGroupModal> {
               fg: fg,
               subtle: subtle,
             ),
-            const SizedBox(height: 20),
-
-            // Security level selector
-            Text(
-              'SECURITY LEVEL',
-              style: TextStyle(
-                color: subtle,
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 1.5,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: SecurityLevel.values
-                  .map(
-                    (level) => Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.only(
-                          right: level == SecurityLevel.open ? 0 : 8,
-                        ),
-                        child: GestureDetector(
-                          onTap: () => setState(() => _selectedLevel = level),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            decoration: BoxDecoration(
-                              color: _selectedLevel == level
-                                  ? fg
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: fg.withValues(alpha: 0.2),
-                                width: 0.75,
-                              ),
-                            ),
-                            child: Center(
-                              child: Text(
-                                level.label,
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 1.0,
-                                  color: _selectedLevel == level
-                                      ? (isDark ? Colors.black : Colors.white)
-                                      : fg,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  )
-                  .toList(),
-            ),
             const SizedBox(height: 16),
 
             // Invite code toggle
@@ -561,7 +514,7 @@ class _CreateGroupModalState extends ConsumerState<_CreateGroupModal> {
                 ),
                 child: Center(
                   child: Text(
-                    'CREATE SECURE GROUP',
+                    'CREATE GROUP',
                     style: TextStyle(
                       color: isDark ? Colors.black : Colors.white,
                       fontSize: 13,

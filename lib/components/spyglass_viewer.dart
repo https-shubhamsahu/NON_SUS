@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme.dart';
-import '../services/secure_enclave.dart';
 import '../features/files/presentation/providers/secure_file_providers.dart';
 import 'secure_viewer/models/watermark_config.dart';
 import 'secure_viewer/models/viewer_config.dart';
@@ -14,16 +13,17 @@ import 'package:screen_protector/screen_protector.dart';
 import '../features/auth/presentation/providers/auth_providers.dart';
 import '../features/profile/providers/profile_provider.dart';
 import '../features/profile/providers/settings_provider.dart';
-import '../core/constants/mock_documents.dart';
+import '../services/screenshot_guard.dart';
+import '../services/audit_service.dart';
 
 // ─── User identity resolved from live auth providers ────────────────────────
 
 /// The full-screen secure document viewer page.
 ///
-/// Integrates [SecureEnclave] to load, decrypt in-memory, and purge volatile
-/// buffer segments upon exiting the document to enforce Zero-Trust memory parameters.
+/// Loads, renders, and purges volatile document bytes from memory upon exit.
 class SpyglassViewer extends ConsumerStatefulWidget {
   final String? fileId;
+  final String? groupId;
   final String? email;
   final String? phone;
   final String? documentTitle;
@@ -32,6 +32,7 @@ class SpyglassViewer extends ConsumerStatefulWidget {
   const SpyglassViewer({
     super.key,
     this.fileId,
+    this.groupId,
     this.email,
     this.phone,
     this.documentTitle,
@@ -45,11 +46,13 @@ class SpyglassViewer extends ConsumerStatefulWidget {
 class _SpyglassViewerState extends ConsumerState<SpyglassViewer> {
   final String _sessionTimestamp = _buildTimestamp();
   bool _isLoading = true;
-  String _decryptedContent = '';
+  String _documentContent = '';
   double _streamProgress = 0.0;
   String _loadingStatus = 'Requesting secure proxy...';
   bool _isPdf = false;
   bool _isImage = false;
+  bool _downloadFailed = false;
+  Uint8List? _documentBytes;
 
   static String _buildTimestamp() {
     final now = DateTime.now();
@@ -67,6 +70,11 @@ class _SpyglassViewerState extends ConsumerState<SpyglassViewer> {
       statusBarBrightness: Brightness.dark,
     ));
 
+    // Register active document context for screenshot/recording audit logs
+    ScreenshotGuard.instance.activeGroupId = widget.groupId;
+    ScreenshotGuard.instance.activeFileId = widget.fileId;
+    ScreenshotGuard.instance.activeFileName = widget.documentTitle;
+
     _initScreenshotProtection();
     _loadSecureEnclavePayload();
   }
@@ -78,8 +86,12 @@ class _SpyglassViewerState extends ConsumerState<SpyglassViewer> {
 
   @override
   void dispose() {
-    // Purge the memory buffer immediately when leaving the viewer
-    SecureEnclave.purge();
+    // Clear active document context from screenshot audit logger
+    ScreenshotGuard.instance.activeGroupId = null;
+    ScreenshotGuard.instance.activeFileId = null;
+    ScreenshotGuard.instance.activeFileName = null;
+
+    _documentBytes = null;
     ScreenProtector.preventScreenshotOff();
     ScreenProtector.protectDataLeakageOff();
     super.dispose();
@@ -93,13 +105,13 @@ class _SpyglassViewerState extends ConsumerState<SpyglassViewer> {
         _loadingStatus = 'Connecting to secure repository...';
       });
       
-      final streamedBytes = await ref.read(secureFileRepositoryProvider).downloadAndDecryptFile(
+      final streamedBytes = await ref.read(secureFileRepositoryProvider).downloadFile(
         fileId: widget.fileId!,
         onProgress: (progress) {
           if (mounted) {
             setState(() {
               _streamProgress = progress;
-              _loadingStatus = 'Downloading and decrypting: ${(progress * 100).toStringAsFixed(0)}%';
+              _loadingStatus = 'Downloading: ${(progress * 100).toStringAsFixed(0)}%';
             });
           }
         },
@@ -108,58 +120,65 @@ class _SpyglassViewerState extends ConsumerState<SpyglassViewer> {
       if (streamedBytes != null) {
         if (mounted) {
           setState(() {
-            _loadingStatus = 'Decrypting inside RAM enclave...';
+            _loadingStatus = 'Loading document...';
           });
         }
-        // Simulate enclave registration processing time
-        await Future.delayed(const Duration(milliseconds: 300));
-        SecureEnclave.registerDecryptedBuffer(streamedBytes);
         plainBytes = streamedBytes;
       }
     }
 
-    // Fallback if streaming failed or no fileId was provided — load plain text into enclave.
-    if (plainBytes == null) {
-      final rawText = MockDocuments.getByTitle(widget.documentTitle);
-      SecureEnclave.loadPlainText(rawText);
-      plainBytes = SecureEnclave.activeBuffer ?? Uint8List(0);
+    bool downloadFailed = false;
+
+    if (plainBytes == null && widget.fileId != null) {
+      downloadFailed = true;
+      if (widget.groupId != null) {
+        AuditService.instance.logEvent(
+          'download_failed',
+          'FAILURE',
+          groupId: widget.groupId!,
+          fileId: widget.fileId,
+          metadata: {'file_name': widget.documentTitle ?? 'document'},
+        );
+      }
     }
 
-    // Detect PDF by magic bytes %PDF
     bool isPdfFile = false;
-    if (plainBytes.length >= 4 &&
-        plainBytes[0] == 0x25 && // %
-        plainBytes[1] == 0x50 && // P
-        plainBytes[2] == 0x44 && // D
-        plainBytes[3] == 0x46) { // F
+    if (plainBytes != null &&
+        plainBytes.length >= 4 &&
+        plainBytes[0] == 0x25 &&
+        plainBytes[1] == 0x50 &&
+        plainBytes[2] == 0x44 &&
+        plainBytes[3] == 0x46) {
       isPdfFile = true;
-    } else if (widget.documentCategory == 'PDF') {
+    } else if (plainBytes != null && widget.documentCategory == 'PDF' && !downloadFailed) {
       isPdfFile = true;
     }
 
     // Detect Image by magic bytes or category
     bool isImageFile = false;
-    if (plainBytes.length >= 3 &&
+    if (plainBytes != null &&
+        plainBytes.length >= 3 &&
         plainBytes[0] == 0xFF &&
         plainBytes[1] == 0xD8 &&
         plainBytes[2] == 0xFF) { // JPEG
       isImageFile = true;
-    } else if (plainBytes.length >= 4 &&
+    } else if (plainBytes != null &&
+        plainBytes.length >= 4 &&
         plainBytes[0] == 0x89 &&
         plainBytes[1] == 0x50 &&
         plainBytes[2] == 0x4E &&
         plainBytes[3] == 0x47) { // PNG
       isImageFile = true;
-    } else if (widget.documentCategory == 'IMAGE' || widget.documentCategory == 'SCAN') {
+    } else if (plainBytes != null && (widget.documentCategory == 'IMAGE' || widget.documentCategory == 'SCAN') && !downloadFailed) {
       isImageFile = true;
     }
 
     String decoded = '';
-    if (!isPdfFile && !isImageFile) {
+    if (plainBytes != null && !isPdfFile && !isImageFile) {
       try {
         decoded = utf8.decode(plainBytes);
       } catch (_) {
-        decoded = '[SECURED DOCUMENT PREVIEW]\nThis document is a binary PDF/media asset loaded securely inside the RAM enclave.';
+        decoded = '[SECURED DOCUMENT PREVIEW]\nThis document is a binary PDF/media asset loaded securely inside the RAM buffer.';
       }
     }
 
@@ -167,7 +186,9 @@ class _SpyglassViewerState extends ConsumerState<SpyglassViewer> {
       setState(() {
         _isPdf = isPdfFile;
         _isImage = isImageFile;
-        _decryptedContent = decoded;
+        _documentContent = decoded;
+        _documentBytes = plainBytes;
+        _downloadFailed = downloadFailed;
         _isLoading = false;
       });
     }
@@ -320,7 +341,47 @@ class _SpyglassViewerState extends ConsumerState<SpyglassViewer> {
                 ),
               ),
             )
-          : _buildDocumentBody(watermarkConfig, viewerConfig, isDark, fg, bg),
+          : _downloadFailed
+              ? _buildDownloadFailedBody(fg)
+              : _buildDocumentBody(watermarkConfig, viewerConfig, isDark, fg, bg),
+    );
+  }
+
+  Widget _buildDownloadFailedBody(Color fg) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.cloud_off_outlined,
+              size: 40,
+              color: fg.withValues(alpha: 0.4),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'DOWNLOAD FAILED',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 2.0,
+                color: fg,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'The document could not be loaded.\n\nPlease verify your connection and ensure you are a registered enclave member of this study group.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                color: fg.withValues(alpha: 0.55),
+                height: 1.5,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -331,7 +392,7 @@ class _SpyglassViewerState extends ConsumerState<SpyglassViewer> {
     Color fg,
     Color bg,
   ) {
-    final buffer = SecureEnclave.activeBuffer;
+    final buffer = _documentBytes;
 
     // Null guard — if buffer was purged (e.g. widget re-entry) show a safe error state.
     if (buffer == null && (_isPdf || _isImage)) {
@@ -352,7 +413,7 @@ class _SpyglassViewerState extends ConsumerState<SpyglassViewer> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Secure buffer was purged.\nReturn and open the document again.',
+              'Document buffer was purged.\nReturn and open the document again.',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 13, color: fg.withValues(alpha: 0.5)),
             ),
@@ -381,7 +442,7 @@ class _SpyglassViewerState extends ConsumerState<SpyglassViewer> {
                   isDark: isDark,
                   fg: fg,
                   bg: bg,
-                  text: _decryptedContent,
+                  text: _documentContent,
                 ),
     );
   }
@@ -417,9 +478,9 @@ class _DocumentContent extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _DocHeader(
-            subject: 'SECURE MEMORY ENCLAVE',
-            chapter: paragraphs.isNotEmpty ? paragraphs.first.split('\n').first : 'Decrypted Segment',
-            date: 'TEMPORARY VOLATILE BUFFER',
+            subject: 'DOCUMENT VIEWER',
+            chapter: paragraphs.isNotEmpty ? paragraphs.first.split('\n').first : 'Document Content',
+            date: 'SECURE VIEWER',
             fg: fg,
             subtleColor: subtleColor,
           ),
@@ -435,7 +496,7 @@ class _DocumentContent extends StatelessWidget {
           const SizedBox(height: 40),
           Center(
             child: Text(
-              '— MEMORY ENCLAVE CLEARED ON EXIT —',
+              '— DOCUMENT CLEARED ON EXIT —',
               style: TextStyle(
                 color: subtleColor,
                 fontSize: 10,

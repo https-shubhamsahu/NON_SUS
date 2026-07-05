@@ -3,9 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../theme.dart';
-import '../../../../services/secure_db_service.dart';
 import '../../../../config/supabase_credentials.dart';
-import '../../../audit/providers/audit_provider.dart';
 
 class AdvancedSettingsScreen extends ConsumerStatefulWidget {
   const AdvancedSettingsScreen({super.key});
@@ -17,8 +15,6 @@ class AdvancedSettingsScreen extends ConsumerStatefulWidget {
 class _AdvancedSettingsScreenState extends ConsumerState<AdvancedSettingsScreen> {
   bool _isTestingLatency = false;
   int _latencyMs = -1;
-  bool _isRotatingKeys = false;
-  bool _isPurgingCache = false;
 
   Future<void> _testLatency() async {
     if (_isTestingLatency) return;
@@ -55,73 +51,7 @@ class _AdvancedSettingsScreenState extends ConsumerState<AdvancedSettingsScreen>
     }
   }
 
-  void _triggerKeyRotation() async {
-    if (_isRotatingKeys) return;
-    setState(() {
-      _isRotatingKeys = true;
-    });
 
-    try {
-      await SecureDbService.instance.rotateWorkspaceKeys();
-      ref.read(auditLogsProvider);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            backgroundColor: Colors.white,
-            content: Text(
-              'Encryption keys successfully rotated.',
-              style: TextStyle(
-                color: Colors.black,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: Colors.redAccent,
-            content: Text(
-              'Key rotation failed: $e',
-              style: const TextStyle(color: Colors.white),
-            ),
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isRotatingKeys = false;
-        });
-      }
-    }
-  }
-
-  void _purgeCache() async {
-    if (_isPurgingCache) return;
-    setState(() {
-      _isPurgingCache = true;
-    });
-
-    await Future.delayed(const Duration(milliseconds: 800));
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.white,
-          content: Text(
-            'In-memory decrypted buffers wiped from RAM.',
-            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-          ),
-        ),
-      );
-      setState(() {
-        _isPurgingCache = false;
-      });
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -206,90 +136,7 @@ class _AdvancedSettingsScreenState extends ConsumerState<AdvancedSettingsScreen>
                 ],
               ),
             ),
-            const SizedBox(height: 24),
-            Text(
-              'CRYPTOGRAPHY CONTROL',
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: fg.withValues(alpha: 0.4),
-                fontSize: 10,
-                letterSpacing: 1.5,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: NoSusTheme.cardDecoration(context),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _buildDiagRow(context, 'Standard', 'AES-256-GCM'),
-                  const SizedBox(height: 12),
-                  _buildDiagRow(context, 'Buffer State', 'Volatile RAM Only'),
-                  const SizedBox(height: 20),
-                  GestureDetector(
-                    onTap: _triggerKeyRotation,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      decoration: NoSusTheme.buttonDecoration(context),
-                      child: Center(
-                        child: _isRotatingKeys
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2.0, color: Colors.grey),
-                              )
-                            : Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.sync_lock, size: 14, color: fg),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'ROTATE WORKSPACE KEYS',
-                                    style: theme.textTheme.labelLarge?.copyWith(fontSize: 10, letterSpacing: 1.0),
-                                  ),
-                                ],
-                              ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  GestureDetector(
-                    onTap: _purgeCache,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.redAccent.withValues(alpha: 0.3)),
-                        borderRadius: BorderRadius.circular(12),
-                        color: Colors.redAccent.withValues(alpha: 0.05),
-                      ),
-                      child: Center(
-                        child: _isPurgingCache
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2.0, color: Colors.redAccent),
-                              )
-                            : Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.delete_sweep_outlined, size: 14, color: Colors.redAccent),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'PURGE DECRYPTED RAM BUFFER',
-                                    style: theme.textTheme.labelLarge?.copyWith(
-                                      fontSize: 10,
-                                      letterSpacing: 1.0,
-                                      color: Colors.redAccent,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+
           ],
         ),
       ),

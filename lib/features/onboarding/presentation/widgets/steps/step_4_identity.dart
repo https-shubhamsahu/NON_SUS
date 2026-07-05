@@ -2,7 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:no_sus/services/secure_db_service.dart';
+import 'package:no_sus/services/supabase_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:no_sus/features/profile/providers/profile_provider.dart';
 class OnboardingIdentityWidget extends StatefulWidget {
   final VoidCallback onNext;
@@ -78,13 +79,18 @@ class _OnboardingIdentityWidgetState extends State<OnboardingIdentityWidget> {
       'is_custom': false,
     });
 
-    await SecureDbService.instance.saveProfile(
-      userId: 'temp_user', // Will be linked on auth completion
-      email: 'guest@nosus.io',
-      displayName: name,
-      avatarColorStart: avatarJson,
-      avatarColorEnd: 'false',
-    );
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user != null) {
+      await SupabaseService.instance.saveProfile(
+        userId: user.id,
+        email: user.email ?? 'guest@nosus.io',
+        displayName: name,
+        avatarColorStart: avatarJson,
+        avatarColorEnd: 'false',
+        onboardingCompleted: false, // Not complete until step 6
+      );
+    }
+    
     ref.invalidate(profileProvider);
 
     widget.onNext();
@@ -133,7 +139,7 @@ class _OnboardingIdentityWidgetState extends State<OnboardingIdentityWidget> {
                   height: 95,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: fg.withValues(alpha: 0.05),
+                    color: const Color(0xFF1A1A1A),
                     border: Border.all(
                       color: fg.withValues(alpha: 0.1),
                       width: 1.0,
@@ -191,7 +197,7 @@ class _OnboardingIdentityWidgetState extends State<OnboardingIdentityWidget> {
                           color: isSelected ? fg : fg.withValues(alpha: 0.1),
                           width: isSelected ? 2.0 : 1.0,
                         ),
-                        color: isSelected ? fg.withValues(alpha: 0.05) : fg.withValues(alpha: 0.02),
+                        color: isSelected ? const Color(0xFF2A2A2A) : const Color(0xFF141414),
                       ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,

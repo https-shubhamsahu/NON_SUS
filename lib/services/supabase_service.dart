@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter/foundation.dart';
+import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/supabase/supabase_bootstrap.dart';
 import '../config/supabase_credentials.dart';
-import '../features/groups/domain/models/study_group.dart';
-import '../features/groups/models/group_file.dart';
+import 'audit_service.dart';
+import '../core/utils/debug_logger.dart';
 
 /// Service to handle all interactions with the live Supabase project.
 ///
@@ -33,7 +33,7 @@ class SupabaseService {
   /// Compatibility entry point while legacy services migrate to repositories.
   Future<void> initialize() async {
     if (!isConfigured) {
-      debugPrint(
+      debugLog(
         "SupabaseService: Credentials empty. Operating in offline mock fallback mode.",
       );
       return;
@@ -42,154 +42,15 @@ class SupabaseService {
     try {
       await SupabaseBootstrap.initialize();
       _isReachable = true;
-      debugPrint("SupabaseService: Client successfully initialized.");
+      debugLog("SupabaseService: Client successfully initialized.");
     } catch (e) {
-      debugPrint("SupabaseService: Initialization error: $e");
+      debugLog("SupabaseService: Initialization error: $e");
       _isReachable = false;
     }
   }
 
-  // ─── Study Groups Operations ───────────────────────────────────────────────
-
-  /// Streams list of all study groups ordered by creation time.
-  Stream<List<StudyGroup>> watchGroups() {
-    if (!isConfigured) return const Stream.empty();
-
-    return Supabase.instance.client
-        .from('study_groups')
-        .stream(primaryKey: ['id'])
-        .order('created_at', ascending: false)
-        .map((list) {
-          return list.map((m) {
-            final levelStr = m['security_level'] as String? ?? 'encrypted';
-            final level = SecurityLevel.values.firstWhere(
-              (e) => e.name == levelStr.toLowerCase(),
-              orElse: () => SecurityLevel.encrypted,
-            );
-            final rawTime = m['last_activity'] ?? m['created_at'];
-            final time = rawTime != null
-                ? DateTime.parse(rawTime)
-                : DateTime.now();
-
-            return StudyGroup(
-              id: m['id'] as String,
-              name: m['name'] as String,
-              description: m['description'] as String? ?? '',
-              securityLevel: level,
-              members: const [
-                GroupMember(
-                  id: 'm1',
-                  name: 'Alice Chen',
-                  initials: 'AC',
-                  isAdmin: true,
-                ),
-                GroupMember(id: 'm2', name: 'You (Sync)', initials: 'ME'),
-              ],
-              fileCount: m['file_count'] as int? ?? 0,
-              lastActivity: time,
-              isWatermarkEnabled: m['is_watermark_enabled'] as bool? ?? true,
-              inviteCode: m['invite_code'] as String?,
-            );
-          }).toList();
-        })
-        .handleError((e) {
-          debugPrint("SupabaseService: watchGroups error: $e");
-        });
-  }
-
-  /// Creates a new study group inside Supabase database.
-  Future<void> createGroup(StudyGroup group) async {
-    if (!isConfigured) return;
-
-    await Supabase.instance.client.from('study_groups').insert({
-      'id': group.id,
-      'name': group.name,
-      'description': group.description,
-      'security_level': group.securityLevel.name,
-      'is_watermark_enabled': group.isWatermarkEnabled,
-      'invite_code': group.inviteCode,
-    });
-  }
-
-  // ─── Secure Files Operations ────────────────────────────────────────────────
-
-  /// Streams map of all files grouped by groupId ordered by upload time.
-  Stream<Map<String, List<GroupFile>>> watchFiles() {
-    if (!isConfigured) return const Stream.empty();
-
-    return Supabase.instance.client
-        .from('secure_files')
-        .stream(primaryKey: ['id'])
-        .order('uploaded_at', ascending: false)
-        .map((list) {
-          final Map<String, List<GroupFile>> filesMap = {};
-          for (final row in list) {
-            final typeStr = row['type'] as String? ?? 'pdf';
-            final fileType = FileType.values.firstWhere(
-              (e) => e.name == typeStr.toLowerCase(),
-              orElse: () => FileType.pdf,
-            );
-            final statusStr = row['security_status'] as String? ?? 'secured';
-            final status = FileSecurityStatus.values.firstWhere(
-              (e) => e.name == statusStr.toLowerCase(),
-              orElse: () => FileSecurityStatus.secured,
-            );
-            final rawTime = row['uploaded_at'];
-            final time = rawTime != null
-                ? DateTime.parse(rawTime)
-                : DateTime.now();
-
-            final file = GroupFile(
-              id: row['id'] as String,
-              name: row['name'] as String,
-              type: fileType,
-              groupId: row['group_id'] as String,
-              uploadedByName: row['uploaded_by_name'] as String? ?? 'Anonymous',
-              uploadedByInitials:
-                  row['uploaded_by_initials'] as String? ?? 'AN',
-              uploadedAt: time,
-              sizeBytes: row['size_bytes'] as int? ?? 0,
-              isWatermarked: row['is_watermarked'] as bool? ?? true,
-              isPinned: row['is_pinned'] as bool? ?? false,
-              securityStatus: status,
-            );
-
-            // Note: encryption keys are no longer stored in the DB (E2E fix).
-            // Keys live exclusively in device SecureKeyStore.
-
-            filesMap.putIfAbsent(file.groupId, () => []).add(file);
-          }
-          return filesMap;
-        })
-        .handleError((e) {
-          debugPrint("SupabaseService: watchFiles error: $e");
-        });
-  }
-
-  /// Saves metadata of a secure file inside Supabase database.
-  Future<void> saveFileMetadata({
-    required GroupFile file,
-    required String key,
-    required String iv,
-  }) async {
-    if (!isConfigured) return;
-
-    await Supabase.instance.client.from('secure_files').insert({
-      'id': file.id,
-      'group_id': file.groupId,
-      'name': file.name,
-      'type': file.type.name,
-      'uploaded_by_name': file.uploadedByName,
-      'uploaded_by_initials': file.uploadedByInitials,
-      'size_bytes': file.sizeBytes,
-      'is_watermarked': file.isWatermarked,
-      'is_pinned': file.isPinned,
-      'security_status': file.securityStatus.name,
-      // Encryption keys are NOT stored in the DB (E2E security).
-      // They are persisted device-locally via SecureKeyStore.
-    });
-  }
-
+  // ─── Google Drive Proxy Operations ──────────────────────────────────────────
+  
   String get _driveProxyUrl =>
       '${SupabaseCredentials.url}/functions/v1/drive-proxy';
 
@@ -200,11 +61,10 @@ class SupabaseService {
     return 'Bearer ${SupabaseCredentials.anonKey}';
   }
 
-  /// Deletes a secure file metadata from Supabase database AND from Google Drive.
-  Future<void> deleteFile(String fileId) async {
+  /// Deletes a secure file from Google Drive via Edge Function.
+  Future<void> deleteGDriveFile(String fileId) async {
     if (!isConfigured) return;
 
-    // 1. Delete from Google Drive via Edge Function
     try {
       final client = HttpClient();
       final request = await client.deleteUrl(
@@ -214,79 +74,66 @@ class SupabaseService {
       final response = await request.close();
       if (response.statusCode != 200) {
         final responseBody = await response.transform(utf8.decoder).join();
-        debugPrint(
+        debugLog(
           "SupabaseService: Delete proxy failed: ${response.statusCode} - $responseBody",
         );
       }
     } catch (e) {
-      debugPrint("SupabaseService: Delete proxy exception: $e");
-    }
-
-    // 2. Delete database metadata
-    await Supabase.instance.client
-        .from('secure_files')
-        .delete()
-        .eq('id', fileId);
-  }
-
-  /// Toggles the pinned state of a secure file in the Supabase database.
-  Future<void> togglePin(String fileId) async {
-    if (!isConfigured) return;
-
-    final response = await Supabase.instance.client
-        .from('secure_files')
-        .select('is_pinned')
-        .eq('id', fileId)
-        .maybeSingle();
-
-    if (response != null) {
-      final currentPin = response['is_pinned'] as bool? ?? false;
-      await Supabase.instance.client
-          .from('secure_files')
-          .update({'is_pinned': !currentPin})
-          .eq('id', fileId);
+      debugLog("SupabaseService: Delete proxy exception: $e");
     }
   }
 
-  // ─── Storage Operations ────────────────────────────────────────────────────
-
-  /// Uploads binary file bytes directly to Supabase Storage.
-  /// Returns the storage file ID on success.
-  Future<String?> uploadStorageFile(
-    String fileId,
-    Uint8List encryptedBytes,
-  ) async {
+  /// Downloads a file from the Google Drive proxy Edge Function.
+  Future<Uint8List?> downloadGDriveFile(String fileId) async {
     if (!isConfigured) return null;
 
     try {
-      await Supabase.instance.client.storage
-          .from('secure-files')
-          .uploadBinary(fileId, encryptedBytes);
-      return fileId;
-    } catch (e) {
-      debugPrint("SupabaseService: Upload storage exception: $e");
-      return null;
-    }
-  }
+      final client = HttpClient();
+      final request = await client.getUrl(
+        Uri.parse('$_driveProxyUrl/download?fileId=$fileId'),
+      );
+      request.headers.set(HttpHeaders.authorizationHeader, _authHeader);
+      final response = await request.close();
+      if (response.statusCode != 200) {
+        final responseBody = await response.transform(utf8.decoder).join();
+        debugLog(
+          "SupabaseService: Download proxy failed: ${response.statusCode} - $responseBody",
+        );
+        return null;
+      }
 
-  /// Downloads binary file bytes directly from Supabase Storage.
-  Future<Uint8List?> downloadStorageFile(String fileId) async {
-    if (!isConfigured) return null;
-
-    try {
-      return await Supabase.instance.client.storage
-          .from('secure-files')
-          .download(fileId);
+      final bytesBuilder = BytesBuilder();
+      await for (final chunk in response) {
+        bytesBuilder.add(chunk);
+      }
+      return bytesBuilder.toBytes();
     } catch (e) {
-      debugPrint("SupabaseService: Download storage exception: $e");
+      debugLog("SupabaseService: Download proxy exception: $e");
       return null;
     }
   }
 
   /// Fetches the Google Drive Service Account Email dynamically from the proxy.
-  /// Deprecated: Not used anymore since we use native Supabase Storage.
   Future<String?> getServiceAccountEmail() async {
-    return "Supabase Storage Active";
+    if (!isConfigured) return null;
+
+    try {
+      final client = HttpClient();
+      final request = await client.getUrl(Uri.parse('$_driveProxyUrl/info'));
+      request.headers.set(HttpHeaders.authorizationHeader, _authHeader);
+      final response = await request.close();
+      if (response.statusCode == 200) {
+        final responseBody = await response.transform(utf8.decoder).join();
+        final data = json.decode(responseBody) as Map<String, dynamic>;
+        return data['serviceAccountEmail'] as String?;
+      } else {
+        final responseBody = await response.transform(utf8.decoder).join();
+        debugLog("SupabaseService: getServiceAccountEmail failed: ${response.statusCode} - $responseBody");
+      }
+    } catch (e) {
+      debugLog("SupabaseService: getServiceAccountEmail exception: $e");
+    }
+    return null;
   }
 
   // ─── Audit Logging Operations ──────────────────────────────────────────────
@@ -303,29 +150,43 @@ class SupabaseService {
           return list.map((row) {
             final timeStr = row['created_at'] != null
                 ? DateTime.parse(
-                    row['created_at'],
+                    row['created_at'] as String,
                   ).toLocal().toIso8601String().substring(11, 19)
                 : 'Now';
+            final eventType = row['event_type'] as String? ?? 'group_updated';
+            final metadata = row['metadata'] as Map<String, dynamic>? ?? {};
+
             return {
               'time': timeStr,
-              'event': row['event'] as String? ?? '',
-              'status': row['status'] as String? ?? '',
+              'event': AuditService.formatEventDescription(eventType, metadata),
+              'status': AuditService.getEventStatus(eventType, metadata),
             };
           }).toList();
         })
         .handleError((e) {
-          debugPrint("SupabaseService: watchAuditLogs error: $e");
+          debugLog("SupabaseService: watchAuditLogs error: $e");
         });
   }
 
-  /// Inserts a new audit log record inside Supabase database.
-  Future<void> logEvent(String event, String status) async {
+  /// Inserts a new audit log record inside Supabase database via secure RPC.
+  Future<void> logEvent(
+    String eventType, {
+    required String groupId,
+    String? fileId,
+    Map<String, dynamic>? metadata,
+  }) async {
     if (!isConfigured) return;
 
-    await Supabase.instance.client.from('audit_logs').insert({
-      'event': event,
-      'status': status,
-    });
+    try {
+      await Supabase.instance.client.rpc('log_group_event', params: {
+        'p_group_id': groupId,
+        'p_file_id': fileId,
+        'p_event_type': eventType,
+        'p_metadata': metadata ?? {},
+      });
+    } catch (e) {
+      debugLog("SupabaseService: logEvent RPC failed: $e");
+    }
   }
 
   /// Fetches private notes for a user.
@@ -343,10 +204,10 @@ class SupabaseService {
           "1. Open the 'Groups' tab from the bottom nav.\n"
           "2. Tap the '+' icon to create a secure study group.\n"
           "3. Share the invite code with classmates.\n"
-          "4. Upload notes — they are E2E encrypted locally.\n"
+          "4. Upload notes — they are stored securely in the workspace.\n"
           "5. Use 'REVEAL' to read in our screenshot-proof viewer.";
     } catch (e) {
-      debugPrint("SupabaseService: fetchUserNote error: $e");
+      debugLog("SupabaseService: fetchUserNote error: $e");
       return '';
     }
   }
@@ -361,7 +222,7 @@ class SupabaseService {
         'updated_at': DateTime.now().toUtc().toIso8601String(),
       });
     } catch (e) {
-      debugPrint("SupabaseService: saveUserNote error: $e");
+      debugLog("SupabaseService: saveUserNote error: $e");
     }
   }
 
@@ -384,7 +245,7 @@ class SupabaseService {
       }
       return logs;
     } catch (e) {
-      debugPrint("SupabaseService: fetchFocusLogs error: $e");
+      debugLog("SupabaseService: fetchFocusLogs error: $e");
       return {};
     }
   }
@@ -408,7 +269,7 @@ class SupabaseService {
         'focus_minutes': currentMinutes + minutes,
       });
     } catch (e) {
-      debugPrint("SupabaseService: incrementFocusMinutes error: $e");
+      debugLog("SupabaseService: incrementFocusMinutes error: $e");
     }
   }
 
@@ -430,7 +291,7 @@ class SupabaseService {
       }
       return counts;
     } catch (e) {
-      debugPrint("SupabaseService: fetchAuditLogCounts error: $e");
+      debugLog("SupabaseService: fetchAuditLogCounts error: $e");
       return {};
     }
   }
@@ -441,12 +302,12 @@ class SupabaseService {
     try {
       final response = await Supabase.instance.client
           .from('profiles')
-          .select('display_name, avatar_color_start, avatar_color_end, onboarding_completed')
+          .select('display_name, avatar_color_start, avatar_color_end, onboarding_completed, survey_goals, survey_features, survey_user_type')
           .eq('id', userId)
           .maybeSingle();
       return response ?? {};
     } catch (e) {
-      debugPrint("SupabaseService: fetchProfile error: $e");
+      debugLog("SupabaseService: fetchProfile error: $e");
       return {};
     }
   }
@@ -472,7 +333,26 @@ class SupabaseService {
         'updated_at': DateTime.now().toUtc().toIso8601String(),
       });
     } catch (e) {
-      debugPrint("SupabaseService: saveProfile error: $e");
+      debugLog("SupabaseService: saveProfile error: $e");
+    }
+  }
+
+  /// Updates only the survey data fields in the user's profile.
+  Future<void> updateSurveyData({
+    required String userId,
+    required List<String> goals,
+    required List<String> features,
+    required String userType,
+  }) async {
+    if (!isConfigured) return;
+    try {
+      await Supabase.instance.client.from('profiles').update({
+        'survey_goals': goals,
+        'survey_features': features,
+        'survey_user_type': userType,
+      }).eq('id', userId);
+    } catch (e) {
+      debugLog("SupabaseService: updateSurveyData error: $e");
     }
   }
 
@@ -489,7 +369,7 @@ class SupabaseService {
           .maybeSingle();
       return response?['group_id'] as String?;
     } catch (e) {
-      debugPrint("SupabaseService: getFileGroupId error: $e");
+      debugLog("SupabaseService: getFileGroupId error: $e");
       return null;
     }
   }

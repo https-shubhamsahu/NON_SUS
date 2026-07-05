@@ -2,17 +2,23 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../auth/presentation/providers/auth_providers.dart';
-import '../../../services/secure_db_service.dart';
+import '../../../services/supabase_service.dart';
 
 class ProfileData {
   final String displayName;
   final String avatarColorStart;
   final String avatarColorEnd;
+  final String? userType;
+  final List<String> goals;
+  final List<String> features;
 
   const ProfileData({
     required this.displayName,
     required this.avatarColorStart,
     required this.avatarColorEnd,
+    this.userType,
+    this.goals = const [],
+    this.features = const [],
   });
 
   String get avatarId {
@@ -59,11 +65,17 @@ class ProfileData {
     String? displayName,
     String? avatarColorStart,
     String? avatarColorEnd,
+    String? userType,
+    List<String>? goals,
+    List<String>? features,
   }) {
     return ProfileData(
       displayName: displayName ?? this.displayName,
       avatarColorStart: avatarColorStart ?? this.avatarColorStart,
       avatarColorEnd: avatarColorEnd ?? this.avatarColorEnd,
+      userType: userType ?? this.userType,
+      goals: goals ?? this.goals,
+      features: features ?? this.features,
     );
   }
 }
@@ -73,9 +85,8 @@ class ProfileNotifier extends Notifier<AsyncValue<ProfileData>> {
   AsyncValue<ProfileData> build() {
     final authState = ref.watch(authStateProvider);
 
-    // If auth is still loading, try loading onboarding temp profile
+    // If auth is still loading, return default
     if (authState.isLoading) {
-      _loadGuestProfile();
       return const AsyncValue.data(ProfileData(
         displayName: 'Scholar',
         avatarColorStart: 'FF0072FF',
@@ -86,8 +97,6 @@ class ProfileNotifier extends Notifier<AsyncValue<ProfileData>> {
     final user = authState.value;
 
     if (user == null) {
-      // No authenticated user — load from onboarding cache (bypass auth or guest)
-      _loadGuestProfile();
       return const AsyncValue.data(ProfileData(
         displayName: 'Scholar',
         avatarColorStart: 'FF0072FF',
@@ -95,7 +104,7 @@ class ProfileNotifier extends Notifier<AsyncValue<ProfileData>> {
       ));
     }
 
-    // Authenticated user — load their profile from Supabase / local cache
+    // Authenticated user — load their profile from Supabase
     _loadProfile(user.id, user.email ?? 'Student Guest');
 
     // Return a temporary default from email until async load completes
@@ -109,37 +118,23 @@ class ProfileNotifier extends Notifier<AsyncValue<ProfileData>> {
     ));
   }
 
-  /// Loads the temp onboarding profile saved under 'temp_user' key.
-  /// This is set when the user completes the name/avatar selection step
-  /// even before they authenticate (or when they bypass auth entirely).
-  Future<void> _loadGuestProfile() async {
-    try {
-      // SecureDbService._profileCache is populated when onboarding saves
-      // with userId: 'temp_user'. fetchProfile returns this in-memory cache.
-      final cache = await SecureDbService.instance.fetchProfile('temp_user', '');
-      final name = cache['displayName'];
-      if (name != null && name.isNotEmpty) {
-        state = AsyncValue.data(ProfileData(
-          displayName: name,
-          avatarColorStart: cache['avatarColorStart'] ?? 'FF0072FF',
-          avatarColorEnd: cache['avatarColorEnd'] ?? 'FF00F2FE',
-        ));
-      }
-    } catch (_) {
-      // Ignore — fallback default stays
-    }
-  }
-
   Future<void> _loadProfile(String id, String email) async {
     try {
-      final cache = await SecureDbService.instance.fetchProfile(id, email);
+      final cache = await SupabaseService.instance.fetchProfile(id);
       final defaultName = email.isNotEmpty
           ? (email.length > 7 ? email.substring(0, 7) : email)
           : 'Student Guest';
+      
+      final goalsList = (cache['survey_goals'] as List?)?.map((e) => e.toString()).toList() ?? const [];
+      final featuresList = (cache['survey_features'] as List?)?.map((e) => e.toString()).toList() ?? const [];
+
       state = AsyncValue.data(ProfileData(
-        displayName: cache['displayName'] ?? defaultName,
-        avatarColorStart: cache['avatarColorStart'] ?? 'FF0072FF',
-        avatarColorEnd: cache['avatarColorEnd'] ?? 'FF00F2FE',
+        displayName: cache['display_name'] ?? defaultName,
+        avatarColorStart: cache['avatar_color_start'] ?? 'FF0072FF',
+        avatarColorEnd: cache['avatar_color_end'] ?? 'FF00F2FE',
+        userType: cache['survey_user_type'] as String?,
+        goals: goalsList,
+        features: featuresList,
       ));
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
@@ -157,7 +152,7 @@ class ProfileNotifier extends Notifier<AsyncValue<ProfileData>> {
     try {
       final userId = user?.id ?? 'temp_user';
       final email = user?.email ?? '';
-      await SecureDbService.instance.saveProfile(
+      await SupabaseService.instance.saveProfile(
         userId: userId,
         email: email,
         displayName: displayName,

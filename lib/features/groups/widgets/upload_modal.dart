@@ -11,6 +11,7 @@ import '../../files/presentation/providers/secure_file_providers.dart';
 import '../../auth/presentation/providers/auth_providers.dart';
 import '../../profile/providers/profile_provider.dart';
 import '../../files/presentation/providers/upload_provider.dart';
+import '../../../core/utils/debug_logger.dart';
 
 /// Premium upload bottom sheet. Slides up via DraggableScrollableSheet.
 /// States: pick/link → processing (animated progress) → complete (checkmark).
@@ -94,11 +95,15 @@ class _UploadModalState extends ConsumerState<UploadModal>
       final currentUser = ref.read(authRepositoryProvider).currentUser;
       final profileVal = ref.read(profileProvider).value;
       final uploaderName = profileVal?.displayName ?? currentUser?.email ?? 'Anonymous';
-      final uploaderInitials = uploaderName.isNotEmpty
-          ? (uploaderName.contains('@')
-              ? uploaderName.split('@').first.substring(0, 2).toUpperCase()
-              : uploaderName.substring(0, uploaderName.length >= 2 ? 2 : uploaderName.length).toUpperCase())
-          : 'AN';
+      String uploaderInitials = 'AN';
+      if (uploaderName.isNotEmpty) {
+        if (uploaderName.contains('@')) {
+          final prefix = uploaderName.split('@').first;
+          uploaderInitials = prefix.substring(0, prefix.length >= 2 ? 2 : prefix.length).toUpperCase();
+        } else {
+          uploaderInitials = uploaderName.substring(0, uploaderName.length >= 2 ? 2 : uploaderName.length).toUpperCase();
+        }
+      }
 
       await ref.read(secureFileRepositoryProvider).addGoogleDriveLink(
         groupId: widget.groupId,
@@ -159,7 +164,7 @@ class _UploadModalState extends ConsumerState<UploadModal>
       );
 
       if (result == null || result.files.isEmpty) {
-        debugPrint("File picker: User cancelled picking");
+        debugLog("File picker: User cancelled picking");
         return;
       }
 
@@ -186,7 +191,7 @@ class _UploadModalState extends ConsumerState<UploadModal>
         _uploadRealFile(name, type, bytes);
       }
     } catch (e) {
-      debugPrint("File picker error: $e");
+      debugLog("File picker error: $e");
       _showErrorSnackBar("Error picking file: $e");
     }
   }
@@ -217,8 +222,7 @@ class _UploadModalState extends ConsumerState<UploadModal>
         : NoSusTheme.lTextSecondary;
 
     final displayEmail =
-        _serviceAccountEmail ??
-        "no-sus-drive-service@rxfnazmusofikwaggntb.iam.gserviceaccount.com";
+        _serviceAccountEmail ?? "Supabase Storage (no service account)";
 
     // Auto-trigger checkmark when complete
     final isComplete =
@@ -274,6 +278,7 @@ class _UploadModalState extends ConsumerState<UploadModal>
                   progress: upload.progress,
                   fg: fg,
                   subtle: subtle,
+                  onCancel: () => ref.read(uploadProvider.notifier).cancelUpload(),
                 );
               }
               if (isError) {
@@ -564,6 +569,7 @@ class _ProcessingState extends StatelessWidget {
   final double progress;
   final Color fg;
   final Color subtle;
+  final VoidCallback onCancel;
 
   const _ProcessingState({
     super.key,
@@ -571,6 +577,7 @@ class _ProcessingState extends StatelessWidget {
     required this.progress,
     required this.fg,
     required this.subtle,
+    required this.onCancel,
   });
 
   @override
@@ -581,7 +588,7 @@ class _ProcessingState extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'ENCRYPTING & UPLOADING',
+            'PREPARING & UPLOADING',
             style: TextStyle(
               color: subtle,
               fontSize: 11,
@@ -617,7 +624,7 @@ class _ProcessingState extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'AES-256-GCM encryption',
+                'Uploading to secure database...',
                 style: TextStyle(fontSize: 11, color: subtle),
               ),
               Text(
@@ -629,6 +636,25 @@ class _ProcessingState extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 20),
+          Center(
+            child: TextButton.icon(
+              onPressed: onCancel,
+              icon: const Icon(Icons.close, size: 14, color: Colors.redAccent),
+              label: const Text(
+                'CANCEL UPLOAD',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.redAccent,
+                  letterSpacing: 1.0,
+                ),
+              ),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              ),
+            ),
           ),
         ],
       ),
@@ -672,7 +698,7 @@ class _CompleteState extends StatelessWidget {
           ).animate().fadeIn(duration: 300.ms),
           const SizedBox(height: 4),
           Text(
-            'File added to group with encryption enabled.',
+            'File added to group.',
             style: TextStyle(color: fg.withValues(alpha: 0.45), fontSize: 13),
           ).animate().fadeIn(delay: 100.ms, duration: 300.ms),
         ],

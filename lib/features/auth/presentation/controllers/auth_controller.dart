@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/auth_providers.dart';
+import '../../../onboarding/presentation/providers/onboarding_providers.dart';
 
 class AuthController extends Notifier<AsyncValue<void>> {
   @override
@@ -71,7 +72,7 @@ class AuthController extends Notifier<AsyncValue<void>> {
     state = const AsyncValue.loading();
     try {
       await ref.read(authRepositoryProvider).signOut();
-      await ref.read(isGuestModeProvider.notifier).disableGuest();
+      ref.read(onboardingCompletedProvider.notifier).reset();
       state = const AsyncValue.data(null);
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);

@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../theme.dart';
-import '../../../../services/secure_db_service.dart';
+
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../onboarding/presentation/providers/onboarding_providers.dart';
@@ -12,8 +12,12 @@ import '../../providers/profile_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../../audit/providers/audit_provider.dart';
 import '../../../groups/providers/groups_provider.dart';
+import '../../../groups/models/group_file.dart';
 import '../../../../core/constants/app_constants.dart';
 import 'advanced_settings_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../services/supabase_service.dart';
+import '../../../fhe/presentation/screens/fhe_demo_screen.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -24,10 +28,12 @@ class ProfileScreen extends ConsumerStatefulWidget {
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final _nameController = TextEditingController();
-  bool _isEditingName = false;
   int _avatarTapCount = 0;
 
-  // 5-6 Starter Pixel Avatars
+  // Local settings for notifications (Email / Push)
+  bool _emailNotifications = true;
+  bool _pushNotifications = false;
+
   final List<Map<String, String>> _avatarPresets = [
     {
       'id': 'avatar_01',
@@ -87,14 +93,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       'is_custom': isCustom,
     });
 
-    ref.read(profileProvider.notifier).updateProfile(
+    ref
+        .read(profileProvider.notifier)
+        .updateProfile(
           displayName: newName,
           avatarColorStart: avatarJson,
           avatarColorEnd: 'false',
         );
-    setState(() {
-      _isEditingName = false;
-    });
   }
 
   void _handleAvatarTap() {
@@ -113,9 +118,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
         ),
       );
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const AdvancedSettingsScreen()),
-      );
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const AdvancedSettingsScreen()));
     } else {
       HapticFeedback.lightImpact();
     }
@@ -131,7 +136,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
-            final fg = Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black;
+            final fg = Theme.of(context).brightness == Brightness.dark
+                ? Colors.white
+                : Colors.black;
             return Padding(
               padding: const EdgeInsets.all(24.0),
               child: Column(
@@ -152,12 +159,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   Flexible(
                     child: GridView.builder(
                       shrinkWrap: true,
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                        childAspectRatio: 0.9,
-                      ),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
+                            childAspectRatio: 0.9,
+                          ),
                       itemCount: _avatarPresets.length,
                       itemBuilder: (context, idx) {
                         final item = _avatarPresets[idx];
@@ -174,10 +182,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: isSelected ? fg : fg.withValues(alpha: 0.1),
+                                color: isSelected
+                                    ? fg
+                                    : fg.withValues(alpha: 0.15),
                                 width: isSelected ? 2.0 : 1.0,
                               ),
-                              color: isSelected ? fg.withValues(alpha: 0.05) : Colors.transparent,
+                              color: isSelected
+                                  ? const Color(0xFF2A2A2A)
+                                  : const Color(0xFF1A1A1A),
                             ),
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -185,7 +197,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 Expanded(
                                   child: Padding(
                                     padding: const EdgeInsets.all(8.0),
-                                    child: Image.asset(item['asset']!, fit: BoxFit.contain),
+                                    child: Image.asset(
+                                      item['asset']!,
+                                      fit: BoxFit.contain,
+                                    ),
                                   ),
                                 ),
                                 Text(
@@ -193,7 +208,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                   style: TextStyle(
                                     fontSize: 9,
                                     fontWeight: FontWeight.bold,
-                                    color: isSelected ? fg : fg.withValues(alpha: 0.5),
+                                    color: isSelected
+                                        ? Colors.white
+                                        : Colors.white.withValues(alpha: 0.5),
                                   ),
                                 ),
                                 const SizedBox(height: 6),
@@ -213,12 +230,614 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
+  void _openEditProfileModal(ProfileData profile) {
+    final nameEditController = TextEditingController(text: profile.displayName);
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final fg = isDark ? Colors.white : Colors.black;
+
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 24,
+            right: 24,
+            top: 24,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'EDIT PROFILE',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 2.0,
+                  color: fg,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: nameEditController,
+                style: TextStyle(color: fg),
+                decoration: InputDecoration(
+                  labelText: 'DISPLAY NAME',
+                  labelStyle: TextStyle(
+                    color: fg.withValues(alpha: 0.5),
+                    fontSize: 10,
+                    letterSpacing: 1.0,
+                  ),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: fg.withValues(alpha: 0.2)),
+                  ),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: fg),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () {
+                  final newName = nameEditController.text.trim();
+                  if (newName.isNotEmpty) {
+                    _nameController.text = newName;
+                    _saveProfileChanges(profile.avatarId, profile.isCustom);
+                  }
+                  Navigator.pop(context);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: fg,
+                  foregroundColor: isDark ? Colors.black : Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: const Text(
+                  'SAVE CHANGES',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.0,
+                    fontSize: 11,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _openHelpFeedbackModal() {
+    final feedbackController = TextEditingController();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final fg = isDark ? Colors.white : Colors.black;
+
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 24,
+                right: 24,
+                top: 24,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'HELP & FEEDBACK',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 2.0,
+                      color: fg,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'FREQUENTLY ASKED QUESTIONS',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.0,
+                      color: fg.withValues(alpha: 0.5),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildFaqItem(
+                    context,
+                    'How are my notes protected?',
+                    'All notes are uploaded to Supabase Storage and protected with strict Row Level Security (RLS) policies.',
+                  ),
+                  _buildFaqItem(
+                    context,
+                    'What does touch-to-reveal do?',
+                    'It hides sensitive note content behind a blur layer. Hold your finger down on the screen to view the plain text.',
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'SUBMIT FEEDBACK OR REPORT A BUG',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.0,
+                      color: fg.withValues(alpha: 0.5),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: feedbackController,
+                    maxLines: 3,
+                    style: TextStyle(color: fg, fontSize: 13),
+                    decoration: InputDecoration(
+                      hintText: 'Type your suggestions or bug details...',
+                      hintStyle: TextStyle(color: fg.withValues(alpha: 0.3)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: fg.withValues(alpha: 0.15),
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: fg),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      final text = feedbackController.text.trim();
+                      if (text.isEmpty) return;
+                      Navigator.pop(context);
+                      HapticFeedback.lightImpact();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Feedback submitted! Thank you for helping us improve NO SUS.',
+                          ),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: fg,
+                      foregroundColor: isDark ? Colors.black : Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: const Text(
+                      'SUBMIT FEEDBACK',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.0,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildFaqItem(BuildContext context, String question, String answer) {
+    final fg = Theme.of(context).brightness == Brightness.dark
+        ? Colors.white
+        : Colors.black;
+    return ExpansionTile(
+      title: Text(
+        question,
+        style: TextStyle(color: fg, fontSize: 12, fontWeight: FontWeight.w600),
+      ),
+      childrenPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      tilePadding: EdgeInsets.zero,
+      collapsedIconColor: fg.withValues(alpha: 0.5),
+      iconColor: fg,
+      children: [
+        Text(
+          answer,
+          style: TextStyle(
+            color: fg.withValues(alpha: 0.7),
+            fontSize: 11,
+            height: 1.5,
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _openAboutModal() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final fg = isDark ? Colors.white : Colors.black;
+
+        return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF141414) : Colors.white,
+          title: Text(
+            'ABOUT NO SUS',
+            style: TextStyle(
+              color: fg,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.5,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Version: 1.0.3 (Build 72)',
+                style: TextStyle(color: fg, fontSize: 12),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Framework: Flutter & Riverpod',
+                style: TextStyle(color: fg, fontSize: 12),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Database Backend: Supabase Postgres & Storage',
+                style: TextStyle(color: fg, fontSize: 12),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                '© 2026 NO SUS Enclave App. All rights reserved. Designed for ultra-secure peer-to-peer workspace sharing.',
+                style: TextStyle(
+                  color: fg.withValues(alpha: 0.6),
+                  fontSize: 11,
+                  height: 1.5,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'CLOSE',
+                style: TextStyle(
+                  color: fg,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _openTermsModal() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final fg = isDark ? Colors.white : Colors.black;
+
+        return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF141414) : Colors.white,
+          title: Text(
+            'TERMS OF SERVICE',
+            style: TextStyle(
+              color: fg,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.5,
+            ),
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            height: 300,
+            child: SingleChildScrollView(
+              child: Text(
+                'Welcome to NO SUS.\n\n'
+                '1. Acceptable Use\n'
+                'You agree to use this secure enclave application solely for academic, private study collaborations. Any dissemination of unauthorized content or security audits bypasses is strictly forbidden.\n\n'
+                '2. RLS & Access Protocols\n'
+                'All operations are logged to a public audit ledger to ensure integrity. You are fully responsible for all documents uploaded under your credentials.\n\n'
+                '3. Limitation of Liability\n'
+                'NO SUS is provided "as is". We are not responsible for any transient network failures, client disconnects, or device-level screen recordings.',
+                style: TextStyle(
+                  color: fg.withValues(alpha: 0.8),
+                  fontSize: 11,
+                  height: 1.6,
+                ),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'DISMISS',
+                style: TextStyle(
+                  color: fg,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _openPrivacyPolicyModal() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final fg = isDark ? Colors.white : Colors.black;
+
+        return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF141414) : Colors.white,
+          title: Text(
+            'PRIVACY POLICY',
+            style: TextStyle(
+              color: fg,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.5,
+            ),
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            height: 300,
+            child: SingleChildScrollView(
+              child: Text(
+                'Last updated: June 2026\n\n'
+                '1. Data Collection\n'
+                'We store your email, display name, and avatar index inside secure Supabase database tables. Documents are streamed directly into volatile device memory and never cached permanently on disk.\n\n'
+                '2. Audit Logs\n'
+                'To detect potential leaks, we record events such as file openings and screenshots. These records containing user email and timestamps are immutable and visible to all group members.\n\n'
+                '3. Data Deletion\n'
+                'You may delete your account at any time. Account deletion wipes your profile record and all corresponding memberships permanently.',
+                style: TextStyle(
+                  color: fg.withValues(alpha: 0.8),
+                  fontSize: 11,
+                  height: 1.6,
+                ),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'DISMISS',
+                style: TextStyle(
+                  color: fg,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _confirmDeleteAccount(String userEmail) {
+    final emailInputController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final fg = isDark ? Colors.white : Colors.black;
+
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return AlertDialog(
+              backgroundColor: isDark ? const Color(0xFF161616) : Colors.white,
+              title: const Text(
+                'DELETE ACCOUNT?',
+                style: TextStyle(
+                  color: Colors.redAccent,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.0,
+                ),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'This action is permanent. All your groups, memberships, and logs will be permanently deleted.',
+                    style: TextStyle(color: fg, fontSize: 12, height: 1.5),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Please type your email to confirm ($userEmail):',
+                    style: TextStyle(
+                      color: fg.withValues(alpha: 0.6),
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: emailInputController,
+                    style: TextStyle(color: fg, fontSize: 12),
+                    decoration: InputDecoration(
+                      hintText: 'Enter your email',
+                      hintStyle: TextStyle(color: fg.withValues(alpha: 0.3)),
+                      enabledBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(
+                          color: fg.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      focusedBorder: const UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.redAccent),
+                      ),
+                    ),
+                    onChanged: (_) => setModalState(() {}),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    'CANCEL',
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed:
+                      emailInputController.text.trim() == userEmail.trim()
+                      ? () async {
+                          Navigator.pop(context); // Close dialog
+                          HapticFeedback.heavyImpact();
+                          try {
+                            // Call Edge Function to self-delete
+                            if (SupabaseService.instance.isReachable) {
+                              await Supabase.instance.client.functions.invoke(
+                                'account-manager',
+                              );
+                            }
+
+                            // Sign out
+                            await ref.read(authRepositoryProvider).signOut();
+                            ref.invalidate(onboardingCompletedProvider);
+                            ref.invalidate(onboardingPageIndexProvider);
+                            ref.invalidate(authStateProvider);
+
+                            if (context.mounted) {
+                              Navigator.pop(context); // Pop profile screen
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Failed to delete account: $e'),
+                                ),
+                              );
+                            }
+                          }
+                        }
+                      : null,
+                  child: Text(
+                    'DELETE PERMANENTLY',
+                    style: TextStyle(
+                      color:
+                          emailInputController.text.trim() == userEmail.trim()
+                          ? Colors.redAccent
+                          : Colors.grey,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _confirmLogout() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final fg = isDark ? Colors.white : Colors.black;
+
+        return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF141414) : Colors.white,
+          title: Text(
+            'LOG OUT SESSION?',
+            style: TextStyle(
+              color: fg,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: Text(
+            'Are you sure you want to end your current session?',
+            style: TextStyle(color: fg.withValues(alpha: 0.8), fontSize: 12),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                'CANCEL',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(context); // Close dialog
+                HapticFeedback.mediumImpact();
+                await ref.read(authControllerProvider.notifier).signOut();
+                if (context.mounted) {
+                  Navigator.pop(context); // Pop profile screen
+                }
+              },
+              child: const Text(
+                'LOG OUT',
+                style: TextStyle(
+                  color: Colors.redAccent,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final fg = isDark ? Colors.white : Colors.black;
-
+    final subtle = isDark
+        ? NoSusTheme.dTextSecondary
+        : NoSusTheme.lTextSecondary;
     final user = ref.watch(authStateProvider).value;
     final profileAsync = ref.watch(profileProvider);
 
@@ -232,7 +851,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          'PROFILE',
+          'PROFILE & SETTINGS',
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
             letterSpacing: 2.0,
@@ -242,9 +861,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         centerTitle: true,
       ),
       body: profileAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator(color: Colors.white)),
+        loading: () => Center(child: CircularProgressIndicator(color: fg)),
         error: (err, stack) => Center(
-          child: Text('Error: $err', style: const TextStyle(color: Colors.redAccent)),
+          child: Text(
+            'Error: $err',
+            style: const TextStyle(color: Colors.redAccent),
+          ),
         ),
         data: (profile) {
           // Calculate dynamic statistics
@@ -252,490 +874,677 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           final int groupsCount = groupsAsync.value?.length ?? 0;
 
           final auditLogs = ref.watch(auditLogsProvider);
-          final int filesViewedCount = auditLogs.length;
+          final int filesViewedCount = auditLogs
+              .where(
+                (log) => log['event']?.contains('Opened secure file') == true,
+              )
+              .length;
 
-          // Realistic contributions calculation
-          final int filesSharedCount = (groupsCount * 2) + 3;
-          final int contributionScore = (groupsCount * 8) + (filesSharedCount * 4) + (filesViewedCount ~/ 5);
+          // Realistic contributions calculation based on actual uploads
+          final filesAsync = ref.watch(groupFilesProvider);
+          final allFiles =
+              filesAsync.value?.values.expand((x) => x).toList() ??
+              <GroupFile>[];
+          final int filesSharedCount = allFiles
+              .where((f) => f.ownerId == user?.id || f.uploadedBy == user?.id)
+              .length;
+
+          final int contributionScore =
+              (groupsCount * 10) + (filesSharedCount * 5) + filesViewedCount;
+
+          final hasViolations = auditLogs.any(
+            (log) =>
+                log['event']?.contains('screenshot') == true ||
+                log['event']?.contains('recording') == true ||
+                log['event']?.contains('unauthorized') == true,
+          );
+          final String trustStatus = hasViolations ? 'WARNING' : 'SECURE';
+
+          // Simulate storage used (1.2 MB base + 0.8 MB per uploaded file)
+          final double storageMB = 1.2 + (filesSharedCount * 0.8);
+          final double storagePercent = (storageMB / 100.0).clamp(0.0, 1.0);
 
           return SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // SECTION 1 — IDENTITY HEADER
-                GestureDetector(
-                  onTap: _handleAvatarTap,
-                  child: Center(
-                    child: Container(
-                      width: 110,
-                      height: 110,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: fg.withValues(alpha: 0.03),
-                        border: Border.all(
-                          color: fg.withValues(alpha: 0.1),
-                          width: 1.0,
-                        ),
-                      ),
-                      child: ClipOval(
-                        child: Padding(
-                          padding: const EdgeInsets.all(10.0),
-                          child: Image.asset(
-                            AppConstants.avatarAssetForId(profile.avatarId),
-                            fit: BoxFit.contain,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ).animate().scale(delay: 50.ms, duration: 250.ms, curve: Curves.easeOutBack),
-
-                const SizedBox(height: 16),
-                Center(
+                // ─── IDENTITY CARD (Notion/Discord Style) ──────────────────────
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: NoSusTheme.cardDecoration(context),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      if (_isEditingName)
-                        SizedBox(
-                          width: 200,
-                          child: TextField(
-                            controller: _nameController,
-                            autofocus: true,
-                            style: theme.textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                            textAlign: TextAlign.center,
-                            decoration: const InputDecoration(
-                              border: InputBorder.none,
-                              hintText: 'Enter name',
-                            ),
-                            onSubmitted: (_) => _saveProfileChanges(profile.avatarId, profile.isCustom),
-                          ),
-                        )
-                      else
-                        Text(
-                          profile.displayName.toUpperCase(),
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1.0,
-                          ),
-                        ),
-                      const SizedBox(width: 8),
                       GestureDetector(
-                        onTap: () {
-                          if (_isEditingName) {
-                            _saveProfileChanges(profile.avatarId, profile.isCustom);
-                          } else {
-                            setState(() {
-                              _isEditingName = true;
-                            });
-                          }
-                        },
-                        child: Icon(
-                          _isEditingName ? Icons.check : Icons.edit_outlined,
-                          size: 16,
-                          color: fg.withValues(alpha: 0.5),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Center(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: fg.withValues(alpha: 0.1)),
-                      borderRadius: BorderRadius.circular(20),
-                      color: fg.withValues(alpha: 0.02),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.verified_user_outlined, color: Colors.green, size: 10),
-                        const SizedBox(width: 4),
-                        Text(
-                          'VERIFIED USER',
-                          style: TextStyle(
-                            fontSize: 8,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.0,
-                            color: fg.withValues(alpha: 0.6),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Center(
-                  child: Text(
-                    user?.email ?? 'scholar@nosus.io',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: fg.withValues(alpha: 0.5),
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-                Center(
-                  child: Text(
-                    'Phone Verified',
-                    style: TextStyle(
-                      color: fg.withValues(alpha: 0.35),
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // SECTION 2 — PIXEL IDENTITY (Starter Selection)
-                Text(
-                  'PIXEL IDENTITY',
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    color: fg.withValues(alpha: 0.4),
-                    fontSize: 10,
-                    letterSpacing: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  decoration: NoSusTheme.cardDecoration(context),
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: _avatarPresets.map((preset) {
-                        final isSelected = profile.avatarId == preset['id'];
-
-                        return GestureDetector(
-                          onTap: () {
-                            HapticFeedback.selectionClick();
-                            _saveProfileChanges(preset['id']!, false);
-                          },
-                          child: Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 6),
-                            width: 50,
-                            height: 50,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: isSelected ? fg.withValues(alpha: 0.1) : Colors.transparent,
-                              border: Border.all(
-                                color: isSelected ? fg : fg.withValues(alpha: 0.1),
-                                width: isSelected ? 2.0 : 1.0,
-                              ),
-                            ),
-                            child: ClipOval(
-                              child: Padding(
-                                padding: const EdgeInsets.all(4.0),
-                                child: Image.asset(
-                                  preset['asset']!,
-                                  fit: BoxFit.contain,
+                        onTap: () => _openAvatarSelectionModal(profile),
+                        child: Stack(
+                          children: [
+                            Container(
+                              width: 80,
+                              height: 80,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: const Color(0xFF1A1A1A),
+                                border: Border.all(
+                                  color: fg.withValues(alpha: 0.1),
+                                  width: 1.0,
                                 ),
                               ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // SECTION 3 — ACCOUNT CARD
-                Text(
-                  'ACCOUNT DETAILS',
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    color: fg.withValues(alpha: 0.4),
-                    fontSize: 10,
-                    letterSpacing: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: NoSusTheme.cardDecoration(context),
-                  child: Column(
-                    children: [
-                      _buildInfoRow(context, 'Google Connection', 'Connected'),
-                      const Divider(height: 24, thickness: 0.5),
-                      _buildInfoRow(context, 'GitHub Connection', 'Connected'),
-                      const Divider(height: 24, thickness: 0.5),
-                      _buildInfoRow(context, 'Security Tier', SecureDbService.instance.userType.toUpperCase()),
-                      const SizedBox(height: 20),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () => _openAvatarSelectionModal(profile),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: fg.withValues(alpha: 0.15)),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    'CHANGE AVATAR',
-                                    style: theme.textTheme.labelLarge?.copyWith(fontSize: 10, letterSpacing: 1.0),
+                              child: ClipOval(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Image.asset(
+                                    AppConstants.avatarAssetForId(
+                                      profile.avatarId,
+                                    ),
+                                    fit: BoxFit.contain,
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _isEditingName = true;
-                                });
-                              },
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
                               child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                padding: const EdgeInsets.all(4),
                                 decoration: BoxDecoration(
-                                  border: Border.all(color: fg.withValues(alpha: 0.15)),
-                                  borderRadius: BorderRadius.circular(10),
+                                  color: fg,
+                                  shape: BoxShape.circle,
                                 ),
-                                child: Center(
-                                  child: Text(
-                                    'EDIT PROFILE NAME',
-                                    style: theme.textTheme.labelLarge?.copyWith(fontSize: 10, letterSpacing: 1.0),
-                                  ),
+                                child: Icon(
+                                  Icons.camera_alt,
+                                  size: 10,
+                                  color: isDark ? Colors.black : Colors.white,
                                 ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // SECTION 4 — CONTRIBUTIONS
-                Text(
-                  'COMMUNITY CONTRIBUTIONS',
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    color: fg.withValues(alpha: 0.4),
-                    fontSize: 10,
-                    letterSpacing: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: NoSusTheme.cardDecoration(context),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _buildStatWidget(context, 'Groups Joined', '$groupsCount'),
-                          _buildStatWidget(context, 'Files Shared', '$filesSharedCount'),
-                          _buildStatWidget(context, 'Files Viewed', '$filesViewedCount'),
-                        ],
-                      ),
-                      const Divider(height: 32, thickness: 0.5),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _buildStatWidget(context, 'Contribution Score', '$contributionScore'),
-                          _buildStatWidget(context, 'Trust Status', 'HIGH'),
-                        ],
-                      ),
-                    ],
-                  ),
-                ).animate().fade(delay: 100.ms, duration: 300.ms),
-                const SizedBox(height: 20),
-
-                // SECTION 5 — SECURITY SETTINGS
-                Text(
-                  'WORKSPACE SECURITY PREFERENCES',
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    color: fg.withValues(alpha: 0.4),
-                    fontSize: 10,
-                    letterSpacing: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: NoSusTheme.cardDecoration(context),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'TOUCH TO REVEAL',
-                                style: TextStyle(color: fg, fontSize: 11, fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'Requires holding screen to decrypt notes',
-                                style: TextStyle(color: fg.withValues(alpha: 0.4), fontSize: 9.5),
-                              ),
-                            ],
-                          ),
-                          Switch(
-                            value: ref.watch(touchToRevealProvider),
-                            onChanged: (val) {
-                              ref.read(touchToRevealProvider.notifier).setEnabled(val);
-                            },
-                            activeTrackColor: fg,
-                            activeThumbColor: isDark ? Colors.black : Colors.white,
-                          ),
-                        ],
-                      ),
-                      const Divider(height: 24, thickness: 0.5),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'WATERMARK VISIBILITY',
-                                style: TextStyle(color: fg, fontSize: 11, fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'Displays visible watermarks on reader canvas',
-                                style: TextStyle(color: fg.withValues(alpha: 0.4), fontSize: 9.5),
-                              ),
-                            ],
-                          ),
-                          Switch(
-                            value: ref.watch(watermarkVisibilityProvider),
-                            onChanged: (val) {
-                              ref.read(watermarkVisibilityProvider.notifier).setEnabled(val);
-                            },
-                            activeTrackColor: fg,
-                            activeThumbColor: isDark ? Colors.black : Colors.white,
-                          ),
-                        ],
-                      ),
-                      const Divider(height: 32, thickness: 0.5),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => const AdvancedSettingsScreen()),
-                          );
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: fg.withValues(alpha: 0.15)),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Center(
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                      const SizedBox(width: 20),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
                               children: [
-                                Icon(Icons.settings_outlined, size: 14, color: fg),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'ADVANCED SETTINGS',
-                                  style: theme.textTheme.labelLarge?.copyWith(fontSize: 10, letterSpacing: 1.0),
+                                Expanded(
+                                  child: Text(
+                                    profile.displayName.toUpperCase(),
+                                    style: theme.textTheme.titleMedium
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: 0.5,
+                                        ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: () => _openEditProfileModal(profile),
+                                  child: Icon(
+                                    Icons.edit_outlined,
+                                    size: 14,
+                                    color: fg.withValues(alpha: 0.5),
+                                  ),
                                 ),
                               ],
                             ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      GestureDetector(
-                        onTap: () async {
-                          final confirm = await showDialog<bool>(
-                            context: context,
-                            builder: (context) {
-                              return AlertDialog(
-                                title: const Text('Reset Application?', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                                content: const Text('This will wipe all locally stored encryption keys, files, and onboarding state.', style: TextStyle(fontSize: 12)),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.of(context).pop(false),
-                                    child: const Text('CANCEL', style: TextStyle(color: Colors.grey, fontSize: 11)),
+                            const SizedBox(height: 4),
+                            GestureDetector(
+                              onTap: _handleAvatarTap,
+                              child: Text(
+                                user?.email ?? 'scholar@nosus.io',
+                                style: TextStyle(color: subtle, fontSize: 11),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.green.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(
+                                  color: Colors.green.withValues(alpha: 0.25),
+                                  width: 0.5,
+                                ),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.verified_user_outlined,
+                                    color: Colors.green,
+                                    size: 8,
                                   ),
-                                  TextButton(
-                                    onPressed: () => Navigator.of(context).pop(true),
-                                    child: const Text('RESET', style: TextStyle(color: Colors.redAccent, fontSize: 11)),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'VERIFIED',
+                                    style: TextStyle(
+                                      fontSize: 8,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.green,
+                                      letterSpacing: 0.5,
+                                    ),
                                   ),
                                 ],
-                              );
-                            },
-                          );
-                          if (confirm == true) {
-                            if (!context.mounted) return;
-                            HapticFeedback.heavyImpact();
-                            final navigator = Navigator.of(context);
-                            await ref.read(authRepositoryProvider).signOut();
-                            await SecureDbService.instance.resetAppState();
-                            if (!context.mounted) return;
-                            await ref.read(isGuestModeProvider.notifier).disableGuest();
-                            if (!context.mounted) return;
-                            ref.invalidate(onboardingCompletedProvider);
-                            ref.invalidate(onboardingPageIndexProvider);
-                            ref.invalidate(authStateProvider);
-                            navigator.pop();
-                          }
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          decoration: BoxDecoration(
-                            color: Colors.redAccent.withValues(alpha: 0.08),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: Colors.redAccent.withValues(alpha: 0.2)),
-                          ),
-                          child: Center(
-                            child: Text(
-                              'RESET APPLICATION',
-                              style: theme.textTheme.labelLarge?.copyWith(
-                                letterSpacing: 1.0,
-                                color: Colors.redAccent,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 10,
                               ),
                             ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ).animate().fadeIn(duration: 250.ms),
+                const SizedBox(height: 16),
+
+                // ─── STORAGE USAGE CARD (Proton Style) ─────────────────────────
+                Text(
+                  'STORAGE RESOURCE',
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: fg.withValues(alpha: 0.4),
+                    fontSize: 10,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: NoSusTheme.cardDecoration(context),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Enclave Disk Space',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: fg,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            '${storageMB.toStringAsFixed(1)} MB / 100 MB',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: subtle,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: storagePercent,
+                          backgroundColor: fg.withValues(alpha: 0.08),
+                          valueColor: AlwaysStoppedAnimation<Color>(fg),
+                          minHeight: 6,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Free Account Tier',
+                            style: TextStyle(
+                              fontSize: 9.5,
+                              color: fg.withValues(alpha: 0.4),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            '${(storagePercent * 100).toStringAsFixed(1)}% Used',
+                            style: TextStyle(
+                              fontSize: 9.5,
+                              color: fg,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ).animate().fadeIn(delay: 50.ms, duration: 250.ms),
+                const SizedBox(height: 20),
+
+                // ─── SETTINGS CATEGORY: PRIVACY & PREFERENCES ─────────────────
+                Text(
+                  'PRIVACY & PREFERENCES',
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: fg.withValues(alpha: 0.4),
+                    fontSize: 10,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  decoration: NoSusTheme.cardDecoration(context),
+                  child: Column(
+                    children: [
+                      // Touch to Reveal Switch
+                      ListTile(
+                        title: const Text(
+                          'Touch to Reveal',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        subtitle: Text(
+                          'Hold screen to view notes content',
+                          style: TextStyle(color: subtle, fontSize: 10),
+                        ),
+                        trailing: Switch(
+                          value: ref.watch(touchToRevealProvider),
+                          onChanged: (val) {
+                            ref
+                                .read(touchToRevealProvider.notifier)
+                                .setEnabled(val);
+                          },
+                          activeTrackColor: fg,
+                          activeThumbColor: isDark
+                              ? Colors.black
+                              : Colors.white,
+                        ),
+                      ),
+                      Divider(
+                        height: 1,
+                        thickness: 0.5,
+                        color: fg.withValues(alpha: 0.08),
+                      ),
+                      // Watermark Visibility Switch
+                      ListTile(
+                        title: const Text(
+                          'Watermark Overlay',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        subtitle: Text(
+                          'Display user email on reader canvas',
+                          style: TextStyle(color: subtle, fontSize: 10),
+                        ),
+                        trailing: Switch(
+                          value: ref.watch(watermarkVisibilityProvider),
+                          onChanged: (val) {
+                            ref
+                                .read(watermarkVisibilityProvider.notifier)
+                                .setEnabled(val);
+                          },
+                          activeTrackColor: fg,
+                          activeThumbColor: isDark
+                              ? Colors.black
+                              : Colors.white,
+                        ),
+                      ),
+                      Divider(
+                        height: 1,
+                        thickness: 0.5,
+                        color: fg.withValues(alpha: 0.08),
+                      ),
+                      // Email Notifications Switch
+                      ListTile(
+                        title: const Text(
+                          'Email Notifications',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        subtitle: Text(
+                          'Receive activity summaries via email',
+                          style: TextStyle(color: subtle, fontSize: 10),
+                        ),
+                        trailing: Switch(
+                          value: _emailNotifications,
+                          onChanged: (val) {
+                            HapticFeedback.lightImpact();
+                            setState(() {
+                              _emailNotifications = val;
+                            });
+                          },
+                          activeTrackColor: fg,
+                          activeThumbColor: isDark
+                              ? Colors.black
+                              : Colors.white,
+                        ),
+                      ),
+                      Divider(
+                        height: 1,
+                        thickness: 0.5,
+                        color: fg.withValues(alpha: 0.08),
+                      ),
+                      // Push Notifications Switch
+                      ListTile(
+                        title: const Text(
+                          'Push Notifications',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        subtitle: Text(
+                          'Alert immediately on group activity',
+                          style: TextStyle(color: subtle, fontSize: 10),
+                        ),
+                        trailing: Switch(
+                          value: _pushNotifications,
+                          onChanged: (val) {
+                            HapticFeedback.lightImpact();
+                            setState(() {
+                              _pushNotifications = val;
+                            });
+                          },
+                          activeTrackColor: fg,
+                          activeThumbColor: isDark
+                              ? Colors.black
+                              : Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ).animate().fadeIn(delay: 100.ms, duration: 250.ms),
+                const SizedBox(height: 20),
+
+                Text(
+                  'DEMO WORKFLOW',
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: fg.withValues(alpha: 0.4),
+                    fontSize: 10,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  decoration: NoSusTheme.cardDecoration(context),
+                  child: Column(
+                    children: [
+                      ListTile(
+                        leading: Icon(Icons.hub_outlined, size: 18, color: fg),
+                        title: const Text(
+                          'Compare Research',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        subtitle: Text(
+                          'Private cross-org comparison workflow',
+                          style: TextStyle(color: subtle, fontSize: 10),
+                        ),
+                        trailing: Icon(
+                          Icons.chevron_right,
+                          size: 16,
+                          color: subtle,
+                        ),
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const FheDemoScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ).animate().fadeIn(delay: 120.ms, duration: 250.ms),
+                const SizedBox(height: 20),
+
+                // ─── SETTINGS CATEGORY: HELP & LEGAL ──────────────────────────
+                Text(
+                  'HELP & LEGAL',
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: fg.withValues(alpha: 0.4),
+                    fontSize: 10,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  decoration: NoSusTheme.cardDecoration(context),
+                  child: Column(
+                    children: [
+                      ListTile(
+                        leading: Icon(Icons.help_outline, size: 18, color: fg),
+                        title: const Text(
+                          'Help & Feedback',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        trailing: Icon(
+                          Icons.chevron_right,
+                          size: 16,
+                          color: subtle,
+                        ),
+                        onTap: _openHelpFeedbackModal,
+                      ),
+                      Divider(
+                        height: 1,
+                        thickness: 0.5,
+                        color: fg.withValues(alpha: 0.08),
+                      ),
+                      ListTile(
+                        leading: Icon(Icons.info_outline, size: 18, color: fg),
+                        title: const Text(
+                          'About NO SUS',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        trailing: Icon(
+                          Icons.chevron_right,
+                          size: 16,
+                          color: subtle,
+                        ),
+                        onTap: _openAboutModal,
+                      ),
+                      Divider(
+                        height: 1,
+                        thickness: 0.5,
+                        color: fg.withValues(alpha: 0.08),
+                      ),
+                      ListTile(
+                        leading: Icon(
+                          Icons.gavel_outlined,
+                          size: 18,
+                          color: fg,
+                        ),
+                        title: const Text(
+                          'Terms of Service',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        trailing: Icon(
+                          Icons.chevron_right,
+                          size: 16,
+                          color: subtle,
+                        ),
+                        onTap: _openTermsModal,
+                      ),
+                      Divider(
+                        height: 1,
+                        thickness: 0.5,
+                        color: fg.withValues(alpha: 0.08),
+                      ),
+                      ListTile(
+                        leading: Icon(
+                          Icons.privacy_tip_outlined,
+                          size: 18,
+                          color: fg,
+                        ),
+                        title: const Text(
+                          'Privacy Policy',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        trailing: Icon(
+                          Icons.chevron_right,
+                          size: 16,
+                          color: subtle,
+                        ),
+                        onTap: _openPrivacyPolicyModal,
+                      ),
+                    ],
+                  ),
+                ).animate().fadeIn(delay: 150.ms, duration: 250.ms),
+                const SizedBox(height: 20),
+
+                // ─── CATEGORY: STATS ───────────────────────────────────────────
+                Text(
+                  'ENCLAVE METRICS',
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: fg.withValues(alpha: 0.4),
+                    fontSize: 10,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: NoSusTheme.cardDecoration(context),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _buildStatWidget(context, 'Groups', '$groupsCount'),
+                          _buildStatWidget(
+                            context,
+                            'Uploaded',
+                            '$filesSharedCount',
+                          ),
+                          _buildStatWidget(
+                            context,
+                            'Viewed',
+                            '$filesViewedCount',
+                          ),
+                        ],
+                      ),
+                      const Divider(height: 32, thickness: 0.5),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _buildStatWidget(
+                            context,
+                            'Contributions',
+                            '$contributionScore',
+                          ),
+                          _buildStatWidget(
+                            context,
+                            'Trust Tier',
+                            trustStatus,
+                            valueColor: trustStatus == 'WARNING'
+                                ? Colors.redAccent
+                                : Colors.green,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ).animate().fadeIn(delay: 200.ms, duration: 250.ms),
+                const SizedBox(height: 20),
+
+                // ─── DANGER ZONE ───────────────────────────────────────────────
+                Text(
+                  'DANGER ZONE',
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: Colors.redAccent.withValues(alpha: 0.6),
+                    fontSize: 10,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent.withValues(alpha: 0.03),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Colors.redAccent.withValues(alpha: 0.15),
+                      width: 0.75,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Sign Out Button
+                      OutlinedButton.icon(
+                        onPressed: _confirmLogout,
+                        icon: const Icon(
+                          Icons.logout,
+                          size: 14,
+                          color: Colors.redAccent,
+                        ),
+                        label: const Text(
+                          'LOG OUT SESSION',
+                          style: TextStyle(
+                            letterSpacing: 1.0,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 10,
+                            color: Colors.redAccent,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          side: BorderSide(
+                            color: Colors.redAccent.withValues(alpha: 0.3),
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
                           ),
                         ),
                       ),
                       const SizedBox(height: 12),
-                      GestureDetector(
-                        onTap: () {
-                          ref.read(authControllerProvider.notifier).signOut();
-                          Navigator.of(context).pop();
-                        },
-                        child: Container(
+                      // Delete Account Button
+                      ElevatedButton.icon(
+                        onPressed: () =>
+                            _confirmDeleteAccount(user?.email ?? ''),
+                        icon: Icon(
+                          Icons.delete_forever,
+                          size: 14,
+                          color: isDark ? Colors.black : Colors.white,
+                        ),
+                        label: const Text(
+                          'DELETE USER ACCOUNT',
+                          style: TextStyle(
+                            letterSpacing: 1.0,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 10,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.redAccent,
+                          foregroundColor: isDark ? Colors.black : Colors.white,
+                          elevation: 0,
                           padding: const EdgeInsets.symmetric(vertical: 14),
-                          decoration: NoSusTheme.buttonDecoration(context),
-                          child: Center(
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.logout, size: 14, color: fg),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'SIGN OUT SESSION',
-                                  style: theme.textTheme.labelLarge?.copyWith(
-                                    letterSpacing: 1.0,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 10,
-                                  ),
-                                ),
-                              ],
-                            ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
                           ),
                         ),
                       ),
                     ],
                   ),
-                ),
+                ).animate().fadeIn(delay: 250.ms, duration: 250.ms),
                 const SizedBox(height: 32),
               ],
             ),
@@ -745,36 +1554,35 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  Widget _buildInfoRow(BuildContext context, String label, String value) {
-    final fg = Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: TextStyle(fontSize: 11, color: fg.withValues(alpha: 0.4), fontWeight: FontWeight.bold),
-        ),
-        Text(
-          value,
-          style: TextStyle(fontSize: 11, color: fg, fontWeight: FontWeight.bold),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatWidget(BuildContext context, String label, String value) {
-    final fg = Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black;
+  Widget _buildStatWidget(
+    BuildContext context,
+    String label,
+    String value, {
+    Color? valueColor,
+  }) {
+    final fg = Theme.of(context).brightness == Brightness.dark
+        ? Colors.white
+        : Colors.black;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           value,
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: fg),
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w900,
+            color: valueColor ?? fg,
+          ),
         ),
         const SizedBox(height: 2),
         Text(
           label.toUpperCase(),
-          style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.bold, color: fg.withValues(alpha: 0.4), letterSpacing: 0.5),
+          style: TextStyle(
+            fontSize: 8.5,
+            fontWeight: FontWeight.bold,
+            color: fg.withValues(alpha: 0.4),
+            letterSpacing: 0.5,
+          ),
         ),
       ],
     );

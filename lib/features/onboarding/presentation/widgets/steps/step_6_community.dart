@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:no_sus/services/secure_db_service.dart';
 import 'package:no_sus/features/profile/providers/profile_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:no_sus/features/groups/presentation/providers/group_dependencies.dart';
@@ -27,20 +26,20 @@ class _OnboardingCommunityWidgetState extends ConsumerState<OnboardingCommunityW
     final user = SupabaseService.instance.isReachable ? Supabase.instance.client.auth.currentUser : null;
     if (user != null && SupabaseService.instance.isReachable) {
       // 1. Sync Profile
-      final cache = SecureDbService.instance.cachedProfile;
-      String name = (cache['displayName'] ?? '').trim();
+      final cache = await SupabaseService.instance.fetchProfile(user.id);
+      String name = (cache['display_name'] ?? '').trim();
       if (name.isEmpty) {
         name = user.email != null && user.email!.contains('@')
             ? user.email!.split('@').first
             : 'Enclave Member';
       }
 
-      await SecureDbService.instance.saveProfile(
+      await SupabaseService.instance.saveProfile(
         userId: user.id,
         email: user.email ?? '',
         displayName: name,
-        avatarColorStart: cache['avatarColorStart'] ?? 'FF0072FF',
-        avatarColorEnd: cache['avatarColorEnd'] ?? 'FF00F2FE',
+        avatarColorStart: cache['avatar_color_start'] ?? 'FF0072FF',
+        avatarColorEnd: cache['avatar_color_end'] ?? 'FF00F2FE',
       );
 
       // 2. Join Global Community
@@ -58,7 +57,7 @@ class _OnboardingCommunityWidgetState extends ConsumerState<OnboardingCommunityW
       ref.invalidate(profileProvider);
     }
 
-    await ref.read(onboardingCompletedProvider.notifier).complete();
+    ref.read(onboardingCompletedProvider.notifier).complete();
     if (mounted) {
       if (Navigator.of(context).canPop()) {
         Navigator.of(context).pop();

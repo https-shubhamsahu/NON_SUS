@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../auth/presentation/providers/auth_providers.dart';
-import '../../../services/secure_db_service.dart';
+import '../../../services/focus_service.dart';
+import '../../../services/audit_service.dart';
 import '../../../components/study_chart.dart';
 import '../../audit/providers/audit_provider.dart';
 
@@ -20,7 +21,7 @@ class FocusSessionNotifier extends Notifier<void> {
     _timer = Timer.periodic(const Duration(minutes: 1), (timer) {
       final user = ref.read(authRepositoryProvider).currentUser;
       if (user != null) {
-        SecureDbService.instance.incrementFocusMinutes(user.id, 1).then((_) {
+        FocusService.instance.incrementFocusMinutes(user.id, 1).then((_) {
           ref.read(studyTimelineProvider.notifier).refresh();
         });
       }
@@ -30,7 +31,7 @@ class FocusSessionNotifier extends Notifier<void> {
   void addFocusMinutes(int minutes) {
     final user = ref.read(authRepositoryProvider).currentUser;
     if (user != null) {
-      SecureDbService.instance.incrementFocusMinutes(user.id, minutes).then((_) {
+      FocusService.instance.incrementFocusMinutes(user.id, minutes).then((_) {
         ref.read(studyTimelineProvider.notifier).refresh();
       });
     }
@@ -48,8 +49,8 @@ class StudyTimelineNotifier extends AsyncNotifier<List<StudyDayData>> {
     ref.watch(auditLogsProvider);
 
     final userId = auth?.id ?? 'guest';
-    final focusLogs = await SecureDbService.instance.fetchFocusLogs(userId);
-    final auditCounts = await SecureDbService.instance.fetchAuditLogCounts();
+    final focusLogs = await FocusService.instance.fetchFocusLogs(userId);
+    final auditCounts = await AuditService.instance.fetchAuditLogCounts();
 
     final List<StudyDayData> list = [];
     final now = DateTime.now();

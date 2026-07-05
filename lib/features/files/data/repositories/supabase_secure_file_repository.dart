@@ -2,12 +2,12 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../../../services/cryptography_service.dart';
-import '../../../../services/secure_db_service.dart';
-import '../../../../services/secure_key_store.dart';
 import '../../../../services/supabase_service.dart';
+import '../../../../config/storage_router_config.dart';
+import '../storage_router_client.dart';
 import '../../domain/models/secure_file_metadata.dart';
 import '../../domain/repositories/secure_file_repository.dart';
+import '../../../../core/utils/debug_logger.dart';
 
 class SupabaseSecureFileRepository implements SecureFileRepository {
   final SupabaseClient _client;
@@ -43,65 +43,108 @@ class SupabaseSecureFileRepository implements SecureFileRepository {
     required String uploaderInitials,
     required Function(double) onProgress,
   }) async {
-    // 1. Generate secure AES key and IV
-    final key = CryptographyService.generateSymmetricKey();
-    final iv = CryptographyService.generateIV();
-
-    // 2. Encrypt file using AES-GCM
-    final encryptedBytes = await CryptographyService.encryptBytes(rawBytes, key, iv);
-
-    // 3. Emulate upload progress updates
+    // 1. Emulate upload progress
     for (int i = 1; i <= 10; i++) {
       await Future.delayed(const Duration(milliseconds: 50));
-      onProgress(i / 10.0);
+      onProgress(StorageRouterConfig.enableMultiCloudStorage ? i / 20.0 : i / 10.0);
     }
 
-    final tempFileId = 'sec_${DateTime.now().millisecondsSinceEpoch}';
+    final tempFileId = 'file_${DateTime.now().millisecondsSinceEpoch}';
+    final storedName = _displayNameFor(name, type);
+    final storedType = type.name == 'note' ? 'markdown' : type.name;
 
-    // 4. Upload binary file bytes to Supabase Storage
-    await _client.storage.from('secure-files').uploadBinary(tempFileId, encryptedBytes);
+    if (StorageRouterConfig.enableMultiCloudStorage) {
+      try {
+        await StorageRouterClient.instance.upload(
+          fileId: tempFileId,
+          groupId: groupId,
+          name: storedName,
+          type: storedType,
+          bytes: rawBytes,
+          contentType: _contentTypeFor(type),
+        );
+        onProgress(1.0);
 
-    // 5. Insert metadata row in secure_files table (NO KEYS in DB — E2E security)
+        await SupabaseService.instance.logEvent(
+          'file_uploaded',
+          groupId: groupId,
+          fileId: tempFileId,
+          metadata: {
+            'file_name': name,
+            'size_bytes': rawBytes.length,
+            'storage_backend': 'storage-router',
+          },
+        );
+        return;
+      } catch (e, s) {
+        debugLog(
+          'Storage router upload failed; falling back to Supabase Storage: $e\n$s',
+        );
+      }
+    }
+
+    // 2. Upload raw binary bytes to Supabase Storage
+    await _client.storage.from('secure-files').uploadBinary(tempFileId, rawBytes);
+
+    // 3. Insert metadata row in secure_files table
     await _client.from('secure_files').insert({
       'id': tempFileId,
       'group_id': groupId,
-      'name': name.replaceAll(type == SecureFileType.note ? '.md' : type == SecureFileType.pdf ? '.pdf' : type == SecureFileType.image ? '.png' : '.jpg', ''),
-      'type': type.name == 'note' ? 'markdown' : type.name,
-      'uploaded_by_name': uploaderName,
-      'uploaded_by_initials': uploaderInitials,
+      'name': storedName,
+      'type': storedType,
       'size_bytes': rawBytes.length,
       'is_watermarked': true,
       'is_pinned': false,
       'security_status': 'secured',
     });
 
-    // 6. Store the AES key ONLY on this device via flutter_secure_storage
-    await SecureKeyStore.saveFileKey(tempFileId, key, iv);
-    // Also cache in memory for immediate use this session
-    SecureDbService.instance.registerCredentials(tempFileId, key, iv);
-
-    // 7. Log event
-    await _client.from('audit_logs').insert({
-      'event': 'Successfully encrypted and uploaded "$name" (${rawBytes.length} bytes)',
-      'status': 'SUCCESS',
-    });
+    // 4. Log event
+    await SupabaseService.instance.logEvent(
+      'file_uploaded',
+      groupId: groupId,
+      fileId: tempFileId,
+      metadata: {
+        'file_name': name,
+        'size_bytes': rawBytes.length,
+      },
+    );
   }
 
   @override
   Future<void> deleteFile(String groupId, String fileId) async {
-    // 1. Delete object from Supabase Storage
-    try {
-      await _client.storage.from('secure-files').remove([fileId]);
-    } catch (_) {}
+    // 1. Delete object from Google Drive (if linked) or Supabase Storage
+    final isGoogleDrive = !fileId.startsWith('file_') &&
+        !fileId.startsWith('sec_gen_') &&
+        !fileId.startsWith('file_gen_');
+    if (isGoogleDrive) {
+      try {
+        await SupabaseService.instance.deleteGDriveFile(fileId);
+      } catch (_) {}
+    } else {
+      if (StorageRouterConfig.enableMultiCloudStorage) {
+        try {
+          await StorageRouterClient.instance.delete(fileId);
+        } catch (e) {
+          debugLog('Storage router delete skipped/fell back: $e');
+        }
+      }
+      try {
+        await _client.storage.from('secure-files').remove([fileId]);
+      } catch (_) {}
+    }
 
     // 2. Delete database metadata
     await _client.from('secure_files').delete().eq('id', fileId);
 
     // 3. Log event
-    await _client.from('audit_logs').insert({
-      'event': 'Deleted secure file with ID "$fileId" from group $groupId',
-      'status': 'INFO',
-    });
+    await SupabaseService.instance.logEvent(
+      'file_deleted',
+      groupId: groupId,
+      fileId: fileId,
+      metadata: {
+        'file_id': fileId,
+      },
+    );
   }
 
   @override
@@ -140,109 +183,71 @@ class SupabaseSecureFileRepository implements SecureFileRepository {
       'group_id': groupId,
       'name': name,
       'type': type.name == 'note' ? 'markdown' : type.name,
-      'uploaded_by_name': uploaderName,
-      'uploaded_by_initials': uploaderInitials,
       'size_bytes': 0,
       'is_watermarked': true,
       'is_pinned': false,
       'security_status': 'secured',
     });
 
-    await _client.from('audit_logs').insert({
-      'event': 'Linked shared Google Drive file "$name" ($gDriveId)',
-      'status': 'SUCCESS',
-    });
+    await SupabaseService.instance.logEvent(
+      'file_uploaded',
+      groupId: groupId,
+      fileId: gDriveId,
+      metadata: {
+        'file_name': name,
+        'gdrive_file_id': gDriveId,
+      },
+    );
   }
 
   @override
   Future<String?> getServiceAccountEmail() async {
-    //Bypassed since we are using Supabase Storage
-    return "Supabase Storage Active";
+    return await SupabaseService.instance.getServiceAccountEmail();
   }
 
   @override
-  Future<Uint8List?> downloadAndDecryptFile({
+  Future<Uint8List?> downloadFile({
     required String fileId,
     required Function(double) onProgress,
   }) async {
     try {
       onProgress(0.1);
-      final isGoogleDrive = !fileId.startsWith('sec_');
-      final Uint8List encryptedBytes;
+      final isGoogleDrive = !fileId.startsWith('file_') && !fileId.startsWith('sec_gen_');
       if (isGoogleDrive) {
-        final gDriveBytes = await SupabaseService.instance.downloadStorageFile(fileId);
-        if (gDriveBytes == null) {
-          throw Exception("Failed to download file from Google Drive proxy");
-        }
-        encryptedBytes = gDriveBytes;
+        onProgress(0.3);
+        final gDriveBytes = await SupabaseService.instance.downloadGDriveFile(fileId);
+        onProgress(1.0);
+        return gDriveBytes;
       } else {
-        encryptedBytes = await _client.storage.from('secure-files').download(fileId);
-      }
-      onProgress(0.5);
-
-      String? key = SecureDbService.instance.getFileKey(fileId);
-      String? iv = SecureDbService.instance.getFileIV(fileId);
-
-      if (key == null || iv == null || key.isEmpty || iv.isEmpty) {
-        // Try device-local secure storage first (correct E2E model)
-        final stored = await SecureKeyStore.getFileKey(fileId);
-        if (stored != null) {
-          key = stored.key;
-          iv = stored.iv;
-          SecureDbService.instance.registerCredentials(fileId, key, iv);
-        }
-      }
-
-      if (key == null || iv == null || key.isEmpty || iv.isEmpty) {
-        // Try selecting from secure_files table (shared/welcome notes fallback)
-        try {
-          final row = await _client
-              .from('secure_files')
-              .select('encryption_key_base64, encryption_iv_base64')
-              .eq('id', fileId)
-              .maybeSingle();
-          if (row != null) {
-            final dbKey = row['encryption_key_base64'] as String?;
-            final dbIv = row['encryption_iv_base64'] as String?;
-            if (dbKey != null && dbIv != null && dbKey.isNotEmpty && dbIv.isNotEmpty) {
-              key = dbKey;
-              iv = dbIv;
-              SecureDbService.instance.registerCredentials(fileId, key, iv);
-            }
+        if (StorageRouterConfig.enableMultiCloudStorage) {
+          try {
+            onProgress(0.3);
+            final bytes = await StorageRouterClient.instance.download(fileId);
+            onProgress(1.0);
+            return bytes;
+          } catch (e) {
+            debugLog('Storage router download fell back to Supabase Storage: $e');
           }
-        } catch (_) {}
-        // Note: If both local storage and database keys are null, the file was uploaded 
-        // on a different device and has no database key — this is the CORRECT E2E security behavior.
-      }
-
-      onProgress(0.7);
-
-      if (key != null && iv != null && key.isNotEmpty && iv.isNotEmpty) {
-        final decryptedBytes = await CryptographyService.decryptBytes(encryptedBytes, key, iv);
+        }
+        onProgress(0.3);
+        final bytes = await _client.storage.from('secure-files').download(fileId);
         onProgress(1.0);
-        return decryptedBytes;
-      } else {
-        onProgress(1.0);
-        return encryptedBytes;
+        return bytes;
       }
     } catch (e, s) {
-      debugPrint("SupabaseSecureFileRepository: downloadAndDecryptFile error: $e\n$s");
+      debugLog("SupabaseSecureFileRepository: downloadFile error: $e\n$s");
       return null;
     }
   }
 
   SecureFileMetadata _mapFile(Map<String, dynamic> row) {
-    final fileId = row['id'] as String;
-    // Note: encryption keys are NOT in the DB row anymore (E2E security fix).
-    // Keys are stored device-locally via SecureKeyStore.
-
     return SecureFileMetadata(
-      id: fileId,
+      id: row['id'] as String,
       groupId: row['group_id'] as String,
       name: row['name'] as String,
       type: _parseType(row['type']),
       sizeBytes: row['size_bytes'] as int? ?? 0,
-      uploaderName: row['uploaded_by_name'] as String? ?? 'Unknown',
+      uploaderName: row['uploaded_by'] as String? ?? 'Unknown',
       uploadedAt:
           DateTime.tryParse(row['uploaded_at']?.toString() ?? '') ??
           DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
@@ -287,5 +292,60 @@ class SupabaseSecureFileRepository implements SecureFileRepository {
     }
 
     return null;
+  }
+
+  String _displayNameFor(String name, SecureFileType type) {
+    final extension = switch (type) {
+      SecureFileType.note => '.md',
+      SecureFileType.pdf => '.pdf',
+      SecureFileType.image => '.png',
+      SecureFileType.scan => '.jpg',
+    };
+    return name.replaceAll(extension, '');
+  }
+
+  String _contentTypeFor(SecureFileType type) {
+    return switch (type) {
+      SecureFileType.note => 'text/markdown',
+      SecureFileType.pdf => 'application/pdf',
+      SecureFileType.image => 'image/png',
+      SecureFileType.scan => 'image/jpeg',
+    };
+  }
+
+  @override
+  Future<void> renameFile(String fileId, String newName) async {
+    final fileRow = await _client
+        .from('secure_files')
+        .select('group_id')
+        .eq('id', fileId)
+        .maybeSingle();
+    final groupId = fileRow?['group_id'] as String?;
+
+    await _client.from('secure_files').update({
+      'name': newName,
+    }).eq('id', fileId);
+
+    if (groupId != null) {
+      await SupabaseService.instance.logEvent(
+        'file_renamed',
+        groupId: groupId,
+        fileId: fileId,
+        metadata: {
+          'new_name': newName,
+        },
+      );
+    }
+  }
+
+  @override
+  Future<List<SecureFileMetadata>> getAllFiles() async {
+    final response = await _client
+        .from('secure_files')
+        .select()
+        .order('uploaded_at', ascending: false);
+    return (response as List)
+        .map((row) => _mapFile(row as Map<String, dynamic>))
+        .toList();
   }
 }

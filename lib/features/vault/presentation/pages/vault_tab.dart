@@ -4,7 +4,6 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../theme.dart';
 import '../../../groups/models/group_file.dart';
 import '../../../groups/providers/groups_provider.dart';
-import '../../../../services/secure_db_service.dart';
 
 class VaultTab extends ConsumerStatefulWidget {
   final ValueChanged<String> onRevealRequested;
@@ -23,52 +22,7 @@ class _VaultTabState extends ConsumerState<VaultTab>
   @override
   bool get wantKeepAlive => true;
 
-  bool _isRotatingKeys = false;
   String? _selectedFileId;
-
-  void _triggerKeyRotation() async {
-    if (_isRotatingKeys) return;
-    setState(() {
-      _isRotatingKeys = true;
-    });
-
-    try {
-      await SecureDbService.instance.rotateWorkspaceKeys();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: Theme.of(context).colorScheme.onSurface,
-            content: Text(
-              'Encryption keys successfully rotated.',
-              style: TextStyle(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.black
-                    : Colors.white,
-              ),
-            ),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: Colors.redAccent,
-            content: Text(
-              'Key rotation failed: $e',
-              style: const TextStyle(color: Colors.white),
-            ),
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isRotatingKeys = false;
-        });
-      }
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -97,78 +51,62 @@ class _VaultTabState extends ConsumerState<VaultTab>
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
               ),
             ),
-            GestureDetector(
-              onTap: _triggerKeyRotation,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: NoSusTheme.s16,
-                  vertical: NoSusTheme.s8,
-                ),
-                decoration: NoSusTheme.buttonDecoration(context),
-                child: Row(
-                  children: [
-                    _isRotatingKeys
-                        ? const SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 1.5,
-                              color: Colors.grey,
-                            ),
-                          )
-                        : Icon(
-                            Icons.sync_lock,
-                            size: 14,
-                            color: theme.colorScheme.onSurface,
-                          ),
-                    const SizedBox(width: NoSusTheme.s8),
-                    Text(
-                      _isRotatingKeys ? 'ROTATING...' : 'ROTATE KEYS',
-                      style: theme.textTheme.labelLarge?.copyWith(fontSize: 11),
-                    ),
-                  ],
-                ),
-              ),
-            ),
           ],
         ),
         const SizedBox(height: NoSusTheme.s24),
 
         // List of classified study documents
         Expanded(
-          child: allFiles.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.folder_off_outlined,
-                        size: 48,
-                        color: fg.withValues(alpha: 0.25),
+          child: RefreshIndicator(
+            onRefresh: () async {
+              ref.invalidate(groupFilesProvider);
+              await ref.read(groupFilesProvider.future);
+            },
+            color: fg,
+            backgroundColor: isDark ? NoSusTheme.dCard : NoSusTheme.lCard,
+            child: allFiles.isEmpty
+                ? SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(
+                      parent: BouncingScrollPhysics(),
+                    ),
+                    child: Container(
+                      height: MediaQuery.of(context).size.height * 0.6,
+                      alignment: Alignment.center,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.folder_off_outlined,
+                            size: 48,
+                            color: fg.withValues(alpha: 0.25),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'NO SECURE DOCUMENTS YET',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 2.0,
+                              color: fg.withValues(alpha: 0.4),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Navigate to the Groups tab to upload secure files.',
+                            style: TextStyle(fontSize: 13, color: subtle),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'NO SECURE DOCUMENTS YET',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 2.0,
-                          color: fg.withValues(alpha: 0.4),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Navigate to the Groups tab to upload secure files.',
-                        style: TextStyle(fontSize: 13, color: subtle),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                )
-              : ListView.separated(
-                  itemCount: allFiles.length,
-                  separatorBuilder: (context, index) =>
-                      const SizedBox(height: NoSusTheme.s16),
+                    ),
+                  )
+                : ListView.separated(
+                    physics: const AlwaysScrollableScrollPhysics(
+                      parent: BouncingScrollPhysics(),
+                    ),
+                    itemCount: allFiles.length,
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: NoSusTheme.s16),
                   itemBuilder: (context, index) {
                     final file = allFiles[index];
                     final isSelected = _selectedFileId == file.id;
@@ -280,6 +218,7 @@ class _VaultTabState extends ConsumerState<VaultTab>
                     ).animate().fadeIn(delay: (index * 80).ms).slideY(begin: 0.05, end: 0);
                   },
                 ),
+          ),
         ),
       ],
     );

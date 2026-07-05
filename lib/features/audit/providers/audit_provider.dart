@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../services/secure_db_service.dart';
+import '../../../services/audit_service.dart';
 
 class AuditLogsNotifier extends Notifier<List<Map<String, String>>> {
   StreamSubscription? _sub;
@@ -8,16 +8,16 @@ class AuditLogsNotifier extends Notifier<List<Map<String, String>>> {
   @override
   List<Map<String, String>> build() {
     _sub?.cancel();
-    _sub = SecureDbService.instance.watchAuditLogs().listen((data) {
+    _sub = AuditService.instance.watchAuditLogs().listen((data) {
       state = data;
     });
     ref.onDispose(() => _sub?.cancel());
 
-    return SecureDbService.instance.auditLogs;
+    return AuditService.instance.auditLogs;
   }
 
   void addLog(String event, String status) {
-    SecureDbService.instance.logEvent(event, status);
+    AuditService.instance.logEvent(event, status);
   }
 }
 

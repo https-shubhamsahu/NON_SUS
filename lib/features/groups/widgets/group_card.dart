@@ -3,7 +3,6 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../domain/models/study_group.dart';
 import '../../../theme.dart';
 import 'member_avatar_stack.dart';
-import 'security_badge.dart';
 
 /// Premium group card with group name, meta info, stacked avatars, and security badge.
 /// Provides press feedback via [_pressed] scale animation.
@@ -47,49 +46,52 @@ class _GroupCardState extends State<GroupCard> {
             duration: const Duration(milliseconds: 120),
             curve: Curves.easeOut,
             child: Container(
-              padding: const EdgeInsets.all(NoSusTheme.s24),
+              padding: const EdgeInsets.symmetric(
+                horizontal: NoSusTheme.s16,
+                vertical: 14.0,
+              ),
               decoration: NoSusTheme.cardDecoration(context),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ── Top row: badges + encrypt icon ──────────────────────────
+                  // ── Group name & Watermark Row ───────────────────────────────
                   Row(
                     children: [
-                      SecurityBadge(level: widget.group.securityLevel),
-                      const Spacer(),
+                      Expanded(
+                        child: Text(
+                          widget.group.name,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.3,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                       if (widget.group.isWatermarkEnabled) ...[
+                        const SizedBox(width: 8),
                         Icon(
                           Icons.water_drop_outlined,
-                          size: 12,
+                          size: 13,
                           color: subtle,
                         ),
-                        const SizedBox(width: 4),
                       ],
-                      Icon(Icons.lock_outline, size: 12, color: subtle),
                     ],
                   ),
-
-                  const SizedBox(height: NoSusTheme.s16),
-
-                  // ── Group name ───────────────────────────────────────────────
-                  Text(
-                    widget.group.name,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.3,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 5),
+                  const SizedBox(height: 6),
+                  
+                  // Description
                   Text(
                     widget.group.description,
-                    style: theme.textTheme.bodyMedium?.copyWith(fontSize: 12),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontSize: 12,
+                      color: subtle.withValues(alpha: 0.85),
+                    ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
 
-                  const SizedBox(height: 20.0),
+                  const SizedBox(height: 14.0),
 
                   // ── Bottom row: avatars + stats ──────────────────────────────
                   Row(

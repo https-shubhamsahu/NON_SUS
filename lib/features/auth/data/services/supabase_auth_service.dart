@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../core/utils/debug_logger.dart';
 
 class SupabaseAuthService {
   final SupabaseClient _client;
@@ -10,16 +11,26 @@ class SupabaseAuthService {
 
   Stream<User?> watchUser() async* {
     yield currentUser;
+    _client.auth.onAuthStateChange.listen((state) {
+      debugLog('NO SUS Auth State Changed: event=${state.event}, hasSession=${state.session != null}, user=${state.session?.user.email}');
+    });
     yield* _client.auth.onAuthStateChange
         .map((state) => state.session?.user);
   }
 
   Future<User> signIn({required String email, required String password}) async {
-    final response = await _client.auth.signInWithPassword(
-      email: email.trim(),
-      password: password,
-    );
-    return _requireUser(response);
+    try {
+      final response = await _client.auth.signInWithPassword(
+        email: email.trim(),
+        password: password,
+      );
+      return _requireUser(response);
+    } on AuthException catch (e) {
+      if (e.message.contains('Invalid login credentials')) {
+        throw AuthException('You are not a registered user, try registration instead, or check your password.');
+      }
+      rethrow;
+    }
   }
 
   Future<User> signUp({required String email, required String password}) async {
@@ -34,6 +45,8 @@ class SupabaseAuthService {
     await _client.auth.signInWithOAuth(
       OAuthProvider.google,
       redirectTo: kIsWeb ? null : 'io.supabase.nosus://login-callback/',
+      authScreenLaunchMode:
+          kIsWeb ? LaunchMode.platformDefault : LaunchMode.externalApplication,
     );
   }
 
@@ -41,6 +54,8 @@ class SupabaseAuthService {
     await _client.auth.signInWithOAuth(
       OAuthProvider.github,
       redirectTo: kIsWeb ? null : 'io.supabase.nosus://login-callback/',
+      authScreenLaunchMode:
+          kIsWeb ? LaunchMode.platformDefault : LaunchMode.externalApplication,
     );
   }
 

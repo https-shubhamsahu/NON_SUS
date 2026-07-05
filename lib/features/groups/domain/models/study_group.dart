@@ -1,26 +1,5 @@
 import 'package:flutter/foundation.dart';
 
-// Group access labels are display metadata, not authorization decisions.
-
-enum SecurityLevel {
-  verified, // Invite-only, all members verified
-  encrypted, // Standard private group
-  open, // Discoverable by search
-}
-
-extension SecurityLevelExt on SecurityLevel {
-  String get label {
-    switch (this) {
-      case SecurityLevel.verified:
-        return 'VERIFIED';
-      case SecurityLevel.encrypted:
-        return 'ENCRYPTED';
-      case SecurityLevel.open:
-        return 'OPEN';
-    }
-  }
-}
-
 // ─── GroupMember ──────────────────────────────────────────────────────────────
 
 @immutable
@@ -45,7 +24,6 @@ class StudyGroup {
   final String id;
   final String name;
   final String description;
-  final SecurityLevel securityLevel;
   final List<GroupMember> members;
   final int fileCount;
   final DateTime lastActivity;
@@ -56,7 +34,6 @@ class StudyGroup {
     required this.id,
     required this.name,
     required this.description,
-    required this.securityLevel,
     required this.members,
     required this.fileCount,
     required this.lastActivity,

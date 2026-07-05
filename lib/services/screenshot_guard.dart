@@ -3,6 +3,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../theme.dart';
+import '../core/utils/debug_logger.dart';
+import 'audit_service.dart';
 
 class ScreenshotGuard {
   ScreenshotGuard._();
@@ -12,6 +14,10 @@ class ScreenshotGuard {
   static const _eventChannel = EventChannel('co.nosus.app/screenshot');
 
   final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+  // Active secure context fields for security audit logging
+  String? activeGroupId;
+  String? activeFileId;
+  String? activeFileName;
   bool _isDialogShowing = false;
 
   Future<void> initialize() async {
@@ -27,7 +33,7 @@ class ScreenshotGuard {
         _showFunnyPopup(event as String);
       }
     }, onError: (err) {
-      debugPrint("ScreenshotGuard event error: $err");
+      debugLog("ScreenshotGuard event error: $err");
     });
   }
 
@@ -37,6 +43,17 @@ class ScreenshotGuard {
     if (context == null) return;
 
     _isDialogShowing = true;
+
+    // Log the screenshot or recording attempt to the secure audit logs if group ID is available
+    if (activeGroupId != null) {
+      AuditService.instance.logEvent(
+        type == 'recording' ? 'recording_attempt' : 'screenshot_attempt',
+        'SECURITY',
+        groupId: activeGroupId!,
+        fileId: activeFileId,
+        metadata: {'file_name': activeFileName ?? 'Vault Dashboard'},
+      );
+    }
 
     final messages = type == 'recording'
         ? [

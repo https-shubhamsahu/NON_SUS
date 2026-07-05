@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:no_sus/services/secure_db_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../../services/supabase_service.dart';
+
 
 class OnboardingPersonalizationWidget extends ConsumerStatefulWidget {
   final VoidCallback onNext;
@@ -17,6 +19,7 @@ class _OnboardingPersonalizationWidgetState
   final Set<String> _goals = {};
   final Set<String> _features = {};
   String _userType = 'student';
+  bool _isSaving = false;
 
   final List<String> _goalOptions = [
     'Learn',
@@ -34,9 +37,24 @@ class _OnboardingPersonalizationWidgetState
   ];
 
   Future<void> _continueToNext() async {
+    if (_isSaving) return;
     HapticFeedback.mediumImpact();
-    await SecureDbService.instance.setUserType(_userType);
-    widget.onNext();
+    setState(() => _isSaving = true);
+
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user != null) {
+      await SupabaseService.instance.updateSurveyData(
+        userId: user.id,
+        goals: _goals.toList(),
+        features: _features.toList(),
+        userType: _userType,
+      );
+    }
+
+    if (mounted) {
+      setState(() => _isSaving = false);
+      widget.onNext();
+    }
   }
 
   Widget _buildUserTypeOption({
@@ -245,15 +263,24 @@ class _OnboardingPersonalizationWidgetState
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Center(
-                child: Text(
-                  'CONTINUE TO COMMUNITY',
-                  style: TextStyle(
-                    color: isDark ? Colors.black : Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.0,
-                  ),
-                ),
+                child: _isSaving
+                    ? SizedBox(
+                        height: 14,
+                        width: 14,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: isDark ? Colors.black : Colors.white,
+                        ),
+                      )
+                    : Text(
+                        'CONTINUE TO COMMUNITY',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 2.0,
+                          color: isDark ? Colors.black : Colors.white,
+                        ),
+                      ),
               ),
             ),
           ),

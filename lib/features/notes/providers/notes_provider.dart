@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../auth/presentation/providers/auth_providers.dart';
-import '../../../services/secure_db_service.dart';
+import '../../../services/supabase_service.dart';
 
 class NoteState {
   final String content;
@@ -14,11 +14,22 @@ class UserNoteNotifier extends Notifier<NoteState> {
 
   @override
   NoteState build() {
+    ref.onDispose(() {
+      if (_debounceTimer?.isActive == true) {
+        _debounceTimer?.cancel();
+        final user = ref.read(authRepositoryProvider).currentUser;
+        if (user != null) {
+          SupabaseService.instance.saveUserNote(user.id, state.content);
+        }
+      } else {
+        _debounceTimer?.cancel();
+      }
+    });
     return const NoteState(content: '', isSaving: false);
   }
 
   void loadNote(String userId) async {
-    final content = await SecureDbService.instance.fetchUserNote(userId);
+    final content = await SupabaseService.instance.fetchUserNote(userId);
     state = NoteState(content: content, isSaving: false);
   }
 
@@ -29,7 +40,7 @@ class UserNoteNotifier extends Notifier<NoteState> {
     _debounceTimer = Timer(const Duration(seconds: 1), () async {
       final user = ref.read(authRepositoryProvider).currentUser;
       if (user != null) {
-        await SecureDbService.instance.saveUserNote(user.id, newContent);
+        await SupabaseService.instance.saveUserNote(user.id, newContent);
       }
       state = NoteState(content: newContent, isSaving: false);
     });

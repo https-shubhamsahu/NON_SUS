@@ -42,8 +42,8 @@ class GroupFile {
   final String name;
   final FileType type;
   final String groupId;
-  final String uploadedByName;
-  final String uploadedByInitials;
+  final String uploadedBy;
+  final String ownerId;
   final DateTime uploadedAt;
   final int sizeBytes;
   final bool isWatermarked;
@@ -55,8 +55,8 @@ class GroupFile {
     required this.name,
     required this.type,
     required this.groupId,
-    required this.uploadedByName,
-    required this.uploadedByInitials,
+    required this.uploadedBy,
+    required this.ownerId,
     required this.uploadedAt,
     required this.sizeBytes,
     this.isWatermarked = true,
