@@ -317,7 +317,13 @@ UI · Backend · AI · Testing · Acceptance · Complexity · Deps · Risk.
 
 ## Changelog
 
-- **2026-07-05** — Pivot to Sealed decided (strategy in `~/.claude/plans/`). Rescue checkpoint
-  commit `dff6062` on branch `pivot/sealed-foundation`: hardened `.gitignore` (`**/target/`,
+- **2026-07-05 · M0 (foundation)** — Added migration `20260705000000_sealed_core.sql`
+  (sealed_profiles, arenas, arena_members, seals, matches, invites + RLS + `is_arena_member`/
+  `join_arena` RPCs + realtime on matches/seals). Added `FheConfig.enableSealed` flag (in
+  `anyEnabled`). Scaffolded `lib/features/sealed/` (5 entities, repository interface,
+  `SupabaseSealedRepository`, Riverpod providers, `SealedHomeScreen`). `flutter analyze` clean.
+  *Pending:* live migration apply (needs a Supabase env); arena-key encryption correctness (M2).
+- **2026-07-05 · Phase A** — Pivot to Sealed decided (strategy in `~/.claude/plans/`). Rescue
+  checkpoint `dff6062` on branch `pivot/sealed-foundation`: hardened `.gitignore` (`**/target/`,
   `releases/`, `.agents/`, `.cursor/`, `supabase/.branches/`); committed previously-untracked FHE
-  subsystem. Created this file; superseded `AI_HANDOVER.md`.
+  subsystem. Doc checkpoint `9c01d91`: created this file; superseded `AI_HANDOVER.md`.

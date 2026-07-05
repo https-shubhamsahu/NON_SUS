@@ -44,6 +44,12 @@ class FheConfig {
   static const bool enableSelectiveTruth =
       bool.fromEnvironment('FHE_ENABLE_SELECTIVE_TRUTH', defaultValue: false);
 
+  /// Sealed: the reciprocity-gated intent graph (the pivot product surface).
+  /// Gates the `sealed` feature and its use of the pact mutual-match transport.
+  /// Enable with `--dart-define=FHE_ENABLE_SEALED=true`.
+  static const bool enableSealed =
+      bool.fromEnvironment('FHE_ENABLE_SEALED', defaultValue: false);
+
   // ─── Derived helpers ────────────────────────────────────────────────────────
 
   /// True if ANY FHE capability is enabled. Used only for coarse UI gating
@@ -55,7 +61,8 @@ class FheConfig {
       enablePolicyEngine ||
       enableHomomorphicSearch ||
       enableBenchmarks ||
-      enableSelectiveTruth;
+      enableSelectiveTruth ||
+      enableSealed;
 
   /// Backwards-compatibility shim for older call sites. Prefer the specific
   /// capability flags; this simply mirrors [anyEnabled].
