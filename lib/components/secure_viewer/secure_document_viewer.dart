@@ -48,6 +48,9 @@ class SecureDocumentViewer extends StatelessWidget {
   /// Whether the touch-to-reveal blur layer is enabled.
   final bool touchToRevealEnabled;
 
+  /// Whether the watermark overlay layer is enabled.
+  final bool watermarkEnabled;
+
   const SecureDocumentViewer({
     super.key,
     required this.child,
@@ -55,6 +58,7 @@ class SecureDocumentViewer extends StatelessWidget {
     this.viewerConfig = const ViewerConfig(),
     this.showHint = true,
     this.touchToRevealEnabled = true,
+    this.watermarkEnabled = true,
   });
 
   @override
@@ -63,7 +67,9 @@ class SecureDocumentViewer extends StatelessWidget {
       return BlurRevealLayer(
         config: viewerConfig,
         showHint: showHint,
-        overlay: WatermarkOverlay(config: watermarkConfig),
+        overlay: watermarkEnabled
+            ? WatermarkOverlay(config: watermarkConfig)
+            : const SizedBox.shrink(),
         child: child,
       );
     }
@@ -74,8 +80,9 @@ class SecureDocumentViewer extends StatelessWidget {
         // ── Layer 1: Protected document content ──────────────────────────
         RepaintBoundary(child: child),
         // ── Layer 2: Always-visible overlay (watermark) ──────────────────
-        WatermarkOverlay(config: watermarkConfig),
+        if (watermarkEnabled) WatermarkOverlay(config: watermarkConfig),
       ],
     );
   }
 }
+

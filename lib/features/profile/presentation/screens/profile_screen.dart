@@ -18,6 +18,9 @@ import 'advanced_settings_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../services/supabase_service.dart';
 import '../../../fhe/presentation/screens/fhe_demo_screen.dart';
+import '../../../config/presentation/providers/config_provider.dart';
+import '../../../admin/presentation/screens/admin_dashboard_screen.dart';
+
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -1303,7 +1306,66 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ).animate().fadeIn(delay: 120.ms, duration: 250.ms),
                 const SizedBox(height: 20),
 
+                ref.watch(userRoleProvider).maybeWhen(
+                      data: (role) {
+                        if (role == 'admin' || role == 'super_admin') {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'ADMINISTRATION',
+                                style: theme.textTheme.labelLarge?.copyWith(
+                                  color: fg.withValues(alpha: 0.4),
+                                  fontSize: 10,
+                                  letterSpacing: 1.5,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Container(
+                                decoration: NoSusTheme.cardDecoration(context),
+                                child: ListTile(
+                                  leading: Icon(
+                                    Icons.admin_panel_settings_outlined,
+                                    size: 18,
+                                    color: fg,
+                                  ),
+                                  title: const Text(
+                                    'Super Admin Console',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    'Manage feature flags, user roles, and config',
+                                    style: TextStyle(color: subtle, fontSize: 10),
+                                  ),
+                                  trailing: Icon(
+                                    Icons.chevron_right,
+                                    size: 16,
+                                    color: subtle,
+                                  ),
+                                  onTap: () {
+                                    HapticFeedback.lightImpact();
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => const AdminDashboardScreen(),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                            ],
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
+                      orElse: () => const SizedBox.shrink(),
+                    ),
+
                 // ─── SETTINGS CATEGORY: HELP & LEGAL ──────────────────────────
+
                 Text(
                   'HELP & LEGAL',
                   style: theme.textTheme.labelLarge?.copyWith(

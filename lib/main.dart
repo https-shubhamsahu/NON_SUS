@@ -28,6 +28,9 @@ import 'core/utils/debug_logger.dart';
 import 'features/share/presentation/screens/anonymous_share_viewer_screen.dart';
 
 import 'package:app_links/app_links.dart';
+import 'features/config/data/remote_config_service.dart';
+import 'features/config/presentation/providers/config_provider.dart';
+
 
 /// Extracts a SecureSend share token from a `/v/<token>` URL, checking both
 /// the fragment (default hash-based web routing, e.g. `#/v/abc123`) and the
@@ -81,7 +84,21 @@ void main() async {
       // 2. Block screenshots (FLAG_SECURE on Android) + funny popup on attempt
       await ScreenshotGuard.instance.initialize();
 
-      runApp(const ProviderScope(child: MyApp()));
+      // Initialize remote config and feature flags
+      final remoteConfig = RemoteConfigService(Supabase.instance.client);
+      if (SupabaseService.instance.isConfigured && SupabaseService.instance.isReachable) {
+        await remoteConfig.initialize();
+      }
+
+      runApp(
+        ProviderScope(
+          overrides: [
+            remoteConfigServiceProvider.overrideWithValue(remoteConfig),
+          ],
+          child: const MyApp(),
+        ),
+      );
+
     },
     (error, stack) {
       // Catch all unhandled async errors (e.g. Supabase realtime WebSocket failures)

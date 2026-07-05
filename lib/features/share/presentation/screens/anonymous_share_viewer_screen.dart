@@ -237,8 +237,10 @@ class _AnonymousShareViewerScreenState
                     style: const TextStyle(fontSize: 12),
                     overflow: TextOverflow.ellipsis),
               ),
-              const Text('WATERMARKED · VIEW LOGGED',
-                  style: TextStyle(fontSize: 9, color: Colors.white38, letterSpacing: 0.5)),
+              Text(
+                '${result.watermarkEnforced ? "WATERMARKED" : "NO WATERMARK"} · VIEW LOGGED',
+                style: const TextStyle(fontSize: 9, color: Colors.white38, letterSpacing: 0.5),
+              ),
             ],
           ),
         ),
@@ -246,10 +248,13 @@ class _AnonymousShareViewerScreenState
           child: SecureDocumentViewer(
             watermarkConfig: watermarkConfig,
             viewerConfig: const ViewerConfig(),
+            touchToRevealEnabled: result.blurEnforced,
+            watermarkEnabled: result.watermarkEnforced,
             child: child,
           ),
         ),
       ],
     );
+
   }
 }

@@ -46,16 +46,23 @@ class ShareFetchResult {
   final String fileName;
   final String fileType; // 'pdf' | 'image' | 'markdown' | 'scan'
   final String signedUrl;
+  final bool watermarkEnforced;
+  final bool blurEnforced;
 
   const ShareFetchResult({
     required this.fileName,
     required this.fileType,
     required this.signedUrl,
+    this.watermarkEnforced = true,
+    this.blurEnforced = true,
   });
 
   factory ShareFetchResult.fromMap(Map<String, dynamic> map) => ShareFetchResult(
         fileName: map['file_name'] as String? ?? 'document',
         fileType: map['type'] as String? ?? 'pdf',
         signedUrl: map['signed_url'] as String,
+        watermarkEnforced: map['watermark_enforced'] as bool? ?? true,
+        blurEnforced: map['blur_enforced'] as bool? ?? true,
       );
 }
+

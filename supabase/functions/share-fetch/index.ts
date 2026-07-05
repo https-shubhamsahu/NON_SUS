@@ -74,6 +74,33 @@ Deno.serve(async (req: Request) => {
     return json({ error: "A valid email is required to view this document" }, 400);
   }
 
+  // 1. Fetch feature flags to check if SecureSend is enabled and get settings
+  const { data: flags, error: flagsErr } = await admin
+    .from("feature_flags")
+    .select("flag_key, is_active")
+    .in("flag_key", [
+      "securesend_enabled",
+      "securesend_watermark_enforced",
+      "securesend_blur_enforced",
+    ]);
+
+  if (flagsErr) {
+    console.error("share-fetch: Failed to query feature flags", flagsErr);
+  }
+
+  const getFlag = (key: string, defaultValue = true): boolean => {
+    if (!flags) return defaultValue;
+    const f = flags.find((item: any) => item.flag_key === key);
+    return f ? f.is_active : defaultValue;
+  };
+
+  if (!getFlag("securesend_enabled", true)) {
+    return json({ error: "SecureSend sharing is temporarily disabled by administrators" }, 503);
+  }
+
+  const watermarkEnforced = getFlag("securesend_watermark_enforced", true);
+  const blurEnforced = getFlag("securesend_blur_enforced", true);
+
   const { data: link, error: linkErr } = await admin
     .from("share_links")
     .select("id, file_id, revoked, expires_at, max_views, view_count")
@@ -94,6 +121,7 @@ Deno.serve(async (req: Request) => {
   if (isGoogleDriveFile(fileId)) {
     return json({ error: "This file isn't shareable via link yet" }, 400);
   }
+
 
   const { data: file, error: fileErr } = await admin
     .from("secure_files")
@@ -128,5 +156,8 @@ Deno.serve(async (req: Request) => {
     file_name: file.name,
     type: file.type,
     signed_url: signed.signedUrl,
+    watermark_enforced: watermarkEnforced,
+    blur_enforced: blurEnforced,
   });
 });
+
