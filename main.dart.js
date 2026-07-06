@@ -33105,15 +33105,17 @@ aGX:function aGX(){},
 aGY:function aGY(a,b){this.a=a
 this.b=b},
 bdM:function bdM(){},
-bKM(a){var s,r,q,p=a.j(0),o=A.c_("burn/([a-f0-9\\-]{36})(?:#|%23)([a-f0-9]{64})\\.([a-f0-9]{32})",!1,!1).jN(p)
-if(o!=null){s=o.b
-r=s[1]
+bKM(a){var s,r,q,p=window.location.href
+p.toString
+s=A.c_("burn/([a-f0-9\\-]{36})(?:#|%23|/)([a-f0-9]{64})\\.([a-f0-9]{32})",!1,!1).jN(p)
+if(s!=null){p=s.b
+r=p[1]
 r.toString
-q=s[2]
+q=p[2]
 q.toString
-s=s[3]
-s.toString
-return new A.an3(r,q,s)}return null},
+p=p[3]
+p.toString
+return new A.an3(r,q,p)}return null},
 bKN(a){var s,r,q,p
 for(s=[a.gme(),a.gfd(a)],r=0;r<2;++r){q=s[r]
 p=(B.c.bL(q,"/")?B.c.cR(q,1):q).split("/")
