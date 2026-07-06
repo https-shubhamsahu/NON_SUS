@@ -1,13 +1,16 @@
-import 'dart:typed_data';
+import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:pdfrx/pdfrx.dart';
+import 'package:universal_html/html.dart' as html;
 
 import '../../../../components/secure_viewer/models/viewer_config.dart';
 import '../../../../components/secure_viewer/models/watermark_config.dart';
 import '../../../../components/secure_viewer/secure_document_viewer.dart';
 import '../../data/share_fetch_client.dart';
+import '../../data/share_heartbeat_client.dart';
 import '../../domain/entities/share_link.dart';
 
 /// SecureSend's anonymous recipient view. Deliberately NOT a [ConsumerWidget]
@@ -31,7 +34,7 @@ class AnonymousShareViewerScreen extends StatefulWidget {
       _AnonymousShareViewerScreenState();
 }
 
-enum _Stage { emailGate, loading, viewing, error }
+enum _Stage { appPrompt, emailGate, loading, viewing, error }
 
 class _AnonymousShareViewerScreenState
     extends State<AnonymousShareViewerScreen> {
@@ -40,11 +43,68 @@ class _AnonymousShareViewerScreenState
   String? _errorMessage;
   ShareFetchResult? _result;
   Uint8List? _bytes;
+  Timer? _heartbeatTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    // Default to appPrompt on mobile web, else skip straight to emailGate
+    final isMobileWeb = kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.android ||
+            defaultTargetPlatform == TargetPlatform.iOS);
+    _stage = isMobileWeb ? _Stage.appPrompt : _Stage.emailGate;
+  }
 
   @override
   void dispose() {
     _emailController.dispose();
+    _stopHeartbeat(close: true);
     super.dispose();
+  }
+
+  void _startHeartbeat(String eventId) {
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+      ShareHeartbeatClient.instance.sendHeartbeat(eventId);
+    });
+  }
+
+  void _stopHeartbeat({bool close = false}) {
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = null;
+    final eventId = _result?.viewEventId;
+    if (eventId != null && close) {
+      ShareHeartbeatClient.instance.sendHeartbeat(eventId, close: true);
+    }
+  }
+
+  void _openInApp() {
+    if (!kIsWeb) return;
+    
+    final token = widget.token;
+    final fallbackUrl = 'https://github.com/https-shubhamsahu/NON_SUS/releases/latest/download/nosus.apk';
+    
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      final intentUrl = 'intent://v/$token#Intent;'
+          'scheme=io.nosus.app;'
+          'package=io.nosus.app;'
+          'S.browser_fallback_url=${Uri.encodeComponent(fallbackUrl)};'
+          'end';
+      html.window.location.href = intentUrl;
+    } else if (defaultTargetPlatform == TargetPlatform.iOS) {
+      final appUrl = 'io.nosus.app://v/$token';
+      html.window.location.href = appUrl;
+      
+      Timer(const Duration(seconds: 2), () {
+        html.window.location.href = fallbackUrl;
+      });
+    }
+  }
+
+  void _downloadApk() {
+    if (kIsWeb) {
+      html.window.location.href = 'https://github.com/https-shubhamsahu/NON_SUS/releases/latest/download/nosus.apk';
+    }
   }
 
   Future<void> _submit() async {
@@ -74,6 +134,9 @@ class _AnonymousShareViewerScreenState
         _bytes = bytesRes.bodyBytes;
         _stage = _Stage.viewing;
       });
+      if (result.viewEventId != null) {
+        _startHeartbeat(result.viewEventId!);
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -92,11 +155,78 @@ class _AnonymousShareViewerScreenState
       home: Scaffold(
         body: SafeArea(
           child: switch (_stage) {
+            _Stage.appPrompt => _buildAppPrompt(),
             _Stage.emailGate => _buildEmailGate(),
             _Stage.loading => _buildLoading(),
             _Stage.error => _buildError(),
             _Stage.viewing => _buildViewer(),
           },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAppPrompt() {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 380),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.security, size: 48, color: Colors.blueAccent),
+              const SizedBox(height: 24),
+              const Text(
+                'NO SUS',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 1.0),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'You received a secure document. Open it in the NO SUS app for maximum security.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 13, color: Colors.white70),
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: _openInApp,
+                  icon: const Icon(Icons.open_in_new),
+                  label: const Text('OPEN IN APP'),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _downloadApk,
+                  icon: const Icon(Icons.download),
+                  label: const Text('DOWNLOAD APK'),
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Row(
+                children: [
+                  Expanded(child: Divider()),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: Text('OR', style: TextStyle(fontSize: 10, color: Colors.white38)),
+                  ),
+                  Expanded(child: Divider()),
+                ],
+              ),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    _stage = _Stage.emailGate;
+                  });
+                },
+                child: const Text('CONTINUE IN BROWSER', style: TextStyle(fontSize: 12, color: Colors.grey)),
+              ),
+            ],
+          ),
         ),
       ),
     );

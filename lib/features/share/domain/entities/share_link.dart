@@ -54,6 +54,7 @@ class ShareFetchResult {
   final String signedUrl;
   final bool watermarkEnforced;
   final bool blurEnforced;
+  final String? viewEventId;
 
   const ShareFetchResult({
     required this.fileName,
@@ -61,6 +62,7 @@ class ShareFetchResult {
     required this.signedUrl,
     this.watermarkEnforced = true,
     this.blurEnforced = true,
+    this.viewEventId,
   });
 
   factory ShareFetchResult.fromMap(Map<String, dynamic> map) => ShareFetchResult(
@@ -69,6 +71,55 @@ class ShareFetchResult {
         signedUrl: map['signed_url'] as String,
         watermarkEnforced: map['watermark_enforced'] as bool? ?? true,
         blurEnforced: map['blur_enforced'] as bool? ?? true,
+        viewEventId: map['view_event_id'] as String?,
       );
+}
+
+class ShareViewEvent {
+  final String id;
+  final String linkId;
+  final String viewerEmail;
+  final String deviceType; // 'web' | 'app'
+  final DateTime startedAt;
+  final DateTime lastHeartbeat;
+  final DateTime? endedAt;
+  final int durationSeconds;
+
+  const ShareViewEvent({
+    required this.id,
+    required this.linkId,
+    required this.viewerEmail,
+    required this.deviceType,
+    required this.startedAt,
+    required this.lastHeartbeat,
+    this.endedAt,
+    required this.durationSeconds,
+  });
+
+  bool get isLive =>
+      endedAt == null &&
+      DateTime.now().difference(lastHeartbeat).inSeconds < 90;
+
+  factory ShareViewEvent.fromMap(Map<String, dynamic> map) {
+    final started = DateTime.parse(map['started_at'] as String);
+    final heartbeat = DateTime.parse(map['last_heartbeat'] as String);
+    final ended = map['ended_at'] != null ? DateTime.parse(map['ended_at'] as String) : null;
+    
+    int duration = (map['duration_seconds'] as num?)?.toInt() ?? 0;
+    if (duration == 0) {
+      duration = (ended ?? heartbeat).difference(started).inSeconds;
+    }
+
+    return ShareViewEvent(
+      id: map['id'] as String,
+      linkId: map['link_id'] as String,
+      viewerEmail: map['viewer_email'] as String,
+      deviceType: map['device_type'] as String? ?? 'web',
+      startedAt: started,
+      lastHeartbeat: heartbeat,
+      endedAt: ended,
+      durationSeconds: duration,
+    );
+  }
 }
 

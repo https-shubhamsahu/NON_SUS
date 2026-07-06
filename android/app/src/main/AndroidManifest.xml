@@ -46,6 +46,13 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="io.supabase.nosus" android:host="login-callback" />
             </intent-filter>
+            <!-- SecureSend deep link receiver -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="io.nosus.app" android:host="v" />
+            </intent-filter>
             <!-- Android Share Intent Filter -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />

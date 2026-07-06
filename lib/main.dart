@@ -26,6 +26,10 @@ import 'features/workspace/presentation/widgets/save_to_no_sus_dialog.dart';
 import 'features/focus/providers/focus_provider.dart';
 import 'core/utils/debug_logger.dart';
 import 'features/share/presentation/screens/anonymous_share_viewer_screen.dart';
+import 'features/share/presentation/screens/in_app_share_viewer_screen.dart';
+import 'features/share/presentation/screens/share_analytics_screen.dart';
+import 'features/share/presentation/providers/share_providers.dart';
+import 'features/share/domain/entities/share_link.dart';
 
 import 'package:app_links/app_links.dart';
 import 'features/config/data/remote_config_service.dart';
@@ -76,8 +80,28 @@ void main() async {
           } catch (e) {
             debugLog('NO SUS: Error recovering session from deep link: $e');
           }
+        } else if (uri.scheme == 'io.nosus.app' && uri.host == 'v') {
+          final token = uri.pathSegments.firstOrNull;
+          if (token != null && token.isNotEmpty) {
+            _handleInAppShareView(token);
+          }
         }
       });
+
+      // Handle initial link if app was closed
+      try {
+        final initialUri = await appLinks.getInitialLink();
+        if (initialUri != null && initialUri.scheme == 'io.nosus.app' && initialUri.host == 'v') {
+          final token = initialUri.pathSegments.firstOrNull;
+          if (token != null && token.isNotEmpty) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _handleInAppShareView(token);
+            });
+          }
+        }
+      } catch (e) {
+        debugLog('NO SUS: Error reading initial deep link: $e');
+      }
 
       // Initialize security audit logging service
       AuditService.instance.init();
@@ -327,8 +351,59 @@ class _WorkspaceHomeState extends ConsumerState<WorkspaceHome> {
     );
   }
 
+  void _showNotificationBanner(ShareViewEvent event, String fileName) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        margin: EdgeInsets.only(
+          bottom: MediaQuery.of(context).size.height - 100,
+          left: 16,
+          right: 16,
+        ),
+        duration: const Duration(seconds: 6),
+        backgroundColor: Colors.blueAccent,
+        content: Row(
+          children: [
+            const Icon(Icons.notifications_active, color: Colors.white, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                '${event.viewerEmail} opened "$fileName"',
+                style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        action: SnackBarAction(
+          label: 'VIEW',
+          textColor: Colors.white,
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ShareAnalyticsScreen(
+                  linkId: event.linkId,
+                  fileName: fileName,
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    ref.listen<ShareNotificationState>(shareNotificationProvider, (prev, next) {
+      final event = next.latestEvent;
+      if (event != null && next.fileName != null) {
+        _showNotificationBanner(event, next.fileName!);
+        ref.read(shareNotificationProvider.notifier).dismiss();
+      }
+    });
+
     ref.listen<SharedContent?>(shareIntentProvider, (previous, next) {
       if (next != null) {
         _showSaveToNoSusModal(next);
@@ -391,6 +466,18 @@ class _WorkspaceHomeState extends ConsumerState<WorkspaceHome> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+void _handleInAppShareView(String token) {
+  final context = ScreenshotGuard.instance.navigatorKey.currentContext;
+  if (context != null) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => InAppShareViewerScreen(token: token),
       ),
     );
   }

@@ -69,6 +69,7 @@ Deno.serve(async (req: Request) => {
 
   const token = String(body.token ?? "").trim();
   const viewerEmail = String(body.viewer_email ?? "").trim().toLowerCase();
+  const deviceType = String(body.device_type ?? "web").trim().toLowerCase();
   if (!token) return json({ error: "Missing token" }, 400);
   if (!viewerEmail || !isPlausibleEmail(viewerEmail)) {
     return json({ error: "A valid email is required to view this document" }, 400);
@@ -142,13 +143,24 @@ Deno.serve(async (req: Request) => {
     return json({ error: "The document could not be prepared for viewing" }, 502);
   }
 
+  let viewEventId = null;
   // Log the view + bump the counter. Best-effort: a failure here must not
   // block a legitimate view (the recipient already has a valid signed URL).
   try {
-    await admin.from("share_link_views").insert({
-      share_link_id: link.id,
-      viewer_email: viewerEmail,
-    });
+    const { data: eventData } = await admin
+      .from("share_view_events")
+      .insert({
+        link_id: link.id,
+        viewer_email: viewerEmail,
+        device_type: deviceType === "app" ? "app" : "web",
+      })
+      .select("id")
+      .single();
+    
+    if (eventData) {
+      viewEventId = eventData.id;
+    }
+
     await admin
       .from("share_links")
       .update({ view_count: (link.view_count as number) + 1 })
@@ -163,6 +175,7 @@ Deno.serve(async (req: Request) => {
     signed_url: signed.signedUrl,
     watermark_enforced: watermarkEnforced,
     blur_enforced: blurEnforced,
+    view_event_id: viewEventId,
   });
 });
 

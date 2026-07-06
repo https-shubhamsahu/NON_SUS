@@ -9,6 +9,8 @@ import '../widgets/file_card.dart';
 import '../widgets/member_avatar_stack.dart';
 import '../widgets/upload_modal.dart';
 import '../../share/presentation/widgets/share_link_dialog.dart';
+import '../../share/presentation/providers/share_providers.dart';
+import '../../share/presentation/screens/share_analytics_screen.dart';
 import '../widgets/empty_states.dart';
 import '../../../theme.dart';
 import '../../../components/spyglass_viewer.dart';
@@ -536,6 +538,41 @@ class _FilesTab extends ConsumerWidget {
                     onDelete: () => _confirmDeleteFile(context, ref, group.id, file.id, file.name),
                     onRename: () => _renameFile(context, ref, file.id, file.name),
                     onShare: () => showShareLinkDialog(context, ref, file.id),
+                    onAnalytics: () async {
+                      try {
+                        final repo = ref.read(shareRepositoryProvider);
+                        final links = await repo.myLinksForFile(file.id);
+                        final activeLink = links.where((l) => !l.revoked).firstOrNull;
+                        if (activeLink != null) {
+                          if (!context.mounted) return;
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ShareAnalyticsScreen(
+                                linkId: activeLink.id,
+                                fileName: file.name,
+                              ),
+                            ),
+                          );
+                        } else {
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('No active share links found. Create one first!'),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Failed to check links: $e'),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      }
+                    },
                     onPin: () => ref
                         .read(groupFilesProvider.notifier)
                         .togglePin(group.id, file.id),

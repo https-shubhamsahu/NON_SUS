@@ -19,6 +19,7 @@ class ShareFetchClient {
   Future<ShareFetchResult> fetch({
     required String token,
     required String viewerEmail,
+    String? deviceType,
   }) async {
     final res = await http.post(
       _endpoint,
@@ -26,7 +27,11 @@ class ShareFetchClient {
         'Content-Type': 'application/json',
         'apikey': SupabaseCredentials.anonKey,
       },
-      body: jsonEncode({'token': token, 'viewer_email': viewerEmail}),
+      body: jsonEncode({
+        'token': token,
+        'viewer_email': viewerEmail,
+        'device_type': deviceType ?? 'web',
+      }),
     );
 
     final decoded = jsonDecode(res.body) as Map<String, dynamic>;
