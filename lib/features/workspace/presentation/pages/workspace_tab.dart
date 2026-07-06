@@ -12,6 +12,7 @@ import '../../../notes/providers/notes_provider.dart';
 import '../../../focus/providers/focus_provider.dart';
 import '../../providers/recently_saved_provider.dart';
 import '../../../files/presentation/providers/upload_provider.dart';
+import '../../../share/presentation/screens/burn_note_creator_screen.dart';
 /// Tab 0 — Workspace Dashboard
 /// Welcome banner + Study chart + Secure notepad.
 class WorkspaceTab extends ConsumerStatefulWidget {
@@ -141,6 +142,12 @@ class _WorkspaceTabState extends ConsumerState<WorkspaceTab>
           const _SealedTeaserCard()
               .animate()
               .fadeIn(duration: 340.ms)
+              .slideY(begin: 0.05, end: 0),
+          const SizedBox(height: NoSusTheme.s16),
+
+          const _BurnNoteTeaserCard()
+              .animate()
+              .fadeIn(duration: 370.ms)
               .slideY(begin: 0.05, end: 0),
           const SizedBox(height: NoSusTheme.s16),
 
@@ -1127,6 +1134,76 @@ class _RecentlySavedSection extends ConsumerWidget {
             },
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _BurnNoteTeaserCard extends StatelessWidget {
+  const _BurnNoteTeaserCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final fg = theme.colorScheme.onSurface;
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(NoSusTheme.r16),
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => const BurnNoteCreatorScreen(),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: NoSusTheme.cardDecoration(context),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.orangeAccent.withValues(alpha: 0.3)),
+                color: Colors.orangeAccent.withValues(alpha: 0.05),
+              ),
+              child: const Icon(Icons.local_fire_department_outlined, color: Colors.orangeAccent, size: 22),
+            ),
+            const SizedBox(width: NoSusTheme.s16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Burn Notes',
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 14.5,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    'Zero-knowledge encrypted self-destructing secrets.',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: fg.withValues(alpha: 0.54),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right,
+              color: fg.withValues(alpha: 0.45),
+              size: 20,
+            ),
+          ],
+        ),
       ),
     );
   }

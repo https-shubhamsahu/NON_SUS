@@ -36,6 +36,32 @@ import 'features/config/data/remote_config_service.dart';
 import 'features/config/presentation/providers/config_provider.dart';
 
 
+import 'features/share/presentation/screens/burn_note_viewer_screen.dart';
+
+class BurnNoteToken {
+  final String id;
+  final String keyHex;
+  final String ivHex;
+  BurnNoteToken({required this.id, required this.keyHex, required this.ivHex});
+}
+
+BurnNoteToken? _extractBurnNoteToken(Uri uri) {
+  final fullUrl = uri.toString();
+  final regExp = RegExp(
+    r'burn/([a-f0-9\-]{36})#([a-f0-9]{64})\.([a-f0-9]{32})',
+    caseSensitive: false,
+  );
+  final match = regExp.firstMatch(fullUrl);
+  if (match != null) {
+    return BurnNoteToken(
+      id: match.group(1)!,
+      keyHex: match.group(2)!,
+      ivHex: match.group(3)!,
+    );
+  }
+  return null;
+}
+
 /// Extracts a SecureSend share token from a `/v/<token>` URL, checking both
 /// the fragment (default hash-based web routing, e.g. `#/v/abc123`) and the
 /// path, so the link works regardless of URL strategy. Returns null on any
@@ -62,6 +88,16 @@ void main() async {
       final shareToken = _extractShareToken(Uri.base);
       if (shareToken != null) {
         runApp(AnonymousShareViewerScreen(token: shareToken));
+        return;
+      }
+
+      final burnNoteToken = _extractBurnNoteToken(Uri.base);
+      if (burnNoteToken != null) {
+        runApp(BurnNoteViewerScreen(
+          noteId: burnNoteToken.id,
+          keyHex: burnNoteToken.keyHex,
+          ivHex: burnNoteToken.ivHex,
+        ));
         return;
       }
 
