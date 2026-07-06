@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'dart:typed_data';
+import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/supabase/supabase_bootstrap.dart';
 import '../config/supabase_credentials.dart';
@@ -66,16 +66,13 @@ class SupabaseService {
     if (!isConfigured) return;
 
     try {
-      final client = HttpClient();
-      final request = await client.deleteUrl(
+      final response = await http.delete(
         Uri.parse('$_driveProxyUrl/delete?fileId=$fileId'),
+        headers: {'Authorization': _authHeader},
       );
-      request.headers.set(HttpHeaders.authorizationHeader, _authHeader);
-      final response = await request.close();
       if (response.statusCode != 200) {
-        final responseBody = await response.transform(utf8.decoder).join();
         debugLog(
-          "SupabaseService: Delete proxy failed: ${response.statusCode} - $responseBody",
+          "SupabaseService: Delete proxy failed: ${response.statusCode} - ${response.body}",
         );
       }
     } catch (e) {
@@ -88,25 +85,17 @@ class SupabaseService {
     if (!isConfigured) return null;
 
     try {
-      final client = HttpClient();
-      final request = await client.getUrl(
+      final response = await http.get(
         Uri.parse('$_driveProxyUrl/download?fileId=$fileId'),
+        headers: {'Authorization': _authHeader},
       );
-      request.headers.set(HttpHeaders.authorizationHeader, _authHeader);
-      final response = await request.close();
       if (response.statusCode != 200) {
-        final responseBody = await response.transform(utf8.decoder).join();
         debugLog(
-          "SupabaseService: Download proxy failed: ${response.statusCode} - $responseBody",
+          "SupabaseService: Download proxy failed: ${response.statusCode} - ${response.body}",
         );
         return null;
       }
-
-      final bytesBuilder = BytesBuilder();
-      await for (final chunk in response) {
-        bytesBuilder.add(chunk);
-      }
-      return bytesBuilder.toBytes();
+      return response.bodyBytes;
     } catch (e) {
       debugLog("SupabaseService: Download proxy exception: $e");
       return null;
@@ -118,17 +107,15 @@ class SupabaseService {
     if (!isConfigured) return null;
 
     try {
-      final client = HttpClient();
-      final request = await client.getUrl(Uri.parse('$_driveProxyUrl/info'));
-      request.headers.set(HttpHeaders.authorizationHeader, _authHeader);
-      final response = await request.close();
+      final response = await http.get(
+        Uri.parse('$_driveProxyUrl/info'),
+        headers: {'Authorization': _authHeader},
+      );
       if (response.statusCode == 200) {
-        final responseBody = await response.transform(utf8.decoder).join();
-        final data = json.decode(responseBody) as Map<String, dynamic>;
+        final data = json.decode(response.body) as Map<String, dynamic>;
         return data['serviceAccountEmail'] as String?;
       } else {
-        final responseBody = await response.transform(utf8.decoder).join();
-        debugLog("SupabaseService: getServiceAccountEmail failed: ${response.statusCode} - $responseBody");
+        debugLog("SupabaseService: getServiceAccountEmail failed: ${response.statusCode} - ${response.body}");
       }
     } catch (e) {
       debugLog("SupabaseService: getServiceAccountEmail exception: $e");

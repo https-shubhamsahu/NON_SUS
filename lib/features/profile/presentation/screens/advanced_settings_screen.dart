@@ -1,7 +1,7 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 import '../../../../theme.dart';
 import '../../../../config/supabase_credentials.dart';
 
@@ -25,11 +25,11 @@ class _AdvancedSettingsScreenState extends ConsumerState<AdvancedSettingsScreen>
 
     final stopwatch = Stopwatch()..start();
     try {
-      final client = HttpClient();
       final uri = Uri.parse('${SupabaseCredentials.url}/rest/v1/');
-      final request = await client.getUrl(uri).timeout(const Duration(seconds: 4));
-      request.headers.set('apikey', SupabaseCredentials.anonKey);
-      final response = await request.close();
+      final response = await http.get(
+        uri,
+        headers: {'apikey': SupabaseCredentials.anonKey},
+      ).timeout(const Duration(seconds: 4));
       stopwatch.stop();
       if (response.statusCode == 200) {
         setState(() {
