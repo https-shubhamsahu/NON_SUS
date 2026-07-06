@@ -254,7 +254,7 @@ class SupabaseService {
         'user_id': userId,
         'date': todayStr,
         'focus_minutes': currentMinutes + minutes,
-      });
+      }, onConflict: 'user_id,date');
     } catch (e) {
       debugLog("SupabaseService: incrementFocusMinutes error: $e");
     }

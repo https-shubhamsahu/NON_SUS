@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:pdfrx/pdfrx.dart';
 import 'package:universal_html/html.dart' as html;
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../components/secure_viewer/models/viewer_config.dart';
 import '../../../../components/secure_viewer/models/watermark_config.dart';
@@ -175,45 +176,77 @@ class _AnonymousShareViewerScreenState
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.security, size: 48, color: Colors.blueAccent),
+              const Icon(Icons.security_outlined, size: 54, color: Colors.white70),
               const SizedBox(height: 24),
-              const Text(
-                'NO SUS',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 1.0),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'You received a secure document. Open it in the NO SUS app for maximum security.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 13, color: Colors.white70),
-              ),
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: _openInApp,
-                  icon: const Icon(Icons.open_in_new),
-                  label: const Text('OPEN IN APP'),
+              Text(
+                'NO SUS // SECURE GATEWAY',
+                style: GoogleFonts.vt323(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 2.0,
+                  color: Colors.white,
                 ),
               ),
               const SizedBox(height: 12),
+              const Text(
+                'You received a secure document. Open it in the NO SUS app for maximum security & active screenshot protection.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.white70,
+                  fontFamily: 'monospace',
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 36),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _openInApp,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.black,
+                    backgroundColor: Colors.white,
+                    side: const BorderSide(color: Colors.white, width: 1.5),
+                    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  icon: const Icon(Icons.open_in_new, size: 16),
+                  label: Text(
+                    'OPEN IN APP',
+                    style: GoogleFonts.vt323(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1.0),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
                   onPressed: _downloadApk,
-                  icon: const Icon(Icons.download),
-                  label: const Text('DOWNLOAD APK'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: const BorderSide(color: Colors.white54, width: 1.2),
+                    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  icon: const Icon(Icons.download, size: 16),
+                  label: Text(
+                    'DOWNLOAD APK',
+                    style: GoogleFonts.vt323(fontSize: 18, letterSpacing: 1.0),
+                  ),
                 ),
               ),
-              const SizedBox(height: 24),
-              const Row(
+              const SizedBox(height: 28),
+              Row(
                 children: [
-                  Expanded(child: Divider()),
+                  const Expanded(child: Divider(color: Colors.white12)),
                   Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: Text('OR', style: TextStyle(fontSize: 10, color: Colors.white38)),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      'OR',
+                      style: GoogleFonts.vt323(fontSize: 14, color: Colors.white38),
+                    ),
                   ),
-                  Expanded(child: Divider()),
+                  const Expanded(child: Divider(color: Colors.white12)),
                 ],
               ),
               const SizedBox(height: 16),
@@ -223,7 +256,14 @@ class _AnonymousShareViewerScreenState
                     _stage = _Stage.emailGate;
                   });
                 },
-                child: const Text('CONTINUE IN BROWSER', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                child: Text(
+                  'CONTINUE IN BROWSER',
+                  style: GoogleFonts.vt323(
+                    fontSize: 16,
+                    color: Colors.grey,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
               ),
             ],
           ),
@@ -242,34 +282,69 @@ class _AnonymousShareViewerScreenState
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.lock_outline, size: 32),
+              const Icon(Icons.lock_outline, size: 36, color: Colors.white70),
               const SizedBox(height: 16),
-              const Text('Secure Document',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 8),
-              const Text(
-                'This document is watermarked with your email and every '
-                'view is logged. Enter your email to continue.',
-                style: TextStyle(fontSize: 13, color: Colors.white70),
+              Text(
+                'RECIPROCITY VERIFICATION',
+                style: GoogleFonts.vt323(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  letterSpacing: 1.5,
+                ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 10),
+              const Text(
+                'This document is encrypted and watermarked. Your access log will contain your verified identity. Enter your email to authenticate:',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.white70,
+                  fontFamily: 'monospace',
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 24),
               TextField(
                 controller: _emailController,
                 autofocus: true,
                 keyboardType: TextInputType.emailAddress,
+                style: GoogleFonts.vt323(fontSize: 18, color: Colors.white),
                 onSubmitted: (_) => _submit(),
                 decoration: InputDecoration(
                   hintText: 'you@example.com',
+                  hintStyle: const TextStyle(color: Colors.white30, fontFamily: 'monospace', fontSize: 13),
                   errorText: _errorMessage,
-                  border: const OutlineInputBorder(),
+                  errorStyle: GoogleFonts.vt323(color: Colors.redAccent, fontSize: 14),
+                  border: const OutlineInputBorder(
+                    borderRadius: BorderRadius.zero,
+                    borderSide: BorderSide(color: Colors.white38),
+                  ),
+                  focusedBorder: const OutlineInputBorder(
+                    borderRadius: BorderRadius.zero,
+                    borderSide: BorderSide(color: Colors.white),
+                  ),
+                  enabledBorder: const OutlineInputBorder(
+                    borderRadius: BorderRadius.zero,
+                    borderSide: BorderSide(color: Colors.white38),
+                  ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
-                child: FilledButton(
+                child: OutlinedButton(
                   onPressed: _submit,
-                  child: const Text('VIEW DOCUMENT'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.black,
+                    backgroundColor: Colors.white,
+                    side: const BorderSide(color: Colors.white, width: 1.5),
+                    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: Text(
+                    'VIEW DOCUMENT',
+                    style: GoogleFonts.vt323(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1.0),
+                  ),
                 ),
               ),
             ],
@@ -280,16 +355,23 @@ class _AnonymousShareViewerScreenState
   }
 
   Widget _buildLoading() {
-    return const Center(
+    return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          SizedBox(
-              width: 28,
-              height: 28,
-              child: CircularProgressIndicator(strokeWidth: 1.5)),
-          SizedBox(height: 16),
-          Text('Preparing secure view…', style: TextStyle(fontSize: 12)),
+          const SizedBox(
+            width: 32,
+            height: 32,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'DECRYPTING SECURE LEDGER...',
+            style: GoogleFonts.vt323(fontSize: 16, letterSpacing: 1.0, color: Colors.white70),
+          ),
         ],
       ),
     );
@@ -302,20 +384,29 @@ class _AnonymousShareViewerScreenState
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, size: 36, color: Colors.redAccent),
+            const Icon(Icons.error_outline, size: 40, color: Colors.redAccent),
             const SizedBox(height: 16),
             Text(
-              _errorMessage ?? 'This link could not be opened.',
+              _errorMessage ?? 'ACCESS DENIED OR EXPIRED.',
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 14),
+              style: GoogleFonts.vt323(fontSize: 16, color: Colors.redAccent, letterSpacing: 1.0),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             OutlinedButton(
               onPressed: () => setState(() {
                 _stage = _Stage.emailGate;
                 _errorMessage = null;
               }),
-              child: const Text('TRY AGAIN'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white,
+                side: const BorderSide(color: Colors.white38, width: 1.2),
+                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+              child: Text(
+                'TRY AGAIN',
+                style: GoogleFonts.vt323(fontSize: 16, letterSpacing: 1.0),
+              ),
             ),
           ],
         ),
@@ -363,13 +454,15 @@ class _AnonymousShareViewerScreenState
               const Icon(Icons.lock_outline, size: 14, color: Colors.white54),
               const SizedBox(width: 8),
               Expanded(
-                child: Text(result.fileName,
-                    style: const TextStyle(fontSize: 12),
-                    overflow: TextOverflow.ellipsis),
+                child: Text(
+                  result.fileName,
+                  style: GoogleFonts.vt323(fontSize: 14, color: Colors.white),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
               Text(
                 '${result.watermarkEnforced ? "WATERMARKED" : "NO WATERMARK"} · VIEW LOGGED',
-                style: const TextStyle(fontSize: 9, color: Colors.white38, letterSpacing: 0.5),
+                style: GoogleFonts.vt323(fontSize: 11, color: Colors.white54, letterSpacing: 0.5),
               ),
             ],
           ),
@@ -385,6 +478,5 @@ class _AnonymousShareViewerScreenState
         ),
       ],
     );
-
   }
 }

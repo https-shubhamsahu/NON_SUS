@@ -31,6 +31,9 @@
 
   <title>no_sus</title>
   <link rel="manifest" href="manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
 
   <!--
     supabase_flutter's Auth client wires up passkey/WebAuthn support by
@@ -61,9 +64,9 @@
         overlay.style.left = '0';
         overlay.style.width = '100vw';
         overlay.style.height = '100vh';
-        overlay.style.backgroundColor = '#111';
-        overlay.style.color = '#fff';
-        overlay.style.fontFamily = 'Courier New, Courier, monospace';
+        overlay.style.background = 'radial-gradient(circle, #151515 0%, #0D0D0D 100%)';
+        overlay.style.color = '#F5F5F5';
+        overlay.style.fontFamily = "'VT323', monospace";
         overlay.style.zIndex = '999999';
         overlay.style.display = 'flex';
         overlay.style.flexDirection = 'column';
@@ -74,15 +77,15 @@
         overlay.style.textAlign = 'center';
 
         overlay.innerHTML = `
-          <div style="font-size: 40px; color: #a855f7; margin-bottom: 20px;">⚡</div>
-          <h2 style="font-weight: 900; letter-spacing: 2px; margin-bottom: 10px;">LOGIN SUCCESSFUL</h2>
-          <p style="color: #888; font-size: 13px; max-width: 320px; line-height: 1.5; margin-bottom: 30px;">
-            Your login is authorized. Tap below to launch the NO SUS app and complete the session recovery.
+          <div style="font-size: 56px; color: #FFFFFF; margin-bottom: 24px; letter-spacing: 2px;">[//]</div>
+          <h2 style="font-size: 32px; font-weight: bold; letter-spacing: 2px; margin-top: 0; margin-bottom: 12px; color: #FFFFFF;">AUTHENTICATING SESSION</h2>
+          <p style="color: #999999; font-size: 14px; max-width: 320px; line-height: 1.5; margin-bottom: 36px; font-family: 'Courier New', monospace;">
+            Your credentials have been verified. Tap below to launch the NO SUS native app client.
           </p>
-          <button id="open-app-btn" style="background-color: #a855f7; color: white; border: none; padding: 14px 28px; border-radius: 12px; font-weight: bold; font-family: inherit; cursor: pointer; font-size: 12px; letter-spacing: 1px; width: 100%; max-width: 240px; box-shadow: 0 4px 14px rgba(168, 85, 247, 0.4);">
-            OPEN NO SUS APP
+          <button id="open-app-btn" style="background-color: #FFFFFF; color: #0D0D0D; border: 1.5px solid #FFFFFF; padding: 16px 32px; border-radius: 0; font-weight: bold; font-family: inherit; cursor: pointer; font-size: 20px; letter-spacing: 1.5px; width: 100%; max-width: 260px; box-shadow: 0 4px 20px rgba(255, 255, 255, 0.05); transition: background-color 0.2s;">
+            LAUNCH APP
           </button>
-          <a id="continue-web-btn" href="#" style="color: #666; font-size: 11px; margin-top: 24px; text-decoration: underline; letter-spacing: 0.5px;">
+          <a id="continue-web-btn" href="#" style="color: #666666; font-size: 16px; margin-top: 28px; text-decoration: underline; letter-spacing: 1px;">
             Continue in Browser
           </a>
         `;

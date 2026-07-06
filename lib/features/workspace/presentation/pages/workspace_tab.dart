@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../../theme.dart';
 import '../../../../components/study_chart.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
@@ -273,9 +275,9 @@ class _SealedTeaserCardState extends State<_SealedTeaserCard> {
         });
         messenger.showSnackBar(
           const SnackBar(
-            content: Text('Thank you! Your validation has been recorded.'),
+            content: Text('Verification submitted to the secure ledger.'),
             behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.purple,
+            backgroundColor: Colors.black87,
           ),
         );
       }
@@ -294,23 +296,6 @@ class _SealedTeaserCardState extends State<_SealedTeaserCard> {
       clipBehavior: Clip.antiAlias,
       child: Stack(
         children: [
-          Positioned(
-            right: -40,
-            top: -40,
-            child: Container(
-              width: 140,
-              height: 140,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    Colors.purple.withValues(alpha: isDark ? 0.15 : 0.08),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
-            ),
-          ),
           Padding(
             padding: const EdgeInsets.all(NoSusTheme.s24),
             child: Column(
@@ -322,16 +307,16 @@ class _SealedTeaserCardState extends State<_SealedTeaserCard> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: Colors.purple.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: Colors.purple.withValues(alpha: 0.2)),
+                        color: isDark ? Colors.white10 : Colors.black12,
+                        borderRadius: BorderRadius.zero,
+                        border: Border.all(color: fg.withValues(alpha: 0.3)),
                       ),
-                      child: const Text(
-                        'SEALED v1.0',
-                        style: TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.purpleAccent,
+                      child: Text(
+                        'SEALED PROTOCOL v1.0',
+                        style: GoogleFonts.vt323(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: fg,
                           letterSpacing: 1.0,
                         ),
                       ),
@@ -343,8 +328,8 @@ class _SealedTeaserCardState extends State<_SealedTeaserCard> {
                           const SizedBox(width: 4),
                           Text(
                             'VALIDATED',
-                            style: theme.textTheme.labelLarge?.copyWith(
-                              fontSize: 9,
+                            style: GoogleFonts.vt323(
+                              fontSize: 12,
                               color: Colors.green,
                               fontWeight: FontWeight.bold,
                               letterSpacing: 1.0,
@@ -356,14 +341,15 @@ class _SealedTeaserCardState extends State<_SealedTeaserCard> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
-                          color: Colors.amber.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(6),
+                          color: fg.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.zero,
+                          border: Border.all(color: fg.withValues(alpha: 0.15)),
                         ),
                         child: Text(
-                          'INTERACTIVE PREVIEW',
-                          style: theme.textTheme.labelLarge?.copyWith(
-                            fontSize: 8,
-                            color: Colors.amber,
+                          'INTERACTIVE DEMO',
+                          style: GoogleFonts.vt323(
+                            fontSize: 12,
+                            color: fg.withValues(alpha: 0.7),
                             fontWeight: FontWeight.bold,
                             letterSpacing: 0.5,
                           ),
@@ -373,7 +359,7 @@ class _SealedTeaserCardState extends State<_SealedTeaserCard> {
                 ),
                 const SizedBox(height: NoSusTheme.s16),
                 Text(
-                  'THE RECIPROCITY-GATED INTENT GRAPH',
+                  'RECIPROCITY-GATED SHARE NETWORK',
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w900,
                     letterSpacing: 1.5,
@@ -391,24 +377,23 @@ class _SealedTeaserCardState extends State<_SealedTeaserCard> {
                 const SizedBox(height: 20),
                 SizedBox(
                   width: double.infinity,
-                  child: FilledButton.icon(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: Colors.purple,
-                      foregroundColor: Colors.white,
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: isDark ? Colors.black : Colors.white,
+                      backgroundColor: isDark ? Colors.white : Colors.black,
+                      side: BorderSide(color: fg),
+                      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
                     ),
                     onPressed: () => _showDemoSheet(context),
                     icon: Icon(
-                      _submitted ? Icons.replay_outlined : Icons.play_arrow_rounded,
+                      _submitted ? Icons.replay_outlined : Icons.terminal_outlined,
                       size: 16,
                     ),
                     label: Text(
-                      _submitted ? 'REPLAY INTERACTIVE PREVIEW' : 'START INTERACTIVE DEMO',
-                      style: const TextStyle(
-                        fontSize: 11,
+                      _submitted ? 'REPLAY SIMULATION' : 'EXECUTE INTENT GRAPH DEMO',
+                      style: GoogleFonts.vt323(
+                        fontSize: 16,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 1.0,
                       ),
@@ -417,6 +402,87 @@ class _SealedTeaserCardState extends State<_SealedTeaserCard> {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PixelatedSimulationView extends StatefulWidget {
+  const _PixelatedSimulationView();
+  @override
+  State<_PixelatedSimulationView> createState() => _PixelatedSimulationViewState();
+}
+
+class _PixelatedSimulationViewState extends State<_PixelatedSimulationView> {
+  int _ticks = 0;
+  Timer? _timer;
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(milliseconds: 800), (t) {
+      if (mounted) {
+        setState(() {
+          _ticks = (_ticks + 1) % 4;
+        });
+      }
+    });
+  }
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+  @override
+  Widget build(BuildContext context) {
+    String stepText = '';
+    String visual = '';
+    switch (_ticks) {
+      case 0:
+        stepText = 'INITIATING GATED HANDSHAKE...';
+        visual = '[YOU]              [GRAPH]              [RECIPIENT]\n'
+                 '  |                   |                      |\n'
+                 '  *------------------>|                      |\n'
+                 '     ENCRYPTED_FILE';
+        break;
+      case 1:
+        stepText = 'EVALUATING RECIPROCITY RULE...';
+        visual = '[YOU]              [GRAPH]              [RECIPIENT]\n'
+                 '  |                   |                      |\n'
+                 '  |                   *<=====================*\n'
+                 '                        REQUESTING UPLOAD';
+        break;
+      case 2:
+        stepText = 'VERIFYING INCOMING ASSETS...';
+        visual = '[YOU]              [GRAPH]              [RECIPIENT]\n'
+                 '  |                   |                      |\n'
+                 '  |                   |<---------------------*\n'
+                 '                         RECIPIENT_PROOF';
+        break;
+      case 3:
+        stepText = 'RESOLVING GRAPH / DECRYPTING...';
+        visual = '[YOU]              [GRAPH]              [RECIPIENT]\n'
+                 '  |                   |                      |\n'
+                 '  |<==================*                      |\n'
+                 '     INTENT_SATISFIED';
+        break;
+    }
+    return Container(
+      padding: const EdgeInsets.all(16),
+      color: Colors.black,
+      width: double.infinity,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            stepText,
+            style: GoogleFonts.vt323(fontSize: 16, color: Colors.green),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            visual,
+            style: GoogleFonts.vt323(fontSize: 14, color: Colors.white70, height: 1.3),
           ),
         ],
       ),
@@ -459,17 +525,19 @@ class _SealedDemoSheetState extends State<_SealedDemoSheet> {
 
   Widget _buildIntro() {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final fg = theme.colorScheme.onSurface;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Icon(Icons.shield_outlined, size: 40, color: Colors.purpleAccent),
+        const Icon(Icons.shield_outlined, size: 40),
         const SizedBox(height: 16),
         Text(
           'WHAT IS SEALED?',
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w900,
+          style: GoogleFonts.vt323(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
             letterSpacing: 1.5,
           ),
         ),
@@ -477,19 +545,26 @@ class _SealedDemoSheetState extends State<_SealedDemoSheet> {
         Text(
           'Conventional document sharing is one-way: you share your file, and they take it without giving anything back.\n\n'
           'Sealed implements a Reciprocity Gate. You lock your file under a specific rule (e.g. "Mutual Disclosure"). The recipient can see a blurred preview but cannot unlock the full file unless they upload a corresponding document in return.',
-          style: theme.textTheme.bodyMedium?.copyWith(
+          style: TextStyle(
             color: fg.withValues(alpha: 0.7),
             height: 1.5,
             fontSize: 13,
+            fontFamily: 'monospace',
           ),
         ),
         const SizedBox(height: 32),
         SizedBox(
           width: double.infinity,
-          child: FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.purple),
+          child: OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: isDark ? Colors.black : Colors.white,
+              backgroundColor: isDark ? Colors.white : Colors.black,
+              side: BorderSide(color: fg),
+              shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
             onPressed: () => setState(() => _step = 1),
-            child: const Text('NEXT: SET A RULE', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+            child: Text('NEXT: SET A RULE', style: GoogleFonts.vt323(fontSize: 16, fontWeight: FontWeight.bold)),
           ),
         ),
       ],
@@ -498,26 +573,29 @@ class _SealedDemoSheetState extends State<_SealedDemoSheet> {
 
   Widget _buildRules() {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final fg = theme.colorScheme.onSurface;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Icon(Icons.rule_folder_outlined, size: 40, color: Colors.purpleAccent),
+        const Icon(Icons.rule_folder_outlined, size: 40),
         const SizedBox(height: 16),
         Text(
           'STEP 1: CHOOSE A RECIPROCITY RULE',
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w900,
+          style: GoogleFonts.vt323(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
             letterSpacing: 1.5,
           ),
         ),
         const SizedBox(height: 8),
         Text(
           'Select the condition the recipient must fulfill to unlock your file:',
-          style: theme.textTheme.bodyMedium?.copyWith(
+          style: TextStyle(
             color: fg.withValues(alpha: 0.55),
             fontSize: 12,
+            fontFamily: 'monospace',
           ),
         ),
         const SizedBox(height: 16),
@@ -526,25 +604,25 @@ class _SealedDemoSheetState extends State<_SealedDemoSheet> {
           return Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: InkWell(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.zero,
               onTap: () => setState(() => _selectedRule = rule),
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.zero,
                   border: Border.all(
-                    color: isSelected ? Colors.purpleAccent : fg.withValues(alpha: 0.12),
+                    color: isSelected ? fg : fg.withValues(alpha: 0.15),
                     width: isSelected ? 1.5 : 1.0,
                   ),
                   color: isSelected
-                      ? Colors.purple.withValues(alpha: 0.05)
+                      ? fg.withValues(alpha: 0.05)
                       : Colors.transparent,
                 ),
                 child: Row(
                   children: [
                     Icon(
                       isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
-                      color: isSelected ? Colors.purpleAccent : Colors.grey,
+                      color: isSelected ? fg : Colors.grey,
                       size: 18,
                     ),
                     const SizedBox(width: 14),
@@ -553,6 +631,7 @@ class _SealedDemoSheetState extends State<_SealedDemoSheet> {
                         rule,
                         style: TextStyle(
                           fontSize: 12.5,
+                          fontFamily: 'monospace',
                           fontWeight: isSelected ? FontWeight.bold : null,
                         ),
                       ),
@@ -568,18 +647,30 @@ class _SealedDemoSheetState extends State<_SealedDemoSheet> {
           children: [
             Expanded(
               child: OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: fg,
+                  side: BorderSide(color: fg.withValues(alpha: 0.4)),
+                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
                 onPressed: () => setState(() => _step = 0),
-                child: const Text('BACK', style: TextStyle(fontSize: 11)),
+                child: Text('BACK', style: GoogleFonts.vt323(fontSize: 16)),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: FilledButton(
-                style: FilledButton.styleFrom(backgroundColor: Colors.purple),
+              child: OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: isDark ? Colors.black : Colors.white,
+                  backgroundColor: isDark ? Colors.white : Colors.black,
+                  side: BorderSide(color: fg),
+                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
                 onPressed: _selectedRule == null
                     ? null
                     : () => setState(() => _step = 2),
-                child: const Text('NEXT: MATCH INTENT', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                child: Text('NEXT: MATCH INTENT', style: GoogleFonts.vt323(fontSize: 16, fontWeight: FontWeight.bold)),
               ),
             ),
           ],
@@ -590,80 +681,40 @@ class _SealedDemoSheetState extends State<_SealedDemoSheet> {
 
   Widget _buildSimulation() {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final fg = theme.colorScheme.onSurface;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Icon(Icons.share_arrival_time_outlined, size: 40, color: Colors.purpleAccent),
+        const Icon(Icons.share_arrival_time_outlined, size: 40),
         const SizedBox(height: 16),
         Text(
           'STEP 2: SIMULATING THE INTENT MATCH',
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w900,
+          style: GoogleFonts.vt323(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
             letterSpacing: 1.5,
           ),
         ),
         const SizedBox(height: 8),
         Text(
           'Watch the reciprocity graph exchange credentials in real time:',
-          style: theme.textTheme.bodyMedium?.copyWith(
+          style: TextStyle(
             color: fg.withValues(alpha: 0.55),
             fontSize: 12,
+            fontFamily: 'monospace',
           ),
         ),
         const SizedBox(height: 24),
-        Center(
-          child: Container(
-            height: 160,
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: fg.withValues(alpha: 0.08)),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.insert_drive_file, size: 28, color: Colors.purpleAccent),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Your Document',
-                      style: theme.textTheme.labelMedium?.copyWith(fontSize: 10),
-                    ),
-                  ],
-                ),
-                Icon(Icons.swap_horiz, size: 32, color: fg.withValues(alpha: 0.5))
-                    .animate(onPlay: (c) => c.repeat())
-                    .slideX(begin: -0.15, end: 0.15, duration: 1500.ms, curve: Curves.easeInOut)
-                    .then()
-                    .slideX(begin: 0.15, end: -0.15, duration: 1500.ms, curve: Curves.easeInOut),
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.insert_drive_file_outlined, size: 28, color: Colors.grey),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Locked Recipient',
-                      style: theme.textTheme.labelMedium?.copyWith(fontSize: 10),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
+        const _PixelatedSimulationView(),
         const SizedBox(height: 20),
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: Colors.green.withValues(alpha: 0.05),
             border: Border.all(color: Colors.green, width: 0.5),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.zero,
           ),
           child: Row(
             children: [
@@ -672,9 +723,9 @@ class _SealedDemoSheetState extends State<_SealedDemoSheet> {
               Expanded(
                 child: Text(
                   'Simulation: Recipient uploaded matching file. Intent satisfied, document decrypted!',
-                  style: theme.textTheme.bodyMedium?.copyWith(
+                  style: GoogleFonts.vt323(
                     color: Colors.green,
-                    fontSize: 12,
+                    fontSize: 15,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -687,16 +738,28 @@ class _SealedDemoSheetState extends State<_SealedDemoSheet> {
           children: [
             Expanded(
               child: OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: fg,
+                  side: BorderSide(color: fg.withValues(alpha: 0.4)),
+                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
                 onPressed: () => setState(() => _step = 1),
-                child: const Text('BACK', style: TextStyle(fontSize: 11)),
+                child: Text('BACK', style: GoogleFonts.vt323(fontSize: 16)),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: FilledButton(
-                style: FilledButton.styleFrom(backgroundColor: Colors.purple),
+              child: OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: isDark ? Colors.black : Colors.white,
+                  backgroundColor: isDark ? Colors.white : Colors.black,
+                  side: BorderSide(color: fg),
+                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
                 onPressed: () => setState(() => _step = 3),
-                child: const Text('VALIDATE FEATURE', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                child: Text('VALIDATE FEATURE', style: GoogleFonts.vt323(fontSize: 16, fontWeight: FontWeight.bold)),
               ),
             ),
           ],
@@ -707,27 +770,30 @@ class _SealedDemoSheetState extends State<_SealedDemoSheet> {
 
   Widget _buildValidation() {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final fg = theme.colorScheme.onSurface;
 
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.rate_review_outlined, size: 40, color: Colors.purpleAccent),
+          const Icon(Icons.rate_review_outlined, size: 40),
           const SizedBox(height: 16),
           Text(
             'USER VALIDATION',
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w900,
+            style: GoogleFonts.vt323(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
               letterSpacing: 1.5,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Your feedback helps us decide if we should ship this feature. Please rate your interest:',
-            style: theme.textTheme.bodyMedium?.copyWith(
+            style: TextStyle(
               color: fg.withValues(alpha: 0.55),
               fontSize: 12,
+              fontFamily: 'monospace',
             ),
           ),
           const SizedBox(height: 16),
@@ -739,7 +805,7 @@ class _SealedDemoSheetState extends State<_SealedDemoSheet> {
               return IconButton(
                 icon: Icon(
                   filled ? Icons.star : Icons.star_border,
-                  color: filled ? Colors.purpleAccent : Colors.grey,
+                  color: filled ? fg : Colors.grey,
                   size: 32,
                 ),
                 onPressed: () => setState(() => _rating = starIndex),
@@ -749,16 +815,17 @@ class _SealedDemoSheetState extends State<_SealedDemoSheet> {
           const SizedBox(height: 20),
           Text(
             'How would this feature help your workflow?',
-            style: theme.textTheme.titleSmall?.copyWith(fontSize: 12, fontWeight: FontWeight.bold),
+            style: GoogleFonts.vt323(fontSize: 16, color: fg),
           ),
           const SizedBox(height: 8),
           ..._benefitOptions.map((benefit) {
             final isSelected = _benefits.contains(benefit);
             return CheckboxListTile(
               contentPadding: EdgeInsets.zero,
-              title: Text(benefit, style: const TextStyle(fontSize: 12)),
+              title: Text(benefit, style: const TextStyle(fontSize: 12, fontFamily: 'monospace')),
               value: isSelected,
-              activeColor: Colors.purpleAccent,
+              activeColor: fg,
+              controlAffinity: ListTileControlAffinity.leading,
               onChanged: (v) {
                 setState(() {
                   if (v == true) {
@@ -773,7 +840,7 @@ class _SealedDemoSheetState extends State<_SealedDemoSheet> {
           const SizedBox(height: 16),
           Text(
             'Suggestions or Feedback (optional)',
-            style: theme.textTheme.titleSmall?.copyWith(fontSize: 12, fontWeight: FontWeight.bold),
+            style: GoogleFonts.vt323(fontSize: 16, color: fg),
           ),
           const SizedBox(height: 8),
           TextField(
@@ -781,23 +848,30 @@ class _SealedDemoSheetState extends State<_SealedDemoSheet> {
             maxLines: 2,
             decoration: InputDecoration(
               hintText: 'What would make you love this feature?',
-              hintStyle: TextStyle(color: fg.withValues(alpha: 0.35), fontSize: 12),
-              border: const OutlineInputBorder(),
+              hintStyle: TextStyle(color: fg.withValues(alpha: 0.35), fontSize: 12, fontFamily: 'monospace'),
+              border: const OutlineInputBorder(borderRadius: BorderRadius.zero),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.zero, borderSide: BorderSide(color: fg)),
               contentPadding: const EdgeInsets.all(12),
             ),
-            style: const TextStyle(fontSize: 12.5),
+            style: const TextStyle(fontSize: 12.5, fontFamily: 'monospace'),
           ),
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
-            child: FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: Colors.purple),
+            child: OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: isDark ? Colors.black : Colors.white,
+                backgroundColor: isDark ? Colors.white : Colors.black,
+                side: BorderSide(color: fg),
+                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
               onPressed: _rating == 0
                   ? null
                   : () {
                       Navigator.pop(context, true);
                     },
-              child: const Text('SUBMIT VALIDATION', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+              child: Text('SUBMIT VALIDATION', style: GoogleFonts.vt323(fontSize: 16, fontWeight: FontWeight.bold)),
             ),
           ),
         ],
@@ -817,8 +891,9 @@ class _SealedDemoSheetState extends State<_SealedDemoSheet> {
         bottom: 24 + MediaQuery.of(context).viewInsets.bottom,
       ),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF161616) : Colors.white,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        color: isDark ? const Color(0xFF0D0D0D) : Colors.white,
+        border: Border(top: BorderSide(color: isDark ? Colors.white24 : Colors.black26, width: 2.0)),
+        borderRadius: BorderRadius.zero,
       ),
       child: SafeArea(
         child: Column(
@@ -877,33 +952,7 @@ class _RecentlySavedSection extends ConsumerWidget {
   }
 
   Color _getTypeColor(String type, bool isDark) {
-    if (isDark) {
-      switch (type) {
-        case 'pdf':
-          return Colors.red[300]!;
-        case 'image':
-          return Colors.blue[300]!;
-        case 'text':
-          return Colors.green[300]!;
-        case 'url':
-          return Colors.amber[300]!;
-        default:
-          return Colors.grey[300]!;
-      }
-    } else {
-      switch (type) {
-        case 'pdf':
-          return Colors.red[700]!;
-        case 'image':
-          return Colors.blue[700]!;
-        case 'text':
-          return Colors.green[700]!;
-        case 'url':
-          return Colors.amber[700]!;
-        default:
-          return Colors.grey[700]!;
-      }
-    }
+    return isDark ? Colors.white70 : Colors.black87;
   }
 
   @override
@@ -1166,10 +1215,10 @@ class _BurnNoteTeaserCard extends StatelessWidget {
               height: 44,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.orangeAccent.withValues(alpha: 0.3)),
-                color: Colors.orangeAccent.withValues(alpha: 0.05),
+                border: Border.all(color: fg.withValues(alpha: 0.2)),
+                color: fg.withValues(alpha: 0.03),
               ),
-              child: const Icon(Icons.local_fire_department_outlined, color: Colors.orangeAccent, size: 22),
+              child: Icon(Icons.local_fire_department_outlined, color: fg.withValues(alpha: 0.8), size: 22),
             ),
             const SizedBox(width: NoSusTheme.s16),
             Expanded(

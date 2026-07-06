@@ -48,7 +48,7 @@ class BurnNoteToken {
 BurnNoteToken? _extractBurnNoteToken(Uri uri) {
   final fullUrl = uri.toString();
   final regExp = RegExp(
-    r'burn/([a-f0-9\-]{36})#([a-f0-9]{64})\.([a-f0-9]{32})',
+    r'burn/([a-f0-9\-]{36})(?:#|%23)([a-f0-9]{64})\.([a-f0-9]{32})',
     caseSensitive: false,
   );
   final match = regExp.firstMatch(fullUrl);
