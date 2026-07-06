@@ -44,7 +44,7 @@ class SupabaseAuthService {
   Future<void> signInWithGoogle() async {
     await _client.auth.signInWithOAuth(
       OAuthProvider.google,
-      redirectTo: kIsWeb ? null : 'io.supabase.nosus://login-callback/',
+      redirectTo: kIsWeb ? null : 'io.supabase.nosus://login-callback',
       authScreenLaunchMode:
           kIsWeb ? LaunchMode.platformDefault : LaunchMode.externalApplication,
     );
@@ -53,7 +53,7 @@ class SupabaseAuthService {
   Future<void> signInWithGitHub() async {
     await _client.auth.signInWithOAuth(
       OAuthProvider.github,
-      redirectTo: kIsWeb ? null : 'io.supabase.nosus://login-callback/',
+      redirectTo: kIsWeb ? null : 'io.supabase.nosus://login-callback',
       authScreenLaunchMode:
           kIsWeb ? LaunchMode.platformDefault : LaunchMode.externalApplication,
     );

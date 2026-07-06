@@ -50,6 +50,58 @@
   <script src="passkeys-bundle.js"></script>
 </head>
 <body>
+  <script>
+    (function() {
+      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      const hasCode = window.location.search.includes('code=') || window.location.hash.includes('access_token=');
+      if (isMobile && hasCode) {
+        const overlay = document.createElement('div');
+        overlay.style.position = 'fixed';
+        overlay.style.top = '0';
+        overlay.style.left = '0';
+        overlay.style.width = '100vw';
+        overlay.style.height = '100vh';
+        overlay.style.backgroundColor = '#111';
+        overlay.style.color = '#fff';
+        overlay.style.fontFamily = 'Courier New, Courier, monospace';
+        overlay.style.zIndex = '999999';
+        overlay.style.display = 'flex';
+        overlay.style.flexDirection = 'column';
+        overlay.style.alignItems = 'center';
+        overlay.style.justifyContent = 'center';
+        overlay.style.padding = '30px';
+        overlay.style.boxSizing = 'border-box';
+        overlay.style.textAlign = 'center';
+
+        overlay.innerHTML = `
+          <div style="font-size: 40px; color: #a855f7; margin-bottom: 20px;">⚡</div>
+          <h2 style="font-weight: 900; letter-spacing: 2px; margin-bottom: 10px;">LOGIN SUCCESSFUL</h2>
+          <p style="color: #888; font-size: 13px; max-width: 320px; line-height: 1.5; margin-bottom: 30px;">
+            Your login is authorized. Tap below to launch the NO SUS app and complete the session recovery.
+          </p>
+          <button id="open-app-btn" style="background-color: #a855f7; color: white; border: none; padding: 14px 28px; border-radius: 12px; font-weight: bold; font-family: inherit; cursor: pointer; font-size: 12px; letter-spacing: 1px; width: 100%; max-width: 240px; box-shadow: 0 4px 14px rgba(168, 85, 247, 0.4);">
+            OPEN NO SUS APP
+          </button>
+          <a id="continue-web-btn" href="#" style="color: #666; font-size: 11px; margin-top: 24px; text-decoration: underline; letter-spacing: 0.5px;">
+            Continue in Browser
+          </a>
+        `;
+
+        document.body.appendChild(overlay);
+
+        document.getElementById('open-app-btn').addEventListener('click', function() {
+          const params = window.location.search + window.location.hash;
+          const redirectUri = 'io.supabase.nosus://login-callback' + params;
+          window.location.href = redirectUri;
+        });
+
+        document.getElementById('continue-web-btn').addEventListener('click', function(e) {
+          e.preventDefault();
+          document.body.removeChild(overlay);
+        });
+      }
+    })();
+  </script>
   <!--
     You can customize the "flutter_bootstrap.js" script.
     This is useful to provide a custom configuration to the Flutter loader
