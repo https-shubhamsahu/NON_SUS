@@ -17,7 +17,6 @@ import '../../../../core/constants/app_constants.dart';
 import 'advanced_settings_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../services/supabase_service.dart';
-import '../../../fhe/presentation/screens/fhe_demo_screen.dart';
 import '../../../config/presentation/providers/config_provider.dart';
 import '../../../admin/presentation/screens/admin_dashboard_screen.dart';
 
@@ -1261,50 +1260,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ).animate().fadeIn(delay: 100.ms, duration: 250.ms),
                 const SizedBox(height: 20),
 
-                Text(
-                  'DEMO WORKFLOW',
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    color: fg.withValues(alpha: 0.4),
-                    fontSize: 10,
-                    letterSpacing: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  decoration: NoSusTheme.cardDecoration(context),
-                  child: Column(
-                    children: [
-                      ListTile(
-                        leading: Icon(Icons.hub_outlined, size: 18, color: fg),
-                        title: const Text(
-                          'Compare Research',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        subtitle: Text(
-                          'Private cross-org comparison workflow',
-                          style: TextStyle(color: subtle, fontSize: 10),
-                        ),
-                        trailing: Icon(
-                          Icons.chevron_right,
-                          size: 16,
-                          color: subtle,
-                        ),
-                        onTap: () {
-                          HapticFeedback.lightImpact();
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const FheDemoScreen(),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ).animate().fadeIn(delay: 120.ms, duration: 250.ms),
-                const SizedBox(height: 20),
 
                 ref.watch(userRoleProvider).maybeWhen(
                       data: (role) {
