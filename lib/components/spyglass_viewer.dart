@@ -218,10 +218,8 @@ class _SpyglassViewerState extends ConsumerState<SpyglassViewer> {
       role: 'SECURE MEMBER',
       email: userEmail,
       timestamp: _sessionTimestamp,
-      opacity: isWatermarkVisible ? 0.12 : 0.0,
+      opacity: isWatermarkVisible ? 0.10 : 0.0,
       fontSize: 10.5,
-      tileSpacingX: 195.0,
-      tileSpacingY: 95.0,
       angleDegrees: -28.0,
     );
 

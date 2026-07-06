@@ -10,8 +10,10 @@ import 'painters/watermark_painter.dart';
 /// - [IgnorePointer]: events (touch, scroll) pass through transparently.
 /// - [SizedBox.expand]: ensures CustomPaint fills the full available space.
 ///
-/// The [isDark] flag is resolved from [Theme.of(context)] so the watermark
-/// automatically adapts to light/dark mode changes.
+/// Contrast is document-adaptive (dark outline + light fill on every glyph),
+/// not app-theme-adaptive — the app's own light/dark mode has no bearing on
+/// what color the PDF/image underneath actually is, so there is nothing to
+/// resolve from [Theme.of(context)] here.
 class WatermarkOverlay extends StatelessWidget {
   final WatermarkConfig config;
 
@@ -19,12 +21,10 @@ class WatermarkOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return RepaintBoundary(
       child: IgnorePointer(
         child: CustomPaint(
-          painter: WatermarkPainter(config: config, isDark: isDark),
+          painter: WatermarkPainter(config: config),
           child: const SizedBox.expand(),
         ),
       ),

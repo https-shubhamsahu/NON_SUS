@@ -17,9 +17,11 @@ class WatermarkConfig {
   final double fontSize;
 
   /// Horizontal spacing between watermark tile columns (in logical pixels).
+  /// Wider = sparser grid, fewer repeats on screen.
   final double tileSpacingX;
 
-  /// Vertical spacing between watermark tile rows (in logical pixels).
+  /// Vertical GAP between watermark blocks, on top of the block's own text
+  /// height (in logical pixels). Wider = sparser grid.
   final double tileSpacingY;
 
   /// Rotation angle of the watermark grid in degrees (negative = tilts left).
@@ -32,8 +34,8 @@ class WatermarkConfig {
     required this.timestamp,
     this.opacity = 0.07,
     this.fontSize = 10.5,
-    this.tileSpacingX = 200.0,
-    this.tileSpacingY = 100.0,
+    this.tileSpacingX = 340.0,
+    this.tileSpacingY = 240.0,
     this.angleDegrees = -28.0,
   });
 

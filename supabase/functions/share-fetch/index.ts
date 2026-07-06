@@ -99,11 +99,11 @@ Deno.serve(async (req: Request) => {
   }
 
   const watermarkEnforced = getFlag("securesend_watermark_enforced", true);
-  const blurEnforced = getFlag("securesend_blur_enforced", true);
+  const platformAllowsBlur = getFlag("securesend_blur_enforced", true);
 
   const { data: link, error: linkErr } = await admin
     .from("share_links")
-    .select("id, file_id, revoked, expires_at, max_views, view_count")
+    .select("id, file_id, revoked, expires_at, max_views, view_count, require_touch_reveal")
     .eq("token", token)
     .maybeSingle();
 
@@ -121,6 +121,11 @@ Deno.serve(async (req: Request) => {
   if (isGoogleDriveFile(fileId)) {
     return json({ error: "This file isn't shareable via link yet" }, 400);
   }
+
+  // The sender's own per-link choice AND the platform-wide admin flag both
+  // have to allow blur for it to apply — the admin flag is a kill-switch,
+  // never a way to force blur ON against what a sender explicitly turned off.
+  const blurEnforced = platformAllowsBlur && (link.require_touch_reveal as boolean);
 
 
   const { data: file, error: fileErr } = await admin

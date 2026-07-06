@@ -23,10 +23,17 @@ class SupabaseShareRepository implements ShareRepository {
   }
 
   @override
-  Future<ShareLink> createShareLink(String fileId) async {
+  Future<ShareLink> createShareLink(
+    String fileId, {
+    bool requireTouchReveal = true,
+  }) async {
     final row = await _client
         .from('share_links')
-        .insert({'file_id': fileId, 'created_by': _userId})
+        .insert({
+          'file_id': fileId,
+          'created_by': _userId,
+          'require_touch_reveal': requireTouchReveal,
+        })
         .select()
         .single();
     return ShareLink.fromMap(row);

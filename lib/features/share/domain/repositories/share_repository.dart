@@ -5,7 +5,14 @@ abstract class ShareRepository {
   /// Creates a share link for [fileId] (caller must own the file — enforced
   /// by RLS). Returns the created link, whose `token` is embedded in the
   /// public URL shown to the sender.
-  Future<ShareLink> createShareLink(String fileId);
+  ///
+  /// [requireTouchReveal] is the sender's own choice, made at share time: if
+  /// false, the recipient sees the document immediately with no blur/touch
+  /// gate (still watermarked and view-logged either way).
+  Future<ShareLink> createShareLink(
+    String fileId, {
+    bool requireTouchReveal = true,
+  });
 
   /// The caller's own links for a file (own-links only, per RLS).
   Future<List<ShareLink>> myLinksForFile(String fileId);

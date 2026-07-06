@@ -11,6 +11,10 @@ class ShareLink {
   final int viewCount;
   final int? maxViews;
 
+  /// Whether the sender required viewers to touch-and-hold to reveal the
+  /// document. Chosen by the sender when creating the link (defaults true).
+  final bool requireTouchReveal;
+
   const ShareLink({
     required this.id,
     required this.token,
@@ -19,6 +23,7 @@ class ShareLink {
     required this.expiresAt,
     required this.viewCount,
     required this.maxViews,
+    this.requireTouchReveal = true,
   });
 
   bool get isExpired =>
@@ -37,6 +42,7 @@ class ShareLink {
             : null,
         viewCount: (map['view_count'] as num?)?.toInt() ?? 0,
         maxViews: (map['max_views'] as num?)?.toInt(),
+        requireTouchReveal: map['require_touch_reveal'] as bool? ?? true,
       );
 }
 
