@@ -1,8 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../auth/presentation/providers/auth_providers.dart';
 import '../../../services/supabase_service.dart';
+import '../data/avatar_processor.dart';
 
 class ProfileData {
   final String displayName;
@@ -59,6 +62,21 @@ class ProfileData {
       }
     }
     return false;
+  }
+
+  /// Public URL of an uploaded profile photo, stored in the same JSON blob
+  /// as [avatarId]. Null means "use the preset pixel-art character".
+  String? get avatarUrl {
+    if (avatarColorStart.startsWith('{')) {
+      try {
+        final Map<String, dynamic> parsed = jsonDecode(avatarColorStart);
+        final url = parsed['avatar_url'] as String?;
+        return (url != null && url.isNotEmpty) ? url : null;
+      } catch (_) {
+        return null;
+      }
+    }
+    return null;
   }
 
   ProfileData copyWith({
@@ -141,12 +159,56 @@ class ProfileNotifier extends Notifier<AsyncValue<ProfileData>> {
     }
   }
 
+  /// Processes an uploaded photo with [style], stores it as
+  /// `avatars/<uid>.png` (upsert — one object per user), and points the
+  /// profile's avatar JSON at its public URL. Throws on failure so the UI
+  /// can show an honest error.
+  Future<void> uploadCustomAvatar(Uint8List photoBytes, AvatarStyle style) async {
+    final user = ref.read(authStateProvider).value;
+    if (user == null) throw StateError('Not signed in.');
+    final current = state.value;
+
+    final processed = await processAvatar(photoBytes, style);
+    if (processed == null) {
+      throw StateError('That file could not be read as an image.');
+    }
+
+    final client = Supabase.instance.client;
+    final objectName = '${user.id}.png';
+    await client.storage.from('avatars').uploadBinary(
+          objectName,
+          processed,
+          fileOptions: const FileOptions(contentType: 'image/png', upsert: true),
+        );
+
+    // Cache-buster so the new image shows immediately despite the public
+    // bucket's browser/CDN caching of the previous upload.
+    final publicUrl = client.storage.from('avatars').getPublicUrl(objectName);
+    final bustedUrl =
+        '$publicUrl?v=${DateTime.now().millisecondsSinceEpoch}';
+
+    final avatarJson = jsonEncode({
+      'avatar_id': 'custom',
+      'is_custom': true,
+      'avatar_url': bustedUrl,
+    });
+
+    await updateProfile(
+      displayName: current?.displayName ?? 'Scholar',
+      avatarColorStart: avatarJson,
+      avatarColorEnd: 'false',
+    );
+  }
+
   Future<void> updateProfile({
     required String displayName,
     required String avatarColorStart,
     required String avatarColorEnd,
   }) async {
     final user = ref.read(authStateProvider).value;
+    // Preserve survey fields — rebuilding ProfileData from scratch here used
+    // to silently drop userType/goals/features from in-memory state.
+    final previous = state.value;
 
     state = const AsyncValue.loading();
     try {
@@ -163,6 +225,9 @@ class ProfileNotifier extends Notifier<AsyncValue<ProfileData>> {
         displayName: displayName,
         avatarColorStart: avatarColorStart,
         avatarColorEnd: avatarColorEnd,
+        userType: previous?.userType,
+        goals: previous?.goals ?? const [],
+        features: previous?.features ?? const [],
       ));
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);

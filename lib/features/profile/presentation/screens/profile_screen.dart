@@ -14,7 +14,6 @@ import '../../providers/settings_provider.dart';
 import '../../../audit/providers/audit_provider.dart';
 import '../../../groups/providers/groups_provider.dart';
 import '../../../groups/models/group_file.dart';
-import '../../../../core/constants/app_constants.dart';
 import 'advanced_settings_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../services/supabase_service.dart';
@@ -23,6 +22,9 @@ import '../../../admin/presentation/screens/admin_dashboard_screen.dart';
 import '../../../../core/mascot/mascot_controller.dart';
 import '../../../../core/mascot/mascot_state.dart';
 import '../../../../core/mascot/mascot_view.dart';
+import '../../data/avatar_processor.dart';
+import '../widgets/profile_avatar.dart';
+import 'package:file_picker/file_picker.dart' as fp;
 
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -128,6 +130,225 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
+  Future<void> _pickAndStylePhoto() async {
+    final fp.FilePickerResult? result;
+    try {
+      result = await fp.FilePicker.pickFiles(
+        type: fp.FileType.image,
+        withData: true,
+      );
+    } catch (_) {
+      return;
+    }
+    final bytes = result?.files.firstOrNull?.bytes;
+    if (bytes == null || !mounted) return;
+
+    AvatarStyle selected = AvatarStyle.pixel;
+    final previews = <AvatarStyle, Uint8List?>{};
+    bool isSaving = false;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (sheetContext, setSheetState) {
+            final isDark = Theme.of(sheetContext).brightness == Brightness.dark;
+            final fgc = isDark ? Colors.white : Colors.black;
+
+            // Lazily process one preview per style, cached for the sheet's
+            // lifetime — switching styles is instant after the first render.
+            if (!previews.containsKey(selected)) {
+              previews[selected] = null;
+              processAvatar(bytes, selected).then((out) {
+                if (sheetContext.mounted) {
+                  setSheetState(() => previews[selected] = out);
+                }
+              });
+            }
+            final preview = previews[selected];
+
+            Future<void> save() async {
+              setSheetState(() => isSaving = true);
+              try {
+                await ref
+                    .read(profileProvider.notifier)
+                    .uploadCustomAvatar(bytes, selected);
+                if (sheetContext.mounted) Navigator.pop(sheetContext);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Profile photo updated.'),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              } catch (e) {
+                setSheetState(() => isSaving = false);
+                if (sheetContext.mounted) {
+                  ScaffoldMessenger.of(sheetContext).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Could not save photo: ${e.toString().replaceAll('StateError: ', '').replaceAll('Exception: ', '')}',
+                      ),
+                      backgroundColor: Colors.redAccent,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              }
+            }
+
+            Widget styleChip(AvatarStyle style, String label) {
+              final isSel = selected == style;
+              return Expanded(
+                child: GestureDetector(
+                  onTap: isSaving
+                      ? null
+                      : () => setSheetState(() => selected = style),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    decoration: BoxDecoration(
+                      color: isSel ? fgc : Colors.transparent,
+                      border: Border.all(
+                        color: fgc.withValues(alpha: isSel ? 1.0 : 0.2),
+                        width: 0.75,
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Center(
+                      child: Text(
+                        label,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.0,
+                          color: isSel
+                              ? (isDark ? Colors.black : Colors.white)
+                              : fgc.withValues(alpha: 0.7),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }
+
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 24,
+                right: 24,
+                top: 24,
+                bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 24,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'CHOOSE YOUR STYLE',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 2.0,
+                      color: fgc,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Center(
+                    child: Container(
+                      width: 160,
+                      height: 160,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: fgc.withValues(alpha: 0.15)),
+                      ),
+                      child: ClipOval(
+                        child: preview == null
+                            ? Center(
+                                child: SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: fgc,
+                                  ),
+                                ),
+                              )
+                            : Image.memory(
+                                preview,
+                                key: ValueKey(selected),
+                                fit: BoxFit.cover,
+                                gaplessPlayback: true,
+                              ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      styleChip(AvatarStyle.pixel, 'PIXEL B/W'),
+                      styleChip(AvatarStyle.noir, 'NOIR'),
+                      styleChip(AvatarStyle.original, 'ORIGINAL'),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    selected == AvatarStyle.pixel
+                        ? 'Dithered 1-bit pixel art — the NO SUS look.'
+                        : selected == AvatarStyle.noir
+                            ? 'Black & white photograph.'
+                            : 'Your photo, full color.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: fgc.withValues(alpha: 0.45),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: isSaving || preview == null ? null : save,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: fgc,
+                      foregroundColor: isDark ? Colors.black : Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: isSaving
+                        ? SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: isDark ? Colors.black : Colors.white,
+                            ),
+                          )
+                        : const Text(
+                            'USE THIS PHOTO',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.0,
+                              fontSize: 11,
+                            ),
+                          ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   void _openAvatarSelectionModal(ProfileData profile) {
     showModalBottomSheet(
       context: context,
@@ -158,6 +379,41 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 16),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      _pickAndStylePhoto();
+                    },
+                    icon: Icon(Icons.add_a_photo_outlined, size: 16, color: fg),
+                    label: Text(
+                      'UPLOAD YOUR PHOTO',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.0,
+                        color: fg,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      side: BorderSide(color: fg.withValues(alpha: 0.25), width: 0.75),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'OR PICK A CHARACTER',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.5,
+                      color: fg.withValues(alpha: 0.4),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   Flexible(
                     child: GridView.builder(
                       shrinkWrap: true,
@@ -1116,15 +1372,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 ),
                               ),
                               child: ClipOval(
-                                child: Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: Image.asset(
-                                    AppConstants.avatarAssetForId(
-                                      profile.avatarId,
-                                    ),
-                                    fit: BoxFit.contain,
-                                  ),
-                                ),
+                                child: ProfileAvatar(profile: profile, size: 80),
                               ),
                             ),
                             Positioned(

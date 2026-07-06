@@ -7,7 +7,7 @@ import 'package:universal_html/html.dart' as html;
 
 
 import 'theme.dart';
-import 'core/constants/app_constants.dart';
+import 'features/profile/presentation/widgets/profile_avatar.dart';
 import 'core/providers/theme_provider.dart';
 import 'components/floating_nav.dart';
 import 'screens/splash_screen.dart';
@@ -49,7 +49,10 @@ class BurnNoteToken {
   BurnNoteToken({required this.id, required this.keyHex, required this.ivHex});
 }
 
-BurnNoteToken? _extractBurnNoteToken(Uri uri) {
+/// Public (rather than private) so the URL contract has regression tests —
+/// see test/unit/deep_link_parsing_test.dart. Burn links are shared into the
+/// wild; silently changing what parses is a production outage.
+BurnNoteToken? extractBurnNoteToken(Uri uri) {
   final fullUrl = kIsWeb ? html.window.location.href : uri.toString();
   debugLog('NO SUS: Extracting Burn Note Token from: $fullUrl');
 
@@ -99,7 +102,7 @@ BurnNoteToken? _extractBurnNoteToken(Uri uri) {
 /// the fragment (default hash-based web routing, e.g. `#/v/abc123`) and the
 /// path, so the link works regardless of URL strategy. Returns null on any
 /// other platform/URL shape — this only ever matches an intentional share link.
-String? _extractShareToken(Uri uri) {
+String? extractShareToken(Uri uri) {
   for (final raw in [uri.fragment, uri.path]) {
     final cleaned = raw.startsWith('/') ? raw.substring(1) : raw;
     final parts = cleaned.split('/');
@@ -121,7 +124,7 @@ void main() async {
       // SecureSend anonymous path: a share-link recipient may have no NO SUS
       // account at all, so this branch skips Supabase/auth entirely and never
       // rejoins the normal app below.
-      final shareToken = _extractShareToken(Uri.base);
+      final shareToken = extractShareToken(Uri.base);
       if (shareToken != null) {
         // ProviderScope here is only so the mascot system (Riverpod) works on
         // this standalone entrypoint — it has no Supabase session and never
@@ -130,7 +133,7 @@ void main() async {
         return;
       }
 
-      final burnNoteToken = _extractBurnNoteToken(Uri.base);
+      final burnNoteToken = extractBurnNoteToken(Uri.base);
       if (burnNoteToken != null) {
         runApp(ProviderScope(
           child: BurnNoteViewerScreen(
@@ -397,13 +400,7 @@ class _WorkspaceHomeState extends ConsumerState<WorkspaceHome> {
                         ),
                       ),
                       child: ClipOval(
-                        child: Padding(
-                          padding: const EdgeInsets.all(4.0),
-                          child: Image.asset(
-                            AppConstants.avatarAssetForId(profile.avatarId),
-                            fit: BoxFit.contain,
-                          ),
-                        ),
+                        child: ProfileAvatar(profile: profile, size: 42),
                       ),
                     ),
                   );
