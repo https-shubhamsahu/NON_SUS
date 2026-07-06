@@ -423,6 +423,9 @@ UI · Backend · AI · Testing · Acceptance · Complexity · Deps · Risk.
 
 ## Changelog
 
+- **2026-07-06 · Sealed Teaser & Zero-Knowledge Burn Notes.**
+  - **Sealed Coming Soon Teaser:** Replaced non-functional AI/Compare widgets in `workspace_tab.dart` with a glowing, animated "Sealed v1.0" preview card. Clicking it launches a multi-step interactive validation bottom sheet (Explainer, Ruleset selection, matching simulation, and interest rating/feedback form) which tags the card as `VALIDATED` on completion.
+  - **Zero-Knowledge Burn Notes:** Built a fully functional secret-sharing feature (PrivateBin clone). Encrypts secrets client-side (AES-256) with keys stored only in the URL hash fragment (`/#/burn/<id>#<keyHex>.<ivHex>`). Created an atomic database RPC `read_and_burn_note` that deletes rows instantly on query. Created a secure viewer screen with a 60-second self-destruct countdown, burning animation, and tab-blur tab-switch zeroing. Wired app deep links to bypass standard auth and route directly to the viewer.
 - **2026-07-06 · Deep clean: branch reconciliation, disk purge, database full nuke.**
   *Branch reconciliation:* discovered the repo had been switched back to `main` (old pre-pivot
   code) while all Sealed/SecureSend work lived on `pivot/sealed-foundation` — this is why device
