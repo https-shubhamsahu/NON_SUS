@@ -104,18 +104,22 @@ void main() async {
       // 1. Supabase MUST come first
       await SupabaseService.instance.initialize();
 
+      Future<void> handleOAuthCallback(Uri uri) async {
+        try {
+          debugLog('NO SUS: Recovering session from deep link URI: $uri');
+          await Supabase.instance.client.auth.getSessionFromUrl(uri);
+          debugLog('NO SUS: Session recovered successfully!');
+        } catch (e) {
+          debugLog('NO SUS: Error recovering session from deep link: $e');
+        }
+      }
+
       // Listen to deep links for manual session recovery from OAuth redirects
       final appLinks = AppLinks();
       appLinks.uriLinkStream.listen((uri) async {
         debugLog('NO SUS: Received Deep Link: $uri');
-        if (uri.scheme == 'io.supabase.nosus' && uri.host == 'login-callback') {
-          try {
-            debugLog('NO SUS: Recovering session from deep link URI...');
-            await Supabase.instance.client.auth.getSessionFromUrl(uri);
-            debugLog('NO SUS: Session recovered successfully!');
-          } catch (e) {
-            debugLog('NO SUS: Error recovering session from deep link: $e');
-          }
+        if (uri.scheme == 'io.supabase.nosus') {
+          await handleOAuthCallback(uri);
         } else if (uri.scheme == 'io.nosus.app' && uri.host == 'v') {
           final token = uri.pathSegments.firstOrNull;
           if (token != null && token.isNotEmpty) {
@@ -127,12 +131,16 @@ void main() async {
       // Handle initial link if app was closed
       try {
         final initialUri = await appLinks.getInitialLink();
-        if (initialUri != null && initialUri.scheme == 'io.nosus.app' && initialUri.host == 'v') {
-          final token = initialUri.pathSegments.firstOrNull;
-          if (token != null && token.isNotEmpty) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              _handleInAppShareView(token);
-            });
+        if (initialUri != null) {
+          if (initialUri.scheme == 'io.supabase.nosus') {
+            await handleOAuthCallback(initialUri);
+          } else if (initialUri.scheme == 'io.nosus.app' && initialUri.host == 'v') {
+            final token = initialUri.pathSegments.firstOrNull;
+            if (token != null && token.isNotEmpty) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _handleInAppShareView(token);
+              });
+            }
           }
         }
       } catch (e) {
