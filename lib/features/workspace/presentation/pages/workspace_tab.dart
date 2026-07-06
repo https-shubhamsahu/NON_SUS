@@ -12,9 +12,6 @@ import '../../../notes/providers/notes_provider.dart';
 import '../../../focus/providers/focus_provider.dart';
 import '../../providers/recently_saved_provider.dart';
 import '../../../files/presentation/providers/upload_provider.dart';
-import '../../../fhe/presentation/screens/fhe_demo_screen.dart';
-import '../../../fhe/presentation/providers/fhe_provider.dart';
-
 /// Tab 0 — Workspace Dashboard
 /// Welcome banner + Study chart + Secure notepad.
 class WorkspaceTab extends ConsumerStatefulWidget {
@@ -32,7 +29,6 @@ class _WorkspaceTabState extends ConsumerState<WorkspaceTab>
   final TextEditingController _noteController = TextEditingController(
     text: AppConstants.defaultNoteContent,
   );
-  final TextEditingController _askAiController = TextEditingController();
 
   @override
   void initState() {
@@ -54,7 +50,6 @@ class _WorkspaceTabState extends ConsumerState<WorkspaceTab>
   @override
   void dispose() {
     _noteController.dispose();
-    _askAiController.dispose();
     super.dispose();
   }
 
@@ -143,14 +138,9 @@ class _WorkspaceTabState extends ConsumerState<WorkspaceTab>
 
           const SizedBox(height: NoSusTheme.s16),
 
-          _AskAiBox(
-            controller: _askAiController,
-          ).animate().fadeIn(duration: 340.ms).slideY(begin: 0.05, end: 0),
-          const SizedBox(height: NoSusTheme.s16),
-
-          const _ConfidentialDiscoveryCard()
+          const _SealedTeaserCard()
               .animate()
-              .fadeIn(duration: 360.ms)
+              .fadeIn(duration: 340.ms)
               .slideY(begin: 0.05, end: 0),
           const SizedBox(height: NoSusTheme.s16),
 
@@ -251,268 +241,600 @@ class _SecurePad extends ConsumerWidget {
   }
 }
 
-class _AskAiBox extends ConsumerWidget {
-  final TextEditingController controller;
+class _SealedTeaserCard extends StatefulWidget {
+  const _SealedTeaserCard();
 
-  const _AskAiBox({required this.controller});
+  @override
+  State<_SealedTeaserCard> createState() => _SealedTeaserCardState();
+}
 
-  Future<void> _submit(BuildContext context, WidgetRef ref) async {
-    final question = controller.text.trim();
-    if (question.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Type a question for Ask AI first.')),
-      );
-      return;
-    }
-    FocusScope.of(context).unfocus();
-    await ref
-        .read(fheDemoProvider.notifier)
-        .executeConfidentialDiscovery(question: question);
+class _SealedTeaserCardState extends State<_SealedTeaserCard> {
+  bool _submitted = false;
+
+  void _showDemoSheet(BuildContext context) {
+    final messenger = ScaffoldMessenger.of(context);
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const _SealedDemoSheet(),
+    ).then((completed) {
+      if (completed == true) {
+        if (!mounted) return;
+        setState(() {
+          _submitted = true;
+        });
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('Thank you! Your validation has been recorded.'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.purple,
+          ),
+        );
+      }
+    });
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final fg = theme.colorScheme.onSurface;
-    final aiState = ref.watch(fheDemoProvider);
-    final answer = aiState.answer;
 
     return Container(
-      padding: const EdgeInsets.all(NoSusTheme.s24),
+      width: double.infinity,
       decoration: NoSusTheme.cardDecoration(context),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
         children: [
-          Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: fg.withValues(alpha: 0.16)),
-                  color: fg.withValues(alpha: 0.04),
-                ),
-                child: Icon(Icons.auto_awesome_outlined, color: fg, size: 20),
-              ),
-              const SizedBox(width: NoSusTheme.s12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'ASK AI',
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        letterSpacing: 1.8,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      'Privacy-safe answers from derived findings, not raw documents.',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: fg.withValues(alpha: 0.55),
-                        fontSize: 12,
-                      ),
-                    ),
+          Positioned(
+            right: -40,
+            top: -40,
+            child: Container(
+              width: 140,
+              height: 140,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    Colors.purple.withValues(alpha: isDark ? 0.15 : 0.08),
+                    Colors.transparent,
                   ],
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: NoSusTheme.s16),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: fg.withValues(alpha: 0.12)),
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.03)
-                  : Colors.black.withValues(alpha: 0.025),
-            ),
-            child: TextField(
-              controller: controller,
-              minLines: 1,
-              maxLines: 3,
-              textInputAction: TextInputAction.send,
-              onSubmitted: (_) => _submit(context, ref),
-              cursorColor: fg,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: fg.withValues(alpha: 0.88),
-              ),
-              decoration: InputDecoration(
-                border: InputBorder.none,
-                hintText: 'Ask: Which group matches my research question best?',
-                hintStyle: TextStyle(color: fg.withValues(alpha: 0.35)),
-              ),
             ),
           ),
-          const SizedBox(height: NoSusTheme.s12),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  aiState.isLoading
-                      ? (aiState.statusText ?? 'Running confidential AI...')
-                      : aiState.questionText ?? 'Ready for a sealed question.',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: fg.withValues(alpha: 0.5),
-                    fontSize: 11,
-                  ),
-                ),
-              ),
-              const SizedBox(width: NoSusTheme.s12),
-              FilledButton.icon(
-                onPressed: aiState.isLoading
-                    ? null
-                    : () => _submit(context, ref),
-                icon: aiState.isLoading
-                    ? SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: isDark ? Colors.black : Colors.white,
+          Padding(
+            padding: const EdgeInsets.all(NoSusTheme.s24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: Colors.purple.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: Colors.purple.withValues(alpha: 0.2)),
+                      ),
+                      child: const Text(
+                        'SEALED v1.0',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.purpleAccent,
+                          letterSpacing: 1.0,
                         ),
+                      ),
+                    ),
+                    if (_submitted)
+                      Row(
+                        children: [
+                          const Icon(Icons.check_circle_outline, color: Colors.green, size: 14),
+                          const SizedBox(width: 4),
+                          Text(
+                            'VALIDATED',
+                            style: theme.textTheme.labelLarge?.copyWith(
+                              fontSize: 9,
+                              color: Colors.green,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.0,
+                            ),
+                          ),
+                        ],
                       )
-                    : const Icon(Icons.send_rounded, size: 16),
-                label: Text(aiState.isLoading ? 'ASKING' : 'ASK'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: fg,
-                  foregroundColor: isDark ? Colors.black : Colors.white,
-                  textStyle: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.1,
+                    else
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          'INTERACTIVE PREVIEW',
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            fontSize: 8,
+                            color: Colors.amber,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: NoSusTheme.s16),
+                Text(
+                  'THE RECIPROCITY-GATED INTENT GRAPH',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.5,
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: NoSusTheme.s8),
+                Text(
+                  'Share documents securely under conditional terms. Recipients must agree to share their corresponding documents back to gain access.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: fg.withValues(alpha: 0.6),
+                    height: 1.4,
+                    fontSize: 12.5,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.purple,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: () => _showDemoSheet(context),
+                    icon: Icon(
+                      _submitted ? Icons.replay_outlined : Icons.play_arrow_rounded,
+                      size: 16,
+                    ),
+                    label: Text(
+                      _submitted ? 'REPLAY INTERACTIVE PREVIEW' : 'START INTERACTIVE DEMO',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-          if (aiState.error != null) ...[
-            const SizedBox(height: NoSusTheme.s12),
-            Text(
-              aiState.error!,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: Colors.redAccent,
-              ),
-            ),
-          ],
-          if (answer != null && answer.isNotEmpty) ...[
-            const SizedBox(height: NoSusTheme.s16),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(NoSusTheme.s16),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(NoSusTheme.r16),
-                border: Border.all(color: fg.withValues(alpha: 0.1)),
-                color: fg.withValues(alpha: 0.04),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    aiState.aiModeLabel ?? 'Restricted AI answer',
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      color: fg.withValues(alpha: 0.55),
-                      fontSize: 10,
-                    ),
-                  ),
-                  const SizedBox(height: NoSusTheme.s8),
-                  Text(
-                    answer,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      height: 1.45,
-                      color: fg.withValues(alpha: 0.82),
-                    ),
-                  ),
-                  const SizedBox(height: NoSusTheme.s12),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton.icon(
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const FheDemoScreen(),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.open_in_new, size: 16),
-                      label: const Text('FULL BRIEFING'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
         ],
       ),
     );
   }
 }
 
-class _ConfidentialDiscoveryCard extends StatelessWidget {
-  const _ConfidentialDiscoveryCard();
+class _SealedDemoSheet extends StatefulWidget {
+  const _SealedDemoSheet();
 
   @override
-  Widget build(BuildContext context) {
+  State<_SealedDemoSheet> createState() => _SealedDemoSheetState();
+}
+
+class _SealedDemoSheetState extends State<_SealedDemoSheet> {
+  int _step = 0; // 0: intro, 1: rules, 2: simulation, 3: validation
+  String? _selectedRule;
+  final Set<String> _benefits = {};
+  int _rating = 0;
+  final TextEditingController _feedbackController = TextEditingController();
+
+  final List<String> _rules = [
+    'Mutual Disclosure (Require reciprocal file upload)',
+    'Identity Escrow (Unlock only with verified institutional credentials)',
+    'Time-Locked Deposit (Verify study time before opening)',
+  ];
+
+  final List<String> _benefitOptions = [
+    'Eliminates trust issues in study sharing',
+    'Increases collaborative document exchange',
+    'Perfect for sensitive IP or research drafts',
+    'Simplifies compliance & security checks',
+  ];
+
+  @override
+  void dispose() {
+    _feedbackController.dispose();
+    super.dispose();
+  }
+
+  Widget _buildIntro() {
     final theme = Theme.of(context);
     final fg = theme.colorScheme.onSurface;
 
-    return InkWell(
-      borderRadius: BorderRadius.circular(NoSusTheme.r16),
-      onTap: () {
-        Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (_) => const FheDemoScreen()));
-      },
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: NoSusTheme.cardDecoration(context),
-        child: Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Icon(Icons.shield_outlined, size: 40, color: Colors.purpleAccent),
+        const SizedBox(height: 16),
+        Text(
+          'WHAT IS SEALED?',
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.5,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'Conventional document sharing is one-way: you share your file, and they take it without giving anything back.\n\n'
+          'Sealed implements a Reciprocity Gate. You lock your file under a specific rule (e.g. "Mutual Disclosure"). The recipient can see a blurred preview but cannot unlock the full file unless they upload a corresponding document in return.',
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: fg.withValues(alpha: 0.7),
+            height: 1.5,
+            fontSize: 13,
+          ),
+        ),
+        const SizedBox(height: 32),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.purple),
+            onPressed: () => setState(() => _step = 1),
+            child: const Text('NEXT: SET A RULE', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRules() {
+    final theme = Theme.of(context);
+    final fg = theme.colorScheme.onSurface;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Icon(Icons.rule_folder_outlined, size: 40, color: Colors.purpleAccent),
+        const SizedBox(height: 16),
+        Text(
+          'STEP 1: CHOOSE A RECIPROCITY RULE',
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.5,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Select the condition the recipient must fulfill to unlock your file:',
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: fg.withValues(alpha: 0.55),
+            fontSize: 12,
+          ),
+        ),
+        const SizedBox(height: 16),
+        ..._rules.map((rule) {
+          final isSelected = _selectedRule == rule;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => setState(() => _selectedRule = rule),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isSelected ? Colors.purpleAccent : fg.withValues(alpha: 0.12),
+                    width: isSelected ? 1.5 : 1.0,
+                  ),
+                  color: isSelected
+                      ? Colors.purple.withValues(alpha: 0.05)
+                      : Colors.transparent,
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
+                      color: isSelected ? Colors.purpleAccent : Colors.grey,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Text(
+                        rule,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: isSelected ? FontWeight.bold : null,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }),
+        const SizedBox(height: 24),
+        Row(
           children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: fg.withValues(alpha: 0.18)),
-              ),
-              child: Icon(Icons.hub_outlined, color: fg, size: 22),
-            ),
-            const SizedBox(width: NoSusTheme.s16),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Compare Research',
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    'Hospital Alpha + University Beta + Research Lab Gamma',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: fg.withValues(alpha: 0.54),
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
+              child: OutlinedButton(
+                onPressed: () => setState(() => _step = 0),
+                child: const Text('BACK', style: TextStyle(fontSize: 11)),
               ),
             ),
-            Icon(
-              Icons.chevron_right,
-              color: fg.withValues(alpha: 0.45),
-              size: 20,
+            const SizedBox(width: 12),
+            Expanded(
+              child: FilledButton(
+                style: FilledButton.styleFrom(backgroundColor: Colors.purple),
+                onPressed: _selectedRule == null
+                    ? null
+                    : () => setState(() => _step = 2),
+                child: const Text('NEXT: MATCH INTENT', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+              ),
             ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSimulation() {
+    final theme = Theme.of(context);
+    final fg = theme.colorScheme.onSurface;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Icon(Icons.share_arrival_time_outlined, size: 40, color: Colors.purpleAccent),
+        const SizedBox(height: 16),
+        Text(
+          'STEP 2: SIMULATING THE INTENT MATCH',
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.5,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Watch the reciprocity graph exchange credentials in real time:',
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: fg.withValues(alpha: 0.55),
+            fontSize: 12,
+          ),
+        ),
+        const SizedBox(height: 24),
+        Center(
+          child: Container(
+            height: 160,
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: fg.withValues(alpha: 0.08)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.insert_drive_file, size: 28, color: Colors.purpleAccent),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Your Document',
+                      style: theme.textTheme.labelMedium?.copyWith(fontSize: 10),
+                    ),
+                  ],
+                ),
+                Icon(Icons.swap_horiz, size: 32, color: fg.withValues(alpha: 0.5))
+                    .animate(onPlay: (c) => c.repeat())
+                    .slideX(begin: -0.15, end: 0.15, duration: 1500.ms, curve: Curves.easeInOut)
+                    .then()
+                    .slideX(begin: 0.15, end: -0.15, duration: 1500.ms, curve: Curves.easeInOut),
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.insert_drive_file_outlined, size: 28, color: Colors.grey),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Locked Recipient',
+                      style: theme.textTheme.labelMedium?.copyWith(fontSize: 10),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.green.withValues(alpha: 0.05),
+            border: Border.all(color: Colors.green, width: 0.5),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.verified_outlined, color: Colors.green, size: 18),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Simulation: Recipient uploaded matching file. Intent satisfied, document decrypted!',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: Colors.green,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => setState(() => _step = 1),
+                child: const Text('BACK', style: TextStyle(fontSize: 11)),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: FilledButton(
+                style: FilledButton.styleFrom(backgroundColor: Colors.purple),
+                onPressed: () => setState(() => _step = 3),
+                child: const Text('VALIDATE FEATURE', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildValidation() {
+    final theme = Theme.of(context);
+    final fg = theme.colorScheme.onSurface;
+
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.rate_review_outlined, size: 40, color: Colors.purpleAccent),
+          const SizedBox(height: 16),
+          Text(
+            'USER VALIDATION',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.5,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Your feedback helps us decide if we should ship this feature. Please rate your interest:',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: fg.withValues(alpha: 0.55),
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(5, (index) {
+              final starIndex = index + 1;
+              final filled = starIndex <= _rating;
+              return IconButton(
+                icon: Icon(
+                  filled ? Icons.star : Icons.star_border,
+                  color: filled ? Colors.purpleAccent : Colors.grey,
+                  size: 32,
+                ),
+                onPressed: () => setState(() => _rating = starIndex),
+              );
+            }),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'How would this feature help your workflow?',
+            style: theme.textTheme.titleSmall?.copyWith(fontSize: 12, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          ..._benefitOptions.map((benefit) {
+            final isSelected = _benefits.contains(benefit);
+            return CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(benefit, style: const TextStyle(fontSize: 12)),
+              value: isSelected,
+              activeColor: Colors.purpleAccent,
+              onChanged: (v) {
+                setState(() {
+                  if (v == true) {
+                    _benefits.add(benefit);
+                  } else {
+                    _benefits.remove(benefit);
+                  }
+                });
+              },
+            );
+          }),
+          const SizedBox(height: 16),
+          Text(
+            'Suggestions or Feedback (optional)',
+            style: theme.textTheme.titleSmall?.copyWith(fontSize: 12, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _feedbackController,
+            maxLines: 2,
+            decoration: InputDecoration(
+              hintText: 'What would make you love this feature?',
+              hintStyle: TextStyle(color: fg.withValues(alpha: 0.35), fontSize: 12),
+              border: const OutlineInputBorder(),
+              contentPadding: const EdgeInsets.all(12),
+            ),
+            style: const TextStyle(fontSize: 12.5),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: Colors.purple),
+              onPressed: _rating == 0
+                  ? null
+                  : () {
+                      Navigator.pop(context, true);
+                    },
+              child: const Text('SUBMIT VALIDATION', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    return Container(
+      padding: EdgeInsets.only(
+        top: 24,
+        left: 20,
+        right: 20,
+        bottom: 24 + MediaQuery.of(context).viewInsets.bottom,
+      ),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF161616) : Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            switch (_step) {
+              0 => _buildIntro(),
+              1 => _buildRules(),
+              2 => _buildSimulation(),
+              _ => _buildValidation(),
+            },
           ],
         ),
       ),
