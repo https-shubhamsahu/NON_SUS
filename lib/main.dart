@@ -87,6 +87,9 @@ void main() async {
     () async {
       WidgetsFlutterBinding.ensureInitialized();
 
+      // Initialize Supabase immediately so all early routing screens can access the client
+      await SupabaseService.instance.initialize();
+
       // SecureSend anonymous path: a share-link recipient may have no NO SUS
       // account at all, so this branch skips Supabase/auth entirely and never
       // rejoins the normal app below.
@@ -105,9 +108,6 @@ void main() async {
         ));
         return;
       }
-
-      // 1. Supabase MUST come first
-      await SupabaseService.instance.initialize();
 
       Future<void> handleOAuthCallback(Uri uri) async {
         try {
