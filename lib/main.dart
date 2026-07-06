@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:universal_html/html.dart' as html;
 
 
 import 'theme.dart';
@@ -46,19 +48,22 @@ class BurnNoteToken {
 }
 
 BurnNoteToken? _extractBurnNoteToken(Uri uri) {
-  final fullUrl = uri.toString();
+  final fullUrl = kIsWeb ? html.window.location.href : uri.toString();
+  debugLog('NO SUS: Extracting Burn Note Token from: $fullUrl');
   final regExp = RegExp(
-    r'burn/([a-f0-9\-]{36})(?:#|%23)([a-f0-9]{64})\.([a-f0-9]{32})',
+    r'burn/([a-f0-9\-]{36})(?:#|%23|/)([a-f0-9]{64})\.([a-f0-9]{32})',
     caseSensitive: false,
   );
   final match = regExp.firstMatch(fullUrl);
   if (match != null) {
+    debugLog('NO SUS: Burn Note Token Matched! ID: ${match.group(1)}');
     return BurnNoteToken(
       id: match.group(1)!,
       keyHex: match.group(2)!,
       ivHex: match.group(3)!,
     );
   }
+  debugLog('NO SUS: No Burn Note Token match.');
   return null;
 }
 
