@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import '../../../core/mascot/mascot_state.dart';
+import '../../../core/mascot/mascot_view.dart';
 
 /// Minimal empty state for the groups list screen.
 class GroupsEmptyState extends StatelessWidget {
@@ -22,7 +24,11 @@ class GroupsEmptyState extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.group_work_outlined, size: 48, color: subtle),
+              MascotView(
+                character: MascotCharacter.lux,
+                size: 48,
+                fallback: Icon(Icons.group_work_outlined, size: 48, color: subtle),
+              ),
               const SizedBox(height: 20),
               Text(
                 'No Groups Yet',
@@ -85,7 +91,11 @@ class FilesEmptyState extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.upload_file_outlined, size: 40, color: subtle),
+              MascotView(
+                character: MascotCharacter.lux,
+                size: 40,
+                fallback: Icon(Icons.upload_file_outlined, size: 40, color: subtle),
+              ),
               const SizedBox(height: 16),
               Text('No Files Shared', style: theme.textTheme.titleMedium),
               const SizedBox(height: 8),

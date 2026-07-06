@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../../../../theme.dart';
 
 import '../../../auth/presentation/providers/auth_providers.dart';
@@ -19,6 +20,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../services/supabase_service.dart';
 import '../../../config/presentation/providers/config_provider.dart';
 import '../../../admin/presentation/screens/admin_dashboard_screen.dart';
+import '../../../../core/mascot/mascot_controller.dart';
+import '../../../../core/mascot/mascot_state.dart';
+import '../../../../core/mascot/mascot_view.dart';
 
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -31,10 +35,6 @@ class ProfileScreen extends ConsumerStatefulWidget {
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final _nameController = TextEditingController();
   int _avatarTapCount = 0;
-
-  // Local settings for notifications (Email / Push)
-  bool _emailNotifications = true;
-  bool _pushNotifications = false;
 
   final List<Map<String, String>> _avatarPresets = [
     {
@@ -408,19 +408,46 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: () {
+                    onPressed: () async {
                       final text = feedbackController.text.trim();
                       if (text.isEmpty) return;
-                      Navigator.pop(context);
                       HapticFeedback.lightImpact();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Feedback submitted! Thank you for helping us improve NO SUS.',
-                          ),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
+                      try {
+                        String? version;
+                        try {
+                          version =
+                              (await PackageInfo.fromPlatform()).version;
+                        } catch (_) {}
+                        await Supabase.instance.client.from('feedback').insert({
+                          'user_id':
+                              Supabase.instance.client.auth.currentUser?.id,
+                          'message': text,
+                          'app_version': version,
+                        });
+                        if (context.mounted) Navigator.pop(context);
+                        if (mounted) {
+                          ScaffoldMessenger.of(this.context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Feedback submitted! Thank you for helping us improve NO SUS.',
+                              ),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
+                      } catch (_) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Could not send feedback. Check your connection and try again.',
+                              ),
+                              backgroundColor: Colors.redAccent,
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: fg,
@@ -474,7 +501,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  void _openAboutModal() {
+  Future<void> _openAboutModal() async {
+    // Real version from the build, never a hardcoded string that drifts.
+    String versionLabel = 'Version unavailable';
+    try {
+      final info = await PackageInfo.fromPlatform();
+      versionLabel = 'Version: ${info.version} (Build ${info.buildNumber})';
+    } catch (_) {}
+    if (!mounted) return;
+
     showDialog(
       context: context,
       builder: (context) {
@@ -497,7 +532,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Version: 1.0.3 (Build 72)',
+                versionLabel,
                 style: TextStyle(color: fg, fontSize: 12),
               ),
               const SizedBox(height: 8),
@@ -775,6 +810,138 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
+  void _openChangePasswordDialog() {
+    final newCtrl = TextEditingController();
+    final confirmCtrl = TextEditingController();
+    bool isSaving = false;
+    bool obscure = true;
+    String? errorText;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
+        final fg = isDark ? Colors.white : Colors.black;
+
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            Future<void> save() async {
+              final pw = newCtrl.text;
+              if (pw.length < 6) {
+                setDialogState(
+                    () => errorText = 'Must be at least 6 characters.');
+                return;
+              }
+              if (pw != confirmCtrl.text) {
+                setDialogState(() => errorText = 'Passwords do not match.');
+                return;
+              }
+              setDialogState(() {
+                isSaving = true;
+                errorText = null;
+              });
+              try {
+                await ref.read(authRepositoryProvider).updatePassword(pw);
+                if (dialogContext.mounted) Navigator.pop(dialogContext);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Password updated.'),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              } catch (e) {
+                setDialogState(() {
+                  isSaving = false;
+                  errorText = e
+                      .toString()
+                      .replaceAll('AuthApiException: ', '')
+                      .replaceAll('AuthException: ', '')
+                      .replaceAll('Exception: ', '');
+                });
+              }
+            }
+
+            return AlertDialog(
+              backgroundColor: isDark ? const Color(0xFF141414) : Colors.white,
+              title: Text(
+                'CHANGE PASSWORD',
+                style: TextStyle(
+                  color: fg,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.0,
+                ),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: newCtrl,
+                    obscureText: obscure,
+                    autofocus: true,
+                    style: TextStyle(color: fg, fontSize: 13),
+                    decoration: InputDecoration(
+                      labelText: 'New password',
+                      labelStyle: TextStyle(
+                          color: fg.withValues(alpha: 0.5), fontSize: 11),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          obscure
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                          size: 16,
+                          color: fg.withValues(alpha: 0.5),
+                        ),
+                        onPressed: () =>
+                            setDialogState(() => obscure = !obscure),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: confirmCtrl,
+                    obscureText: obscure,
+                    style: TextStyle(color: fg, fontSize: 13),
+                    onSubmitted: (_) => save(),
+                    decoration: InputDecoration(
+                      labelText: 'Confirm new password',
+                      labelStyle: TextStyle(
+                          color: fg.withValues(alpha: 0.5), fontSize: 11),
+                      errorText: errorText,
+                      errorMaxLines: 3,
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed:
+                      isSaving ? null : () => Navigator.pop(dialogContext),
+                  child: const Text(
+                    'CANCEL',
+                    style: TextStyle(color: Colors.grey, fontSize: 11),
+                  ),
+                ),
+                FilledButton(
+                  onPressed: isSaving ? null : save,
+                  child: isSaving
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('UPDATE', style: TextStyle(fontSize: 11)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   void _confirmLogout() {
     showDialog(
       context: context,
@@ -784,13 +951,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
         return AlertDialog(
           backgroundColor: isDark ? const Color(0xFF141414) : Colors.white,
-          title: Text(
-            'LOG OUT SESSION?',
-            style: TextStyle(
-              color: fg,
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-            ),
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const MascotView(character: MascotCharacter.nox, size: 28),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'LOG OUT SESSION?',
+                  style: TextStyle(
+                    color: fg,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
           ),
           content: Text(
             'Are you sure you want to end your current session?',
@@ -812,6 +988,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               onPressed: () async {
                 Navigator.pop(context); // Close dialog
                 HapticFeedback.mediumImpact();
+                ref.read(noxMascotProvider.notifier).play(MascotMood.returnToLogo);
                 await ref.read(authControllerProvider.notifier).signOut();
                 if (context.mounted) {
                   Navigator.pop(context); // Pop profile screen
@@ -902,8 +1079,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           );
           final String trustStatus = hasViolations ? 'WARNING' : 'SECURE';
 
-          // Simulate storage used (1.2 MB base + 0.8 MB per uploaded file)
-          final double storageMB = 1.2 + (filesSharedCount * 0.8);
+          // Real usage: sum of the user's own uploaded file sizes (kept live
+          // by the same realtime stream that feeds the vault). 100 MB is the
+          // product's free-tier allowance, not a hard server quota.
+          final int storageBytes = allFiles
+              .where((f) => f.ownerId == user?.id || f.uploadedBy == user?.id)
+              .fold(0, (sum, f) => sum + f.sizeBytes);
+          final double storageMB = storageBytes / (1024 * 1024);
           final double storagePercent = (storageMB / 100.0).clamp(0.0, 1.0);
 
           return SingleChildScrollView(
@@ -1004,47 +1186,125 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               ),
                             ),
                             const SizedBox(height: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 3,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.green.withValues(alpha: 0.08),
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(
-                                  color: Colors.green.withValues(alpha: 0.25),
-                                  width: 0.5,
+                            Builder(builder: (context) {
+                              // Real verification state, not decoration.
+                              final isVerified = SupabaseService
+                                          .instance.isReachable &&
+                                      Supabase.instance.client.auth.currentUser
+                                              ?.emailConfirmedAt !=
+                                          null;
+                              final badgeColor =
+                                  isVerified ? Colors.green : Colors.amber;
+                              return Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 3,
                                 ),
-                              ),
-                              child: const Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.verified_user_outlined,
-                                    color: Colors.green,
-                                    size: 8,
+                                decoration: BoxDecoration(
+                                  color: badgeColor.withValues(alpha: 0.08),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(
+                                    color: badgeColor.withValues(alpha: 0.25),
+                                    width: 0.5,
                                   ),
-                                  SizedBox(width: 4),
-                                  Text(
-                                    'VERIFIED',
-                                    style: TextStyle(
-                                      fontSize: 8,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.green,
-                                      letterSpacing: 0.5,
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      isVerified
+                                          ? Icons.verified_user_outlined
+                                          : Icons.mark_email_unread_outlined,
+                                      color: badgeColor,
+                                      size: 8,
                                     ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      isVerified
+                                          ? 'EMAIL VERIFIED'
+                                          : 'EMAIL UNVERIFIED',
+                                      style: TextStyle(
+                                        fontSize: 8,
+                                        fontWeight: FontWeight.bold,
+                                        color: badgeColor,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }),
                           ],
                         ),
                       ),
                     ],
                   ),
                 ).animate().fadeIn(duration: 250.ms),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
+
+                // ─── ACCOUNT & SECURITY ────────────────────────────────────────
+                Text(
+                  'ACCOUNT & SECURITY',
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: fg.withValues(alpha: 0.4),
+                    fontSize: 10,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  decoration: NoSusTheme.cardDecoration(context),
+                  child: Column(
+                    children: [
+                      ListTile(
+                        leading: Icon(Icons.alternate_email,
+                            size: 18, color: fg),
+                        title: const Text(
+                          'Email',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        subtitle: Text(
+                          user?.email ?? '—',
+                          style: TextStyle(color: subtle, fontSize: 10),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Divider(
+                        height: 1,
+                        thickness: 0.5,
+                        color: fg.withValues(alpha: 0.08),
+                      ),
+                      ListTile(
+                        leading: Icon(Icons.lock_outline, size: 18, color: fg),
+                        title: const Text(
+                          'Change Password',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        subtitle: Text(
+                          'Set a new password for this account',
+                          style: TextStyle(color: subtle, fontSize: 10),
+                        ),
+                        trailing: Icon(
+                          Icons.chevron_right,
+                          size: 16,
+                          color: subtle,
+                        ),
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                          _openChangePasswordDialog();
+                        },
+                      ),
+                    ],
+                  ),
+                ).animate().fadeIn(delay: 30.ms, duration: 250.ms),
+                const SizedBox(height: 20),
 
                 // ─── STORAGE USAGE CARD (Proton Style) ─────────────────────────
                 Text(
@@ -1184,70 +1444,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             ref
                                 .read(watermarkVisibilityProvider.notifier)
                                 .setEnabled(val);
-                          },
-                          activeTrackColor: fg,
-                          activeThumbColor: isDark
-                              ? Colors.black
-                              : Colors.white,
-                        ),
-                      ),
-                      Divider(
-                        height: 1,
-                        thickness: 0.5,
-                        color: fg.withValues(alpha: 0.08),
-                      ),
-                      // Email Notifications Switch
-                      ListTile(
-                        title: const Text(
-                          'Email Notifications',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        subtitle: Text(
-                          'Receive activity summaries via email',
-                          style: TextStyle(color: subtle, fontSize: 10),
-                        ),
-                        trailing: Switch(
-                          value: _emailNotifications,
-                          onChanged: (val) {
-                            HapticFeedback.lightImpact();
-                            setState(() {
-                              _emailNotifications = val;
-                            });
-                          },
-                          activeTrackColor: fg,
-                          activeThumbColor: isDark
-                              ? Colors.black
-                              : Colors.white,
-                        ),
-                      ),
-                      Divider(
-                        height: 1,
-                        thickness: 0.5,
-                        color: fg.withValues(alpha: 0.08),
-                      ),
-                      // Push Notifications Switch
-                      ListTile(
-                        title: const Text(
-                          'Push Notifications',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        subtitle: Text(
-                          'Alert immediately on group activity',
-                          style: TextStyle(color: subtle, fontSize: 10),
-                        ),
-                        trailing: Switch(
-                          value: _pushNotifications,
-                          onChanged: (val) {
-                            HapticFeedback.lightImpact();
-                            setState(() {
-                              _pushNotifications = val;
-                            });
                           },
                           activeTrackColor: fg,
                           activeThumbColor: isDark

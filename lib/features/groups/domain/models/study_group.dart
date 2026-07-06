@@ -15,6 +15,20 @@ class GroupMember {
     required this.initials,
     this.isAdmin = false,
   });
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'initials': initials,
+        'isAdmin': isAdmin,
+      };
+
+  factory GroupMember.fromJson(Map<String, dynamic> json) => GroupMember(
+        id: json['id'] as String,
+        name: json['name'] as String,
+        initials: json['initials'] as String? ?? '?',
+        isAdmin: json['isAdmin'] as bool? ?? false,
+      );
 }
 
 // ─── StudyGroup ───────────────────────────────────────────────────────────────
@@ -50,4 +64,29 @@ class StudyGroup {
     if (diff.inDays < 7) return '${diff.inDays}d ago';
     return '${lastActivity.day}/${lastActivity.month}';
   }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'description': description,
+        'members': members.map((m) => m.toJson()).toList(),
+        'fileCount': fileCount,
+        'lastActivity': lastActivity.toIso8601String(),
+        'isWatermarkEnabled': isWatermarkEnabled,
+        'inviteCode': inviteCode,
+      };
+
+  factory StudyGroup.fromJson(Map<String, dynamic> json) => StudyGroup(
+        id: json['id'] as String,
+        name: json['name'] as String,
+        description: json['description'] as String? ?? '',
+        members: (json['members'] as List<dynamic>? ?? const [])
+            .map((m) => GroupMember.fromJson(m as Map<String, dynamic>))
+            .toList(),
+        fileCount: json['fileCount'] as int? ?? 0,
+        lastActivity: DateTime.tryParse(json['lastActivity'] as String? ?? '') ??
+            DateTime.fromMillisecondsSinceEpoch(0),
+        isWatermarkEnabled: json['isWatermarkEnabled'] as bool? ?? true,
+        inviteCode: json['inviteCode'] as String?,
+      );
 }

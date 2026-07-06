@@ -211,21 +211,28 @@ class _FileCardState extends State<FileCard> {
 
                         // Open button
                         const SizedBox(width: NoSusTheme.s12),
-                        GestureDetector(
-                          onTap: widget.onOpen,
-                          child: Container(
-                            padding: const EdgeInsets.all(9),
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: theme.colorScheme.outline,
-                                width: 0.75,
+                        Semantics(
+                          button: true,
+                          label: 'Open ${widget.file.name}',
+                          child: InkWell(
+                            onTap: widget.onOpen,
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                              alignment: Alignment.center,
+                              padding: const EdgeInsets.all(9),
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: theme.colorScheme.outline,
+                                  width: 0.75,
+                                ),
+                                borderRadius: BorderRadius.circular(8),
                               ),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Icon(
-                              Icons.open_in_new_rounded,
-                              size: 14,
-                              color: theme.colorScheme.onSurface,
+                              child: Icon(
+                                Icons.open_in_new_rounded,
+                                size: 14,
+                                color: theme.colorScheme.onSurface,
+                              ),
                             ),
                           ),
                         ),
@@ -233,6 +240,7 @@ class _FileCardState extends State<FileCard> {
                         // Options Popup Menu
                         const SizedBox(width: 8),
                         PopupMenuButton<String>(
+                          tooltip: 'More options for ${widget.file.name}',
                           icon: Icon(
                             Icons.more_vert,
                             size: 18,
@@ -240,7 +248,7 @@ class _FileCardState extends State<FileCard> {
                           ),
                           padding: EdgeInsets.zero,
                           style: IconButton.styleFrom(
-                            minimumSize: Size.zero,
+                            minimumSize: const Size(40, 40),
                             padding: EdgeInsets.zero,
                           ),
                           onSelected: (val) {

@@ -32,6 +32,9 @@ dependencies:
   http: ^1.2.0
   universal_html: ^2.3.0
   encrypt: ^5.0.3
+  rive: ^0.13.20
+  collection: ^1.19.0
+  package_info_plus: ^9.0.1
 
 
 dev_dependencies:
@@ -55,8 +58,11 @@ flutter:
 
   assets:
     - assets/images/
-    # Note: assets/icon/app_icon.png is used by flutter_launcher_icons at build time
-    # but is NOT included here as a runtime asset (reduces APK size).
+    - assets/icon/LuxandNox.png
+    - assets/mascot/
+    # Note: the rest of assets/icon/ (app_icon.png etc.) is used by
+    # flutter_launcher_icons at build time but is NOT included here as a
+    # runtime asset (reduces APK size).
 
 flutter_launcher_icons:
   android: "launcher_icon"

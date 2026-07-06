@@ -7,6 +7,7 @@ import '../../../../config/storage_router_config.dart';
 import '../storage_router_client.dart';
 import '../../domain/models/secure_file_metadata.dart';
 import '../../domain/repositories/secure_file_repository.dart';
+import '../../../../core/cache/document_cache.dart';
 import '../../../../core/utils/debug_logger.dart';
 
 class SupabaseSecureFileRepository implements SecureFileRepository {
@@ -112,6 +113,7 @@ class SupabaseSecureFileRepository implements SecureFileRepository {
 
   @override
   Future<void> deleteFile(String groupId, String fileId) async {
+    DocumentCache.instance.evict(fileId);
     // 1. Delete object from Google Drive (if linked) or Supabase Storage
     final isGoogleDrive = !fileId.startsWith('file_') &&
         !fileId.startsWith('sec_gen_') &&
@@ -210,6 +212,13 @@ class SupabaseSecureFileRepository implements SecureFileRepository {
     required String fileId,
     required Function(double) onProgress,
   }) async {
+    // Session cache first — re-opening a recently viewed document is instant
+    // and costs no network.
+    final cached = DocumentCache.instance.get(fileId);
+    if (cached != null) {
+      onProgress(1.0);
+      return cached;
+    }
     try {
       onProgress(0.1);
       final isGoogleDrive = !fileId.startsWith('file_') && !fileId.startsWith('sec_gen_');
@@ -217,6 +226,7 @@ class SupabaseSecureFileRepository implements SecureFileRepository {
         onProgress(0.3);
         final gDriveBytes = await SupabaseService.instance.downloadGDriveFile(fileId);
         onProgress(1.0);
+        if (gDriveBytes != null) DocumentCache.instance.put(fileId, gDriveBytes);
         return gDriveBytes;
       } else {
         if (StorageRouterConfig.enableMultiCloudStorage) {
@@ -224,6 +234,7 @@ class SupabaseSecureFileRepository implements SecureFileRepository {
             onProgress(0.3);
             final bytes = await StorageRouterClient.instance.download(fileId);
             onProgress(1.0);
+            DocumentCache.instance.put(fileId, bytes);
             return bytes;
           } catch (e) {
             debugLog('Storage router download fell back to Supabase Storage: $e');
@@ -232,6 +243,7 @@ class SupabaseSecureFileRepository implements SecureFileRepository {
         onProgress(0.3);
         final bytes = await _client.storage.from('secure-files').download(fileId);
         onProgress(1.0);
+        DocumentCache.instance.put(fileId, bytes);
         return bytes;
       }
     } catch (e, s) {

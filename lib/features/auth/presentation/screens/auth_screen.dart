@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../theme.dart';
 import '../controllers/auth_controller.dart';
+import '../providers/auth_providers.dart';
 
 
 class AuthScreen extends ConsumerStatefulWidget {
@@ -115,7 +116,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.all(NoSusTheme.s24),
-            child: Form(
+            // Sign-in card width on desktop/web instead of a full-bleed form.
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Form(
               key: _formKey,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -405,6 +409,28 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                               return null;
                             },
                           ),
+                          if (!_isSignUp) ...[
+                            const SizedBox(height: 6),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton(
+                                onPressed: _showForgotPasswordDialog,
+                                style: TextButton.styleFrom(
+                                  padding: EdgeInsets.zero,
+                                  minimumSize: const Size(0, 32),
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                child: Text(
+                                  'Forgot password?',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: fg.withValues(alpha: 0.6),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                           const SizedBox(height: NoSusTheme.s32),
 
                           // Action Button
@@ -531,7 +557,71 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 ],
               ),
             ),
+            ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showForgotPasswordDialog() async {
+    final emailCtrl = TextEditingController(text: _emailController.text.trim());
+    bool isSending = false;
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: const Text('RESET PASSWORD',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+          content: TextField(
+            controller: emailCtrl,
+            autofocus: true,
+            keyboardType: TextInputType.emailAddress,
+            decoration: const InputDecoration(
+              labelText: 'Email address',
+              hintText: 'you@example.com',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('CANCEL', style: TextStyle(fontSize: 11, color: Colors.grey)),
+            ),
+            FilledButton(
+              onPressed: isSending
+                  ? null
+                  : () async {
+                      final email = emailCtrl.text.trim();
+                      if (email.isEmpty || !email.contains('@')) return;
+                      setDialogState(() => isSending = true);
+                      // Same outcome shown regardless of success/failure — never
+                      // reveal whether an account exists for this email.
+                      try {
+                        await ref.read(authRepositoryProvider).requestPasswordReset(email);
+                      } catch (_) {
+                        // intentionally swallowed, see above
+                      }
+                      if (dialogContext.mounted) Navigator.pop(dialogContext);
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'If an account exists for that email, a reset link has been sent.',
+                            ),
+                          ),
+                        );
+                      }
+                    },
+              child: isSending
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('SEND LINK', style: TextStyle(fontSize: 11)),
+            ),
+          ],
         ),
       ),
     );
@@ -558,13 +648,17 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           children: [
             Icon(icon, size: 20, color: displayFg),
             const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.0,
-                color: displayFg,
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.0,
+                  color: displayFg,
+                ),
               ),
             ),
           ],

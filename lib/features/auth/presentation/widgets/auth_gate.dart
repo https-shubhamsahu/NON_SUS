@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:no_sus/theme.dart';
 import '../providers/auth_providers.dart';
 import '../screens/auth_screen.dart';
+import '../screens/reset_password_screen.dart';
 import '../../../../services/supabase_service.dart';
 import '../../../onboarding/presentation/screens/onboarding_screen.dart';
 import '../../../onboarding/presentation/providers/onboarding_providers.dart';
@@ -21,6 +22,13 @@ class AuthGate extends ConsumerWidget {
     // ── 1. Auth state ──────────────────────────────────────────────────────────
     return authState.when(
       data: (user) {
+        // A password-recovery link grants a real (non-null) session so it
+        // can call updateUser — but that session must only ever be used to
+        // set a new password, never to browse in as the account holder.
+        if (ref.watch(passwordRecoveryProvider)) {
+          return const ResetPasswordScreen();
+        }
+
         // If not logged in, force AuthScreen first
         if (user == null) {
           return const AuthScreen();

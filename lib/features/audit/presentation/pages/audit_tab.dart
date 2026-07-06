@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../theme.dart';
 import '../../providers/audit_provider.dart';
+import '../../../../core/mascot/mascot_controller.dart';
+import '../../../../core/mascot/mascot_state.dart';
+import '../../../../core/mascot/mascot_view.dart';
 
 class AuditTab extends ConsumerStatefulWidget {
   const AuditTab({super.key});
@@ -17,6 +20,17 @@ class _AuditTabState extends ConsumerState<AuditTab>
   bool get wantKeepAlive => true;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Nox keeps watch over the ledger — an ongoing presence, not a claim
+      // that a cryptographic check ran (this screen doesn't call
+      // verify_audit_chain yet; don't imply verification that isn't there).
+      if (mounted) ref.read(noxMascotProvider.notifier).play(MascotMood.observe);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     super.build(context);
     final theme = Theme.of(context);
@@ -26,11 +40,18 @@ class _AuditTabState extends ConsumerState<AuditTab>
       key: const ValueKey('audit_tab'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'SECURITY LEDGER & AUDIT LOGS',
-          style: theme.textTheme.titleMedium?.copyWith(
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'SECURITY LEDGER & AUDIT LOGS',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                ),
+              ),
+            ),
+            const MascotView(character: MascotCharacter.nox, size: 22),
+          ],
         ),
         const SizedBox(height: NoSusTheme.s24),
 

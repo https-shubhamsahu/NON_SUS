@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,7 +21,11 @@ class GroupsScreen extends ConsumerStatefulWidget {
   ConsumerState<GroupsScreen> createState() => _GroupsScreenState();
 }
 
-class _GroupsScreenState extends ConsumerState<GroupsScreen> {
+class _GroupsScreenState extends ConsumerState<GroupsScreen>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
   final _searchController = TextEditingController();
 
   @override
@@ -40,6 +46,7 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final fg = isDark ? NoSusTheme.dText : NoSusTheme.lText;
@@ -307,25 +314,41 @@ class _ErrorState extends StatelessWidget {
     final subtle = Theme.of(
       context,
     ).colorScheme.onSurface.withValues(alpha: 0.4);
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.wifi_off_outlined, size: 36, color: subtle),
-          const SizedBox(height: 12),
-          Text(
-            'Failed to load groups',
-            style: TextStyle(color: subtle, fontSize: 14),
-          ),
-          const SizedBox(height: 16),
-          GestureDetector(
-            onTap: onRetry,
-            child: Text(
-              'RETRY',
-              style: TextStyle(fontSize: 11, color: subtle, letterSpacing: 2.0),
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.wifi_off_outlined, size: 36, color: subtle),
+                const SizedBox(height: 12),
+                Text(
+                  'Failed to load groups',
+                  style: TextStyle(color: subtle, fontSize: 14),
+                ),
+                const SizedBox(height: 16),
+                Semantics(
+                  button: true,
+                  label: 'Retry loading groups',
+                  child: InkWell(
+                    onTap: onRetry,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      child: Text(
+                        'RETRY',
+                        style: TextStyle(fontSize: 11, color: subtle, letterSpacing: 2.0),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -344,6 +367,7 @@ class _CreateGroupModalState extends ConsumerState<_CreateGroupModal> {
   final _nameController = TextEditingController();
   final _descController = TextEditingController();
   bool _enableInviteCode = true;
+  bool _isCreating = false;
 
   @override
   void dispose() {
@@ -352,7 +376,17 @@ class _CreateGroupModalState extends ConsumerState<_CreateGroupModal> {
     super.dispose();
   }
 
-  void _create() {
+  /// 8 chars from a 32-symbol alphabet (no 0/O/1/I lookalikes) ≈ 1.1e12
+  /// combinations — replaces the old `GRP-<timestamp%9999>` scheme, whose 4
+  /// digits were guessable by brute force.
+  String _generateInviteCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    final rng = Random.secure();
+    return List.generate(8, (_) => chars[rng.nextInt(chars.length)]).join();
+  }
+
+  Future<void> _create() async {
+    if (_isCreating) return;
     if (_nameController.text.trim().isEmpty) return;
     HapticFeedback.mediumImpact();
 
@@ -376,14 +410,32 @@ class _CreateGroupModalState extends ConsumerState<_CreateGroupModal> {
       fileCount: 0,
       lastActivity: DateTime.now(),
       isWatermarkEnabled: true,
-      inviteCode: _enableInviteCode
-          ? 'GRP-${DateTime.now().millisecondsSinceEpoch % 9999}'
-          : null,
+      inviteCode: _enableInviteCode ? _generateInviteCode() : null,
     );
 
-    ref.read(groupsProvider.notifier).createGroup(newGroup);
-    Navigator.of(context).pop();
+    setState(() => _isCreating = true);
+    try {
+      await ref.read(groupsProvider.notifier).createGroup(newGroup);
+      if (mounted) Navigator.of(context).pop();
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isCreating = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to create group: ${_cleanError(e)}'),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
+
+  String _cleanError(Object e) => e
+      .toString()
+      .replaceAll('Exception: ', '')
+      .replaceAll(RegExp(r'^PostgrestException\(message: '), '')
+      .replaceAll(RegExp(r', code: .*\)$'), '');
 
   @override
   Widget build(BuildContext context) {
@@ -504,7 +556,7 @@ class _CreateGroupModalState extends ConsumerState<_CreateGroupModal> {
 
             // Create button
             GestureDetector(
-              onTap: _create,
+              onTap: _isCreating ? null : _create,
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 15),
@@ -513,15 +565,24 @@ class _CreateGroupModalState extends ConsumerState<_CreateGroupModal> {
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Center(
-                  child: Text(
-                    'CREATE GROUP',
-                    style: TextStyle(
-                      color: isDark ? Colors.black : Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.5,
-                    ),
-                  ),
+                  child: _isCreating
+                      ? SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: isDark ? Colors.black : Colors.white,
+                          ),
+                        )
+                      : Text(
+                          'CREATE GROUP',
+                          style: TextStyle(
+                            color: isDark ? Colors.black : Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.5,
+                          ),
+                        ),
                 ),
               ),
             ),

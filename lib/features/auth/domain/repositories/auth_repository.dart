@@ -20,5 +20,14 @@ abstract interface class AuthRepository {
   Future<void> signInWithPhone(String phone);
   Future<AuthenticatedUser> verifyPhoneOtp(String phone, String otp);
 
+  /// Sends a password-reset email. Never throws for "no such account" — the
+  /// caller should show the same generic confirmation either way so this
+  /// can't be used to enumerate registered emails.
+  Future<void> requestPasswordReset(String email);
+
+  /// Sets a new password. Only valid while the user holds a temporary
+  /// recovery session (see [AuthGate]'s password-recovery gate).
+  Future<void> updatePassword(String newPassword);
+
   Future<void> signOut();
 }

@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/supabase/supabase_bootstrap.dart';
 import '../../../../core/supabase/supabase_providers.dart';
@@ -41,4 +42,29 @@ final signUpUseCaseProvider = Provider<SignUpUseCase>((ref) {
 final signOutUseCaseProvider = Provider<SignOutUseCase>((ref) {
   return SignOutUseCase(ref.watch(authRepositoryProvider));
 });
+
+/// True once the user has opened a password-recovery link and is holding a
+/// temporary recovery session. [AuthGate] checks this before its normal
+/// signed-in check so recovery lands on "set a new password" instead of
+/// straight into the app with an unchanged password.
+class PasswordRecoveryNotifier extends Notifier<bool> {
+  @override
+  bool build() {
+    if (!SupabaseBootstrap.isConfigured || !SupabaseService.instance.isReachable) {
+      return false;
+    }
+    final sub = ref.watch(supabaseClientProvider).auth.onAuthStateChange.listen((state) {
+      if (state.event == AuthChangeEvent.passwordRecovery) {
+        this.state = true;
+      }
+    });
+    ref.onDispose(sub.cancel);
+    return false;
+  }
+
+  void clear() => state = false;
+}
+
+final passwordRecoveryProvider =
+    NotifierProvider<PasswordRecoveryNotifier, bool>(PasswordRecoveryNotifier.new);
 

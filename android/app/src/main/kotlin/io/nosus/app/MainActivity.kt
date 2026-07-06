@@ -3,6 +3,7 @@ package io.nosus.app
 import android.content.Intent
 import android.database.ContentObserver
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -173,9 +174,19 @@ class MainActivity : FlutterActivity() {
                 }
             } else {
                 val uris = if (Intent.ACTION_SEND_MULTIPLE == action) {
-                    intent.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM, Uri::class.java)
+                    } else {
+                        @Suppress("DEPRECATION")
+                        intent.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM)
+                    }
                 } else {
-                    val uri = intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
+                    val uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
+                    } else {
+                        @Suppress("DEPRECATION")
+                        intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
+                    }
                     if (uri != null) arrayListOf(uri) else null
                 }
 

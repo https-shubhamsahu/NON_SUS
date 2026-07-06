@@ -78,4 +78,35 @@ class GroupFile {
     if (diff.inDays < 7) return '${diff.inDays}d ago';
     return '${uploadedAt.day}/${uploadedAt.month}/${uploadedAt.year}';
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is GroupFile &&
+          id == other.id &&
+          name == other.name &&
+          type == other.type &&
+          groupId == other.groupId &&
+          uploadedBy == other.uploadedBy &&
+          ownerId == other.ownerId &&
+          uploadedAt == other.uploadedAt &&
+          sizeBytes == other.sizeBytes &&
+          isWatermarked == other.isWatermarked &&
+          isPinned == other.isPinned &&
+          securityStatus == other.securityStatus;
+
+  @override
+  int get hashCode => Object.hash(
+        id,
+        name,
+        type,
+        groupId,
+        uploadedBy,
+        ownerId,
+        uploadedAt,
+        sizeBytes,
+        isWatermarked,
+        isPinned,
+        securityStatus,
+      );
 }

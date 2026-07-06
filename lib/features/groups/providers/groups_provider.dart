@@ -1,5 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
+import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../domain/models/study_group.dart';
 import '../models/group_file.dart';
@@ -26,6 +29,7 @@ final searchQueryProvider = NotifierProvider<SearchQueryNotifier, String>(
 
 class GroupsNotifier extends AsyncNotifier<List<StudyGroup>> {
   StreamSubscription? _sub;
+  static const _cacheKey = 'groups_cache_v1';
 
   @override
   Future<List<StudyGroup>> build() async {
@@ -34,6 +38,7 @@ class GroupsNotifier extends AsyncNotifier<List<StudyGroup>> {
     _sub = repo.watchGroups().listen(
       (data) {
         state = AsyncValue.data(data);
+        _saveCache(data);
       },
       onError: (err, stack) {
         debugLog("GroupsNotifier: Realtime stream error: $err");
@@ -41,12 +46,45 @@ class GroupsNotifier extends AsyncNotifier<List<StudyGroup>> {
     );
     ref.onDispose(() => _sub?.cancel());
 
+    // Stale-while-revalidate: paint the last-known list immediately (no
+    // spinner on a warm start), then let the fetch/stream replace it.
+    final cached = await _loadCache();
+    if (cached != null && cached.isNotEmpty) {
+      state = AsyncValue.data(cached);
+    }
+
     try {
-      return await repo.getGroups();
+      final fresh = await repo.getGroups();
+      _saveCache(fresh);
+      return fresh;
     } catch (e) {
       debugLog("GroupsNotifier: REST fetch error: $e");
-      return const [];
+      // Offline with a cache beats an empty screen.
+      return cached ?? const [];
     }
+  }
+
+  Future<List<StudyGroup>?> _loadCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_cacheKey);
+      if (raw == null) return null;
+      return (jsonDecode(raw) as List<dynamic>)
+          .map((g) => StudyGroup.fromJson(g as Map<String, dynamic>))
+          .toList();
+    } catch (_) {
+      return null; // corrupt/old-schema cache is simply ignored
+    }
+  }
+
+  Future<void> _saveCache(List<StudyGroup> groups) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        _cacheKey,
+        jsonEncode(groups.map((g) => g.toJson()).toList()),
+      );
+    } catch (_) {}
   }
 
   Future<void> createGroup(StudyGroup group) async {
@@ -55,7 +93,10 @@ class GroupsNotifier extends AsyncNotifier<List<StudyGroup>> {
       final repo = ref.read(studyGroupRepositoryProvider);
       await repo.createGroup(group);
     } catch (e, st) {
+      // Re-thrown (not just stored in state) so callers that await this can
+      // actually show the failure instead of treating it as success.
       state = AsyncValue.error(e, st);
+      rethrow;
     }
   }
 
@@ -69,6 +110,7 @@ class GroupsNotifier extends AsyncNotifier<List<StudyGroup>> {
       }
     } catch (e, st) {
       state = AsyncValue.error(e, st);
+      rethrow;
     }
   }
 
@@ -84,6 +126,7 @@ class GroupsNotifier extends AsyncNotifier<List<StudyGroup>> {
       }
     } catch (e, st) {
       state = AsyncValue.error(e, st);
+      rethrow;
     }
   }
 
@@ -142,6 +185,7 @@ final filteredGroupsProvider = Provider<AsyncValue<List<StudyGroup>>>((ref) {
 
 class GroupFilesNotifier extends AsyncNotifier<Map<String, List<GroupFile>>> {
   StreamSubscription? _sub;
+  static const _listEquality = ListEquality<GroupFile>();
 
   @override
   Future<Map<String, List<GroupFile>>> build() async {
@@ -149,12 +193,7 @@ class GroupFilesNotifier extends AsyncNotifier<Map<String, List<GroupFile>>> {
     _sub?.cancel();
     _sub = repo.watchAllFiles().listen(
       (data) {
-        final Map<String, List<GroupFile>> filesMap = {};
-        for (final file in data) {
-          final groupFile = _mapMetadata(file);
-          filesMap.putIfAbsent(file.groupId, () => []).add(groupFile);
-        }
-        state = AsyncValue.data(filesMap);
+        state = AsyncValue.data(_buildFilesMap(data));
       },
       onError: (err, stack) {
         // Just log the error (e.g. websocket offline) to keep the REST data visible
@@ -165,16 +204,36 @@ class GroupFilesNotifier extends AsyncNotifier<Map<String, List<GroupFile>>> {
 
     try {
       final initialData = await repo.getAllFiles();
-      final Map<String, List<GroupFile>> filesMap = {};
-      for (final file in initialData) {
-        final groupFile = _mapMetadata(file);
-        filesMap.putIfAbsent(file.groupId, () => []).add(groupFile);
-      }
-      return filesMap;
+      return _buildFilesMap(initialData);
     } catch (e) {
       debugLog("GroupFilesNotifier: REST fetch error: $e");
       return const {};
     }
+  }
+
+  /// Groups the flat file list by groupId, reusing the previous state's list
+  /// instance for any group whose files didn't actually change content —
+  /// this is what lets `groupFilesForGroupProvider`'s `.select()` correctly
+  /// skip rebuilding widgets for groups that weren't touched by an update
+  /// (Dart's `List` uses identity equality, so a scoped `.select()` only
+  /// short-circuits when it gets back the *same* list object).
+  Map<String, List<GroupFile>> _buildFilesMap(List<SecureFileMetadata> data) {
+    final previous = state.value;
+    final grouped = <String, List<GroupFile>>{};
+    for (final file in data) {
+      grouped.putIfAbsent(file.groupId, () => []).add(_mapMetadata(file));
+    }
+    if (previous == null) return grouped;
+
+    final filesMap = <String, List<GroupFile>>{};
+    for (final entry in grouped.entries) {
+      final oldList = previous[entry.key];
+      filesMap[entry.key] =
+          oldList != null && _listEquality.equals(oldList, entry.value)
+              ? oldList
+              : entry.value;
+    }
+    return filesMap;
   }
 
   void addFile(String groupId, GroupFile file) {
@@ -230,6 +289,19 @@ final groupFilesProvider =
     AsyncNotifierProvider<GroupFilesNotifier, Map<String, List<GroupFile>>>(
       GroupFilesNotifier.new,
     );
+
+/// Files for a single group, derived from [groupFilesProvider] with a
+/// content-aware `.select()` (via [GroupFile]'s value equality) so a
+/// single-group screen only rebuilds when *that* group's files actually
+/// change, not on every unrelated group's update.
+final groupFilesForGroupProvider =
+    Provider.family<AsyncValue<List<GroupFile>>, String>((ref, groupId) {
+  return ref.watch(
+    groupFilesProvider.select(
+      (async) => async.whenData((map) => map[groupId] ?? const <GroupFile>[]),
+    ),
+  );
+});
 
 final allProfilesProvider = FutureProvider<List<GroupMember>>((ref) async {
   if (SupabaseService.instance.isReachable) {

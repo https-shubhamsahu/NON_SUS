@@ -1,22 +1,26 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:encrypt/encrypt.dart' as enc;
+import '../../../../core/mascot/mascot_controller.dart';
+import '../../../../core/mascot/mascot_state.dart';
+import '../../../../core/mascot/mascot_view.dart';
 
 String _bytesToHex(List<int> bytes) {
   return bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
 }
 
-class BurnNoteCreatorScreen extends StatefulWidget {
+class BurnNoteCreatorScreen extends ConsumerStatefulWidget {
   const BurnNoteCreatorScreen({super.key});
 
   @override
-  State<BurnNoteCreatorScreen> createState() => _BurnNoteCreatorScreenState();
+  ConsumerState<BurnNoteCreatorScreen> createState() => _BurnNoteCreatorScreenState();
 }
 
-class _BurnNoteCreatorScreenState extends State<BurnNoteCreatorScreen> {
+class _BurnNoteCreatorScreenState extends ConsumerState<BurnNoteCreatorScreen> {
   final _textController = TextEditingController();
   bool _isGenerating = false;
   String? _generatedLink;
@@ -39,6 +43,7 @@ class _BurnNoteCreatorScreenState extends State<BurnNoteCreatorScreen> {
     setState(() {
       _isGenerating = true;
     });
+    ref.read(noxMascotProvider.notifier).play(MascotMood.guard);
 
     try {
       // 1. Generate 256-bit AES Key and 128-bit IV
@@ -75,10 +80,12 @@ class _BurnNoteCreatorScreenState extends State<BurnNoteCreatorScreen> {
         _generatedLink = link;
         _isGenerating = false;
       });
+      ref.read(noxMascotProvider.notifier).play(MascotMood.approve);
     } catch (e) {
       setState(() {
         _isGenerating = false;
       });
+      ref.read(noxMascotProvider.notifier).play(MascotMood.alert);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to generate link: $e')),
@@ -159,10 +166,17 @@ class _BurnNoteCreatorScreenState extends State<BurnNoteCreatorScreen> {
                       controller: _textController,
                       maxLines: null,
                       expands: true,
+                      // Well under the server's 100 KB ciphertext cap, so a
+                      // legitimate note can never hit the raw DB error.
+                      maxLength: 10000,
                       style: const TextStyle(fontSize: 14),
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         hintText: 'Type your secret message here...',
                         border: InputBorder.none,
+                        counterStyle: TextStyle(
+                          fontSize: 9,
+                          color: fg.withValues(alpha: 0.35),
+                        ),
                       ),
                     ),
                   ),
@@ -195,7 +209,11 @@ class _BurnNoteCreatorScreenState extends State<BurnNoteCreatorScreen> {
                   child: Column(
                     children: [
                       const SizedBox(height: 20),
-                      const Icon(Icons.verified_user_outlined, size: 48, color: Colors.green),
+                      MascotView(
+                        character: MascotCharacter.nox,
+                        size: 48,
+                        fallback: const Icon(Icons.verified_user_outlined, size: 48, color: Colors.green),
+                      ),
                       const SizedBox(height: 16),
                       const Text(
                         'SECRET NOTE SEALED',

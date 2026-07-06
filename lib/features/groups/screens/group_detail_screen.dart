@@ -43,9 +43,8 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
 
     if (widget.highlightedFileId != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        final filesAsync = ref.read(groupFilesProvider);
-        filesAsync.whenData((filesMap) {
-          final files = filesMap[widget.group.id] ?? [];
+        final filesAsync = ref.read(groupFilesForGroupProvider(widget.group.id));
+        filesAsync.whenData((files) {
           final matched = files.firstWhere(
             (f) => f.id == widget.highlightedFileId,
             orElse: () => GroupFile(
@@ -498,23 +497,32 @@ class _FilesTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final filesAsync = ref.watch(groupFilesProvider);
+    final filesAsync = ref.watch(groupFilesForGroupProvider(group.id));
 
     return filesAsync.when(
       loading: () =>
           const Center(child: CircularProgressIndicator(strokeWidth: 1.5)),
       error: (e, _) => Center(
-        child: Text(
-          'Failed to load files',
-          style: TextStyle(
-            color: Theme.of(
-              context,
-            ).colorScheme.onSurface.withValues(alpha: 0.4),
-          ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Failed to load files',
+              style: TextStyle(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.4),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () => ref.invalidate(groupFilesProvider),
+              child: const Text('RETRY', style: TextStyle(fontSize: 11, letterSpacing: 1.5)),
+            ),
+          ],
         ),
       ),
-      data: (filesMap) {
-        final allFiles = filesMap[group.id] ?? [];
+      data: (allFiles) {
         final files = allFiles.where((f) => f.type != FileType.markdown).toList();
         
         return files.isEmpty
@@ -626,21 +634,25 @@ class _NotesTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final filesAsync = ref.watch(groupFilesProvider);
+    final filesAsync = ref.watch(groupFilesForGroupProvider(group.id));
 
     return filesAsync.when(
       loading: () =>
           const Center(child: CircularProgressIndicator(strokeWidth: 1.5)),
       error: (e, _) => Center(
-        child: Text(
-          'Failed to load notes',
-          style: TextStyle(
-            color: subtle,
-          ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Failed to load notes', style: TextStyle(color: subtle)),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () => ref.invalidate(groupFilesProvider),
+              child: const Text('RETRY', style: TextStyle(fontSize: 11, letterSpacing: 1.5)),
+            ),
+          ],
         ),
       ),
-      data: (filesMap) {
-        final allFiles = filesMap[group.id] ?? [];
+      data: (allFiles) {
         final notes = allFiles.where((f) => f.type == FileType.markdown).toList();
 
         if (notes.isEmpty) {
@@ -1120,12 +1132,21 @@ class _MembersTab extends ConsumerWidget {
                     ),
                   if (canKick) ...[
                     const SizedBox(width: 12),
-                    GestureDetector(
-                      onTap: () => _confirmRemoveMember(context, ref, member),
-                      child: Icon(
-                        Icons.person_remove_outlined,
-                        size: 18,
-                        color: Colors.redAccent.withValues(alpha: 0.8),
+                    Semantics(
+                      button: true,
+                      label: 'Remove ${member.name} from group',
+                      child: InkWell(
+                        onTap: () => _confirmRemoveMember(context, ref, member),
+                        borderRadius: BorderRadius.circular(20),
+                        child: Container(
+                          constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                          alignment: Alignment.center,
+                          child: Icon(
+                            Icons.person_remove_outlined,
+                            size: 18,
+                            color: Colors.redAccent.withValues(alpha: 0.8),
+                          ),
+                        ),
                       ),
                     ),
                   ],

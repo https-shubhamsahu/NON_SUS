@@ -1,13 +1,17 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'models/viewer_config.dart';
+import '../../core/mascot/mascot_controller.dart';
+import '../../core/mascot/mascot_state.dart';
+import '../../core/mascot/mascot_view.dart';
 
 /// Core touch-blur engine for the NO SUS secure document viewer.
 ///
 /// Obscures the entire canvas behind a blur/mask overlay by default.
 /// When the user touches the screen, the entire blur layer animates to clear (unblurred),
 /// allowing view of the whole screen. When the finger lifts, it blurs again.
-class BlurRevealLayer extends StatefulWidget {
+class BlurRevealLayer extends ConsumerStatefulWidget {
   /// The protected document content. Wrapped in [RepaintBoundary] internally.
   final Widget child;
 
@@ -29,10 +33,10 @@ class BlurRevealLayer extends StatefulWidget {
   });
 
   @override
-  State<BlurRevealLayer> createState() => _BlurRevealLayerState();
+  ConsumerState<BlurRevealLayer> createState() => _BlurRevealLayerState();
 }
 
-class _BlurRevealLayerState extends State<BlurRevealLayer>
+class _BlurRevealLayerState extends ConsumerState<BlurRevealLayer>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
 
@@ -47,6 +51,10 @@ class _BlurRevealLayerState extends State<BlurRevealLayer>
       value: 1.0, // Start fully blurred/concealed (1.0 = concealed, 0.0 = revealed)
       vsync: this,
     );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Blurred on open — Nox is guarding this document.
+      if (mounted) ref.read(noxMascotProvider.notifier).play(MascotMood.protect);
+    });
   }
 
   @override
@@ -66,6 +74,8 @@ class _BlurRevealLayerState extends State<BlurRevealLayer>
         duration: widget.config.revealDuration,
         curve: widget.config.revealCurve,
       );
+      // The reveal tap is the exact moment Nox nods it through.
+      ref.read(noxMascotProvider.notifier).play(MascotMood.approve);
     }
   }
 
@@ -78,6 +88,7 @@ class _BlurRevealLayerState extends State<BlurRevealLayer>
         duration: widget.config.concealDuration,
         curve: widget.config.concealCurve,
       );
+      ref.read(noxMascotProvider.notifier).play(MascotMood.protect);
     }
   }
 
@@ -158,10 +169,14 @@ class _TouchRevealHint extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                Icons.touch_app_outlined,
+              MascotView(
+                character: MascotCharacter.nox,
                 size: 28,
-                color: textColor.withValues(alpha: 0.35),
+                fallback: Icon(
+                  Icons.touch_app_outlined,
+                  size: 28,
+                  color: textColor.withValues(alpha: 0.35),
+                ),
               ),
               const SizedBox(height: 10),
               Text(

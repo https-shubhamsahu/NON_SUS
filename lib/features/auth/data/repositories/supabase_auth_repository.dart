@@ -60,6 +60,12 @@ class SupabaseAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<void> requestPasswordReset(String email) => _service.requestPasswordReset(email);
+
+  @override
+  Future<void> updatePassword(String newPassword) => _service.updatePassword(newPassword);
+
+  @override
   Future<void> signOut() => _service.signOut();
 
   AuthenticatedUser _mapUser(User user) {

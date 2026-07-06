@@ -45,7 +45,7 @@ class _JoinGroupPageState extends ConsumerState<JoinGroupPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to join: ${e.toString().replaceAll("Exception: ", "")}'),
+            content: Text('Failed to join: ${_cleanError(e)}'),
             backgroundColor: Colors.redAccent,
             behavior: SnackBarBehavior.floating,
           ),
@@ -57,6 +57,12 @@ class _JoinGroupPageState extends ConsumerState<JoinGroupPage> {
       }
     }
   }
+
+  String _cleanError(Object e) => e
+      .toString()
+      .replaceAll('Exception: ', '')
+      .replaceAll(RegExp(r'^PostgrestException\(message: '), '')
+      .replaceAll(RegExp(r', code: .*\)$'), '');
 
   @override
   Widget build(BuildContext context) {

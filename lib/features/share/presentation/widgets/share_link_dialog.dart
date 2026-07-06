@@ -5,6 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../providers/share_providers.dart';
+import '../../../../core/mascot/mascot_controller.dart';
+import '../../../../core/mascot/mascot_state.dart';
+import '../../../../core/mascot/mascot_view.dart';
 
 /// Creates a share link for [fileId] and shows it in a copyable dialog.
 ///
@@ -41,8 +44,17 @@ class _ShareLinkDialogState extends ConsumerState<_ShareLinkDialog> {
   String? _url;
   String? _error;
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) ref.read(luxMascotProvider.notifier).play(MascotMood.guide);
+    });
+  }
+
   Future<void> _create() async {
     setState(() => _step = _Step.creating);
+    ref.read(noxMascotProvider.notifier).play(MascotMood.verify);
     try {
       final link = await ref.read(shareRepositoryProvider).createShareLink(
             widget.fileId,
@@ -57,6 +69,7 @@ class _ShareLinkDialogState extends ConsumerState<_ShareLinkDialog> {
         _url = '$origin/?cb=$cb#/v/${link.token}';
         _step = _Step.ready;
       });
+      ref.read(noxMascotProvider.notifier).play(MascotMood.approve);
     } catch (e, s) {
       debugPrint('ShareLinkDialog: Failed to create share link: $e\n$s');
       if (!mounted) return;
@@ -65,6 +78,7 @@ class _ShareLinkDialogState extends ConsumerState<_ShareLinkDialog> {
             'this file can share it.';
         _step = _Step.error;
       });
+      ref.read(noxMascotProvider.notifier).play(MascotMood.alert);
     }
   }
 
@@ -74,8 +88,20 @@ class _ShareLinkDialogState extends ConsumerState<_ShareLinkDialog> {
 
     return AlertDialog(
       backgroundColor: isDark ? const Color(0xFF141414) : Colors.white,
-      title: const Text('SHARE LINK',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          MascotView(
+            character: _step == _Step.settings
+                ? MascotCharacter.lux
+                : MascotCharacter.nox,
+            size: 24,
+          ),
+          const SizedBox(width: 8),
+          const Text('SHARE LINK',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+        ],
+      ),
       content: SizedBox(
         width: 320,
         child: switch (_step) {

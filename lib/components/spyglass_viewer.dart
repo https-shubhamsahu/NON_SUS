@@ -194,8 +194,6 @@ class _SpyglassViewerState extends ConsumerState<SpyglassViewer> {
     }
   }
 
-  // Removed _getDocumentText and _getAvatarLabel, now using MockDocuments and AppConstants
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -429,6 +427,12 @@ class _SpyglassViewerState extends ConsumerState<SpyglassViewer> {
           ? PdfViewer.data(
               buffer!,
               sourceName: widget.documentTitle ?? 'document.pdf',
+              // Text selection off: it's a copy-out leak in a protected
+              // viewer, and pdfrx 2.4.4's selection painter crashes on
+              // pages with no extractable text (StateError: No element).
+              params: const PdfViewerParams(
+                textSelectionParams: PdfTextSelectionParams(enabled: false),
+              ),
             )
           : _isImage
               ? InteractiveViewer(

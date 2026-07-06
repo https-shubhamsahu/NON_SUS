@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import '../../../../theme.dart';
 import '../../../../config/supabase_credentials.dart';
+import '../../../../core/mascot/mascot_state.dart';
+import '../../../../core/mascot/mascot_view.dart';
 
 class AdvancedSettingsScreen extends ConsumerStatefulWidget {
   const AdvancedSettingsScreen({super.key});
@@ -68,13 +70,20 @@ class _AdvancedSettingsScreenState extends ConsumerState<AdvancedSettingsScreen>
           icon: Icon(Icons.arrow_back, color: fg),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Text(
-          'ADVANCED SETTINGS',
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-            letterSpacing: 2.0,
-            fontSize: 14,
-          ),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'ADVANCED SETTINGS',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                letterSpacing: 2.0,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(width: 8),
+            const MascotView(character: MascotCharacter.nox, size: 18),
+          ],
         ),
         centerTitle: true,
       ),

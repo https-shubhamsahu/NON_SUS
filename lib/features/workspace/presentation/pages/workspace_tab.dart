@@ -15,6 +15,9 @@ import '../../../focus/providers/focus_provider.dart';
 import '../../providers/recently_saved_provider.dart';
 import '../../../files/presentation/providers/upload_provider.dart';
 import '../../../share/presentation/screens/burn_note_creator_screen.dart';
+import '../../../../core/mascot/mascot_controller.dart';
+import '../../../../core/mascot/mascot_state.dart';
+import '../../../../core/mascot/mascot_view.dart';
 /// Tab 0 — Workspace Dashboard
 /// Welcome banner + Study chart + Secure notepad.
 class WorkspaceTab extends ConsumerStatefulWidget {
@@ -37,6 +40,8 @@ class _WorkspaceTabState extends ConsumerState<WorkspaceTab>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // First time this tab is built this session — Lux orients, once.
+      ref.read(luxMascotProvider.notifier).play(MascotMood.lookAround);
       final user = ref.read(authRepositoryProvider).currentUser;
       if (user != null && mounted) {
         final content = await SupabaseService.instance.fetchUserNote(user.id);
@@ -98,9 +103,16 @@ class _WorkspaceTabState extends ConsumerState<WorkspaceTab>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Welcome, ${displayName.toUpperCase()}',
-                  style: theme.textTheme.displayMedium,
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Welcome, ${displayName.toUpperCase()}',
+                        style: theme.textTheme.displayMedium,
+                      ),
+                    ),
+                    const MascotView(character: MascotCharacter.lux, size: 32),
+                  ],
                 ),
                 const SizedBox(height: NoSusTheme.s4),
                 Text(

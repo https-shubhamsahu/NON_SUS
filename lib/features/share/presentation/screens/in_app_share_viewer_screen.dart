@@ -186,7 +186,15 @@ class __InAppShareViewerContentState
     Widget docWidget;
     switch (result.fileType) {
       case 'pdf':
-        docWidget = PdfViewer.data(bytes, sourceName: result.fileName);
+        docWidget = PdfViewer.data(
+          bytes,
+          sourceName: result.fileName,
+          // No text selection in the protected viewer (copy leak + pdfrx
+          // 2.4.4 selection painter crash on textless pages).
+          params: const PdfViewerParams(
+            textSelectionParams: PdfTextSelectionParams(enabled: false),
+          ),
+        );
         break;
       case 'image':
       case 'scan':

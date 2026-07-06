@@ -2,9 +2,13 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:universal_html/html.dart' as html;
 import 'package:encrypt/encrypt.dart' as enc;
+import '../../../../core/mascot/mascot_controller.dart';
+import '../../../../core/mascot/mascot_state.dart';
+import '../../../../core/mascot/mascot_view.dart';
 
 List<int> _hexToBytes(String hex) {
   final bytes = <int>[];
@@ -14,7 +18,7 @@ List<int> _hexToBytes(String hex) {
   return bytes;
 }
 
-class BurnNoteViewerScreen extends StatefulWidget {
+class BurnNoteViewerScreen extends ConsumerStatefulWidget {
   const BurnNoteViewerScreen({
     super.key,
     required this.noteId,
@@ -27,12 +31,12 @@ class BurnNoteViewerScreen extends StatefulWidget {
   final String ivHex;
 
   @override
-  State<BurnNoteViewerScreen> createState() => _BurnNoteViewerScreenState();
+  ConsumerState<BurnNoteViewerScreen> createState() => _BurnNoteViewerScreenState();
 }
 
 enum _BurnStage { gate, decrypting, active, burned, error }
 
-class _BurnNoteViewerScreenState extends State<BurnNoteViewerScreen> {
+class _BurnNoteViewerScreenState extends ConsumerState<BurnNoteViewerScreen> {
   _BurnStage _stage = _BurnStage.gate;
   String? _decryptedContent;
   String? _errorMessage;
@@ -55,6 +59,7 @@ class _BurnNoteViewerScreenState extends State<BurnNoteViewerScreen> {
       _decryptedContent = null;
       _stage = _BurnStage.burned;
     });
+    ref.read(noxMascotProvider.notifier).play(MascotMood.returnToLogo);
   }
 
   Future<void> _reveal() async {
@@ -90,6 +95,7 @@ class _BurnNoteViewerScreenState extends State<BurnNoteViewerScreen> {
         _decryptedContent = decrypted;
         _stage = _BurnStage.active;
       });
+      ref.read(noxMascotProvider.notifier).play(MascotMood.guard);
 
       // 3. Start 60s countdown
       _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -99,6 +105,9 @@ class _BurnNoteViewerScreenState extends State<BurnNoteViewerScreen> {
           setState(() {
             _secondsLeft--;
           });
+          if (_secondsLeft == 10) {
+            ref.read(noxMascotProvider.notifier).play(MascotMood.alert);
+          }
         }
       });
 
@@ -114,6 +123,7 @@ class _BurnNoteViewerScreenState extends State<BurnNoteViewerScreen> {
         _stage = _BurnStage.error;
         _errorMessage = e.toString().replaceFirst('Exception: ', '');
       });
+      ref.read(noxMascotProvider.notifier).play(MascotMood.alert);
     }
   }
 
@@ -207,11 +217,13 @@ class _BurnNoteViewerScreenState extends State<BurnNoteViewerScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Row(
+            Row(
               children: [
-                Icon(Icons.local_fire_department, size: 16, color: Colors.orangeAccent),
-                SizedBox(width: 6),
-                Text(
+                const Icon(Icons.local_fire_department, size: 16, color: Colors.orangeAccent),
+                const SizedBox(width: 6),
+                const MascotView(character: MascotCharacter.nox, size: 18),
+                const SizedBox(width: 6),
+                const Text(
                   'BURN-ON-READ ACTIVE',
                   style: TextStyle(fontSize: 10, color: Colors.orangeAccent, fontWeight: FontWeight.bold),
                 ),
@@ -274,10 +286,11 @@ class _BurnNoteViewerScreenState extends State<BurnNoteViewerScreen> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(Icons.whatshot, size: 56, color: Colors.grey)
-            .animate()
-            .shake(duration: 400.ms)
-            .fadeOut(duration: 800.ms),
+        MascotView(
+          character: MascotCharacter.duo,
+          size: 56,
+          fallback: const Icon(Icons.whatshot, size: 56, color: Colors.grey),
+        ).animate().shake(duration: 400.ms).fadeOut(duration: 800.ms),
         const SizedBox(height: 24),
         const Text(
           'SECRET ZEROIZED',
@@ -297,7 +310,11 @@ class _BurnNoteViewerScreenState extends State<BurnNoteViewerScreen> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
+        MascotView(
+          character: MascotCharacter.nox,
+          size: 48,
+          fallback: const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
+        ),
         const SizedBox(height: 20),
         Text(
           _errorMessage ?? 'Failed to decrypt note.',

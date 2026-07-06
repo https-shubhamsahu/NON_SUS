@@ -2,6 +2,10 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/mascot/mascot_controller.dart';
+import '../core/mascot/mascot_state.dart';
+import '../core/mascot/mascot_view.dart';
+
 class VideoSplashScreen extends ConsumerStatefulWidget {
   final Widget nextScreen;
 
@@ -31,6 +35,13 @@ class _VideoSplashScreenState extends ConsumerState<VideoSplashScreen>
         _navigateToNextScreen();
       }
     });
+
+    // Session bookend (see docs/design/MASCOT_MOTION_BIBLE.md): Lux+Nox wake
+    // together only here and at logout — deferred a frame so this doesn't
+    // mutate provider state mid-build.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) ref.read(duoMascotProvider.notifier).play(MascotMood.wake);
+    });
   }
 
   @override
@@ -43,6 +54,7 @@ class _VideoSplashScreenState extends ConsumerState<VideoSplashScreen>
     if (_navigated) return;
     if (mounted) {
       _navigated = true;
+      ref.read(duoMascotProvider.notifier).play(MascotMood.returnToLogo);
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
           pageBuilder: (context, animation, secondaryAnimation) => widget.nextScreen,
@@ -67,14 +79,35 @@ class _VideoSplashScreenState extends ConsumerState<VideoSplashScreen>
           builder: (context, child) {
             // Use a time-seeded random each frame for live noise
             final frameSeed = (_controller.value * 10000).toInt();
-            return CustomPaint(
-              painter: PixelSplashPainter(
-                progress: _controller.value,
-                random: _random,
-                frameSeed: frameSeed,
-                isLight: true,
-              ),
-              child: const SizedBox.expand(),
+            return Stack(
+              children: [
+                CustomPaint(
+                  painter: PixelSplashPainter(
+                    progress: _controller.value,
+                    random: _random,
+                    frameSeed: frameSeed,
+                    isLight: true,
+                  ),
+                  child: const SizedBox.expand(),
+                ),
+                // Fades in only as the boot sequence completes — the one
+                // moment Lux+Nox appear together, per the Scarcity rule.
+                if (_controller.value > 0.85)
+                  Positioned(
+                    bottom: 64,
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: Opacity(
+                        opacity: ((_controller.value - 0.85) / 0.15).clamp(0.0, 1.0),
+                        child: const MascotView(
+                          character: MascotCharacter.duo,
+                          size: 40,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             );
           },
         ),

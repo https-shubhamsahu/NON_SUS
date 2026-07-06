@@ -12,6 +12,9 @@ import '../../auth/presentation/providers/auth_providers.dart';
 import '../../profile/providers/profile_provider.dart';
 import '../../files/presentation/providers/upload_provider.dart';
 import '../../../core/utils/debug_logger.dart';
+import '../../../core/mascot/mascot_controller.dart';
+import '../../../core/mascot/mascot_state.dart';
+import '../../../core/mascot/mascot_view.dart';
 
 /// Premium upload bottom sheet. Slides up via DraggableScrollableSheet.
 /// States: pick/link → processing (animated progress) → complete (checkmark).
@@ -212,6 +215,22 @@ class _UploadModalState extends ConsumerState<UploadModal>
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<UploadState>(uploadProvider, (previous, next) {
+      if (next.stage == previous?.stage) return;
+      switch (next.stage) {
+        case UploadStage.processing:
+          ref.read(luxMascotProvider.notifier).play(MascotMood.think);
+          break;
+        case UploadStage.complete:
+          ref.read(luxMascotProvider.notifier).play(MascotMood.celebrate);
+          break;
+        case UploadStage.error:
+          ref.read(noxMascotProvider.notifier).play(MascotMood.alert);
+          break;
+        default:
+          break;
+      }
+    });
     final upload = ref.watch(uploadProvider);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -609,6 +628,9 @@ class _ProcessingState extends StatelessWidget {
           ),
           const SizedBox(height: 24),
 
+          const Center(child: MascotView(character: MascotCharacter.lux, size: 32)),
+          const SizedBox(height: 12),
+
           // Progress track
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
@@ -687,6 +709,8 @@ class _CompleteState extends StatelessWidget {
               painter: _CheckPainter(progress: checkProgress.value, color: fg),
             ),
           ),
+          const SizedBox(height: 8),
+          const MascotView(character: MascotCharacter.lux, size: 28),
           const SizedBox(height: 16),
           Text(
             'Secured & Uploaded',
@@ -727,10 +751,14 @@ class _ErrorState extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: NoSusTheme.s24),
       child: Column(
         children: [
-          Icon(
-            Icons.error_outline,
+          MascotView(
+            character: MascotCharacter.nox,
             size: 40,
-            color: Colors.red.withValues(alpha: 0.7),
+            fallback: Icon(
+              Icons.error_outline,
+              size: 40,
+              color: Colors.red.withValues(alpha: 0.7),
+            ),
           ),
           const SizedBox(height: 12),
           Text(message, style: TextStyle(color: fg, fontSize: 16)),

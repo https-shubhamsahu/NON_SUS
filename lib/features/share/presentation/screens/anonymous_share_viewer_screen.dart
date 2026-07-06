@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:pdfrx/pdfrx.dart';
 import 'package:universal_html/html.dart' as html;
@@ -13,6 +14,9 @@ import '../../../../components/secure_viewer/secure_document_viewer.dart';
 import '../../data/share_fetch_client.dart';
 import '../../data/share_heartbeat_client.dart';
 import '../../domain/entities/share_link.dart';
+import '../../../../core/mascot/mascot_controller.dart';
+import '../../../../core/mascot/mascot_state.dart';
+import '../../../../core/mascot/mascot_view.dart';
 
 /// SecureSend's anonymous recipient view. Deliberately NOT a [ConsumerWidget]
 /// and NOT wired to any Supabase session — a share-link recipient may have no
@@ -25,20 +29,20 @@ import '../../domain/entities/share_link.dart';
 /// HONESTY RULE: this is a browser. Screenshot-blocking is impossible here —
 /// protection is watermark-with-identity + blur-until-touch + view logging.
 /// Never claim "screenshot-proof" in this screen's copy.
-class AnonymousShareViewerScreen extends StatefulWidget {
+class AnonymousShareViewerScreen extends ConsumerStatefulWidget {
   const AnonymousShareViewerScreen({super.key, required this.token});
 
   final String token;
 
   @override
-  State<AnonymousShareViewerScreen> createState() =>
+  ConsumerState<AnonymousShareViewerScreen> createState() =>
       _AnonymousShareViewerScreenState();
 }
 
 enum _Stage { appPrompt, emailGate, loading, viewing, error }
 
 class _AnonymousShareViewerScreenState
-    extends State<AnonymousShareViewerScreen> {
+    extends ConsumerState<AnonymousShareViewerScreen> {
   _Stage _stage = _Stage.emailGate;
   final _emailController = TextEditingController();
   String? _errorMessage;
@@ -119,6 +123,7 @@ class _AnonymousShareViewerScreenState
       _stage = _Stage.loading;
       _errorMessage = null;
     });
+    ref.read(noxMascotProvider.notifier).play(MascotMood.verify);
 
     try {
       final result = await ShareFetchClient.instance.fetch(
@@ -135,6 +140,7 @@ class _AnonymousShareViewerScreenState
         _bytes = bytesRes.bodyBytes;
         _stage = _Stage.viewing;
       });
+      ref.read(noxMascotProvider.notifier).play(MascotMood.approve);
       if (result.viewEventId != null) {
         _startHeartbeat(result.viewEventId!);
       }
@@ -144,6 +150,7 @@ class _AnonymousShareViewerScreenState
         _stage = _Stage.error;
         _errorMessage = e.toString().replaceFirst('Exception: ', '');
       });
+      ref.read(noxMascotProvider.notifier).play(MascotMood.alert);
     }
   }
 
@@ -282,7 +289,11 @@ class _AnonymousShareViewerScreenState
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.lock_outline, size: 36, color: Colors.white70),
+              MascotView(
+                character: MascotCharacter.nox,
+                size: 36,
+                fallback: const Icon(Icons.lock_outline, size: 36, color: Colors.white70),
+              ),
               const SizedBox(height: 16),
               Text(
                 'RECIPROCITY VERIFICATION',
@@ -384,7 +395,11 @@ class _AnonymousShareViewerScreenState
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, size: 40, color: Colors.redAccent),
+            MascotView(
+              character: MascotCharacter.nox,
+              size: 40,
+              fallback: const Icon(Icons.error_outline, size: 40, color: Colors.redAccent),
+            ),
             const SizedBox(height: 16),
             Text(
               _errorMessage ?? 'ACCESS DENIED OR EXPIRED.',
@@ -429,7 +444,15 @@ class _AnonymousShareViewerScreenState
     Widget child;
     switch (result.fileType) {
       case 'pdf':
-        child = PdfViewer.data(bytes, sourceName: result.fileName);
+        child = PdfViewer.data(
+          bytes,
+          sourceName: result.fileName,
+          // No text selection in the protected viewer (copy leak + pdfrx
+          // 2.4.4 selection painter crash on textless pages).
+          params: const PdfViewerParams(
+            textSelectionParams: PdfTextSelectionParams(enabled: false),
+          ),
+        );
         break;
       case 'image':
       case 'scan':

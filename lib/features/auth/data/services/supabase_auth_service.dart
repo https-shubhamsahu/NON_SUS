@@ -74,6 +74,17 @@ class SupabaseAuthService {
     return _requireUser(response);
   }
 
+  Future<void> requestPasswordReset(String email) async {
+    await _client.auth.resetPasswordForEmail(
+      email.trim(),
+      redirectTo: kIsWeb ? null : 'io.supabase.nosus://login-callback',
+    );
+  }
+
+  Future<void> updatePassword(String newPassword) async {
+    await _client.auth.updateUser(UserAttributes(password: newPassword));
+  }
+
   Future<void> signOut() => _client.auth.signOut();
 
   User _requireUser(AuthResponse response) {

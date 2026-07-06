@@ -78,6 +78,30 @@ class AuthController extends Notifier<AsyncValue<void>> {
       state = AsyncValue.error(error, stackTrace);
     }
   }
+
+  /// Always resolves to loading->data on success — callers should show the
+  /// same generic confirmation regardless of whether the account exists, so
+  /// this can't be used to enumerate registered emails. Real failures (e.g.
+  /// network down) still surface as an error state.
+  Future<void> requestPasswordReset(String email) async {
+    state = const AsyncValue.loading();
+    try {
+      await ref.read(authRepositoryProvider).requestPasswordReset(email);
+      state = const AsyncValue.data(null);
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+    }
+  }
+
+  Future<void> updatePassword(String newPassword) async {
+    state = const AsyncValue.loading();
+    try {
+      await ref.read(authRepositoryProvider).updatePassword(newPassword);
+      state = const AsyncValue.data(null);
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+    }
+  }
 }
 
 final authControllerProvider =

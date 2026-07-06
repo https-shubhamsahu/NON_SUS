@@ -4,6 +4,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../theme.dart';
 import '../../../groups/models/group_file.dart';
 import '../../../groups/providers/groups_provider.dart';
+import '../../../../core/mascot/mascot_state.dart';
+import '../../../../core/mascot/mascot_view.dart';
 
 class VaultTab extends ConsumerStatefulWidget {
   final ValueChanged<String> onRevealRequested;
@@ -75,10 +77,16 @@ class _VaultTabState extends ConsumerState<VaultTab>
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
-                            Icons.folder_off_outlined,
+                          // Nothing to guard yet — Nox waits. (Falls back to
+                          // the original folder icon until nox.riv exists.)
+                          MascotView(
+                            character: MascotCharacter.nox,
                             size: 48,
-                            color: fg.withValues(alpha: 0.25),
+                            fallback: Icon(
+                              Icons.folder_off_outlined,
+                              size: 48,
+                              color: fg.withValues(alpha: 0.25),
+                            ),
                           ),
                           const SizedBox(height: 16),
                           Text(

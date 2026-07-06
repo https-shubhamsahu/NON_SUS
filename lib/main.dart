@@ -36,6 +36,8 @@ import 'features/share/domain/entities/share_link.dart';
 import 'package:app_links/app_links.dart';
 import 'features/config/data/remote_config_service.dart';
 import 'features/config/presentation/providers/config_provider.dart';
+import 'core/mascot/mascot_state.dart';
+import 'core/mascot/mascot_view.dart';
 
 
 import 'features/share/presentation/screens/burn_note_viewer_screen.dart';
@@ -121,16 +123,21 @@ void main() async {
       // rejoins the normal app below.
       final shareToken = _extractShareToken(Uri.base);
       if (shareToken != null) {
-        runApp(AnonymousShareViewerScreen(token: shareToken));
+        // ProviderScope here is only so the mascot system (Riverpod) works on
+        // this standalone entrypoint — it has no Supabase session and never
+        // will; nothing mascot-related depends on one.
+        runApp(ProviderScope(child: AnonymousShareViewerScreen(token: shareToken)));
         return;
       }
 
       final burnNoteToken = _extractBurnNoteToken(Uri.base);
       if (burnNoteToken != null) {
-        runApp(BurnNoteViewerScreen(
-          noteId: burnNoteToken.id,
-          keyHex: burnNoteToken.keyHex,
-          ivHex: burnNoteToken.ivHex,
+        runApp(ProviderScope(
+          child: BurnNoteViewerScreen(
+            noteId: burnNoteToken.id,
+            keyHex: burnNoteToken.keyHex,
+            ivHex: burnNoteToken.ivHex,
+          ),
         ));
         return;
       }
@@ -439,7 +446,11 @@ class _WorkspaceHomeState extends ConsumerState<WorkspaceHome> {
         backgroundColor: Colors.blueAccent,
         content: Row(
           children: [
-            const Icon(Icons.notifications_active, color: Colors.white, size: 20),
+            const MascotView(
+              character: MascotCharacter.nox,
+              size: 20,
+              fallback: Icon(Icons.notifications_active, color: Colors.white, size: 20),
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -499,7 +510,13 @@ class _WorkspaceHomeState extends ConsumerState<WorkspaceHome> {
 
     return Scaffold(
       body: SafeArea(
-        child: Stack(
+        // On desktop/web the phone-first layout would stretch edge to edge;
+        // constraining the whole shell keeps content (and the floating nav,
+        // which lives in the same Stack) in a centered readable column.
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 760),
+            child: Stack(
           children: [
             // Main Content Area with thin border framing
             Padding(
@@ -540,6 +557,8 @@ class _WorkspaceHomeState extends ConsumerState<WorkspaceHome> {
               onTap: _onTabTapped,
             ),
           ],
+            ),
+          ),
         ),
       ),
     );

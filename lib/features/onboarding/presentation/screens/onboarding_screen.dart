@@ -4,6 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import '../providers/onboarding_providers.dart';
 import '../widgets/interactive_onboarding_steps.dart';
+import '../../../../core/mascot/mascot_controller.dart';
+import '../../../../core/mascot/mascot_state.dart';
+import '../../../../core/mascot/mascot_view.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -57,7 +60,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
-        child: Column(
+        // Centered column on desktop/web instead of full-bleed.
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: Column(
           children: [
             // Top Header Info
             Padding(
@@ -65,14 +72,23 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    _getActLabel(currentIndex).toUpperCase(),
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.5,
-                      color: fg.withValues(alpha: 0.5),
-                    ),
+                  Row(
+                    children: [
+                      // Single persistent instance (lives outside the
+                      // PageView so it isn't rebuilt per step) — Lux guides
+                      // the reader through onboarding, one nudge per step.
+                      const MascotView(character: MascotCharacter.lux, size: 22),
+                      const SizedBox(width: 8),
+                      Text(
+                        _getActLabel(currentIndex).toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.5,
+                          color: fg.withValues(alpha: 0.5),
+                        ),
+                      ),
+                    ],
                   ),
                   Text(
                     '${currentIndex + 1} / 6',
@@ -96,6 +112,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   ref
                       .read(onboardingPageIndexProvider.notifier)
                       .setIndex(index);
+                  ref.read(luxMascotProvider.notifier).play(MascotMood.guide);
                 },
                 itemBuilder: (context, index) {
                   switch (index) {
@@ -199,6 +216,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               ],
             ),
           ],
+            ),
+          ),
         ),
       ),
     );

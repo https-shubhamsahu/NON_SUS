@@ -72,5 +72,24 @@
 	<string>This app requires permission to save secure documents to your photo library.</string>
 	<key>FlutterDeepLinkingEnabled</key>
 	<false/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>io.supabase.nosus</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>io.supabase.nosus</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>io.nosus.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>io.nosus.app</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>
