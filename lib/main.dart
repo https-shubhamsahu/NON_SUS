@@ -50,20 +50,46 @@ class BurnNoteToken {
 BurnNoteToken? _extractBurnNoteToken(Uri uri) {
   final fullUrl = kIsWeb ? html.window.location.href : uri.toString();
   debugLog('NO SUS: Extracting Burn Note Token from: $fullUrl');
-  final regExp = RegExp(
+
+  // ── Format 1 (new): #/burn/<uuid>?k=<keyHex>&v=<ivHex> ─────────────────
+  // Extract the hash fragment, then parse query params from within it.
+  // e.g. https://host/NON_SUS/#/burn/abc-123?k=aaa...&v=bbb...
+  final hashIdx = fullUrl.indexOf('#');
+  if (hashIdx != -1) {
+    final fragment = fullUrl.substring(hashIdx + 1); // /burn/<uuid>?k=...&v=...
+    final qIdx = fragment.indexOf('?');
+    if (qIdx != -1) {
+      final path = fragment.substring(0, qIdx);       // /burn/<uuid>
+      final query = fragment.substring(qIdx + 1);     // k=...&v=...
+      final params = Uri.splitQueryString(query);
+      final burnMatch = RegExp(r'burn/([a-f0-9\-]{36})', caseSensitive: false)
+          .firstMatch(path);
+      final k = params['k'];
+      final v = params['v'];
+      if (burnMatch != null && k != null && v != null &&
+          k.length == 64 && v.length == 32) {
+        debugLog('NO SUS: Burn Note matched (new format) id=${burnMatch.group(1)}');
+        return BurnNoteToken(id: burnMatch.group(1)!, keyHex: k, ivHex: v);
+      }
+    }
+  }
+
+  // ── Format 2 (legacy): burn/<uuid>#<keyHex>.<ivHex> ─────────────────────
+  final legacyRegExp = RegExp(
     r'burn/([a-f0-9\-]{36})(?:#|%23|/)([a-f0-9]{64})\.([a-f0-9]{32})',
     caseSensitive: false,
   );
-  final match = regExp.firstMatch(fullUrl);
+  final match = legacyRegExp.firstMatch(fullUrl);
   if (match != null) {
-    debugLog('NO SUS: Burn Note Token Matched! ID: ${match.group(1)}');
+    debugLog('NO SUS: Burn Note matched (legacy format) id=${match.group(1)}');
     return BurnNoteToken(
       id: match.group(1)!,
       keyHex: match.group(2)!,
       ivHex: match.group(3)!,
     );
   }
-  debugLog('NO SUS: No Burn Note Token match.');
+
+  debugLog('NO SUS: No Burn Note Token match in: $fullUrl');
   return null;
 }
 

@@ -61,11 +61,15 @@ class _BurnNoteCreatorScreenState extends State<BurnNoteCreatorScreen> {
 
       final noteId = response['id'] as String;
 
-      // 4. Construct URL with key and iv in the hash fragment (Zero-Knowledge)
-      final origin = kIsWeb ? Uri.base.origin : 'https://https-shubhamsahu.github.io/NON_SUS';
+      // 4. Construct URL with key and iv as query params inside the hash fragment (Zero-Knowledge)
+      // We use ?k=<key>&v=<iv> INSIDE the fragment so they are never sent to the server.
+      // Double-hash (#...#...) breaks in most browsers — query params inside the
+      // hash are spec-compliant and preserved reliably.
+      final origin = kIsWeb ? Uri.base.origin : 'https://https-shubhamsahu.github.io';
+      final basePath = kIsWeb ? Uri.base.path.replaceAll('index.html', '').replaceAll(RegExp(r'/$'), '') : '/NON_SUS';
       final keyHex = _bytesToHex(key.bytes);
       final ivHex = _bytesToHex(iv.bytes);
-      final link = '$origin/#/burn/$noteId#$keyHex.$ivHex';
+      final link = '$origin$basePath/#/burn/$noteId?k=$keyHex&v=$ivHex';
 
       setState(() {
         _generatedLink = link;
