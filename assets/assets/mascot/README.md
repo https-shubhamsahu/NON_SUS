@@ -19,4 +19,4 @@ solo Lux/Nox render nothing, and the duo placeholder renders the static
 `assets/icon/LuxandNox.png` mark. No code changes are needed when the real files are added,
 just drop them in.
 
-See `docs/design/MASCOT_MOTION_BIBLE.md` for the full animation spec.
+See `MASCOT_GUIDE.md` (repo root) for the full animation spec.
