@@ -1,0 +1,81 @@
+name: Build and Release to Play Store
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., v1.1.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          flutter-version: '3.44.4'
+
+      - name: Get Dependencies
+        run: flutter pub get
+
+      - name: Create .env file
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env
+          echo "SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}" >> .env
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Build App Bundle
+        run: flutter build appbundle --release --dart-define-from-file=.env
+
+      - name: Setup Google Play credentials
+        run: |
+          mkdir -p $HOME/.android
+          echo '${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}' > $HOME/.android/service-account-key.json
+
+      - name: Upload to Play Store (Internal Testing)
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: io.nosus.app
+          releaseFiles: 'build/app/outputs/bundle/release/app-release.aab'
+          track: internal
+          status: completed
+          inAppUpdatePriority: 3
+          whatsnew: |
+            Version ${{ github.ref_name || inputs.version }}
+            See release notes for details.
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name || inputs.version }}
+          release_name: Release ${{ github.ref_name || inputs.version }}
+          body: |
+            App Bundle uploaded to Play Store (Internal Testing track).
+
+            **Next Steps:**
+            1. Test the app on devices via Google Play Console internal testing
+            2. Promote to Closed Testing or Production when ready
+            3. Monitor crash reports and ANRs in Play Console
+          draft: false
+          prerelease: false
+
+      - name: Cleanup
+        if: always()
+        run: rm -f $HOME/.android/service-account-key.json .env
