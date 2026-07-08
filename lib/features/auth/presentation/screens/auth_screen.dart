@@ -1,14 +1,18 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../theme.dart';
 import '../controllers/auth_controller.dart';
 import '../providers/auth_providers.dart';
 
 
 class AuthScreen extends ConsumerStatefulWidget {
-  const AuthScreen({super.key});
+  final String? pendingInviteCode;
+
+  const AuthScreen({super.key, this.pendingInviteCode});
 
   @override
   ConsumerState<AuthScreen> createState() => _AuthScreenState();
@@ -25,6 +29,39 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   bool _obscurePassword = true;
   bool _isPhoneAuth = false;
   bool _otpSent = false;
+  int _resendCooldown = 0;
+  Timer? _resendTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.pendingInviteCode != null) {
+      _savePendingInvite(widget.pendingInviteCode!);
+    }
+  }
+
+  void _startResendTimer() {
+    setState(() {
+      _resendCooldown = 60;
+    });
+    _resendTimer?.cancel();
+    _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_resendCooldown == 0) {
+        timer.cancel();
+      } else {
+        setState(() {
+          _resendCooldown--;
+        });
+      }
+    });
+  }
+
+  Future<void> _savePendingInvite(String code) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('pending_invite_code', code);
+    } catch (_) {}
+  }
 
   @override
   void dispose() {
@@ -32,6 +69,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     _passwordController.dispose();
     _phoneController.dispose();
     _otpController.dispose();
+    _resendTimer?.cancel();
     super.dispose();
   }
 
@@ -42,11 +80,42 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     if (_isPhoneAuth) {
       final phone = _phoneController.text.trim();
       if (!_otpSent) {
+        if (phone.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              backgroundColor: Colors.redAccent,
+              content: Text('Phone number is required.'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          return;
+        }
+        if (!phone.startsWith('+')) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              backgroundColor: Colors.redAccent,
+              content: Text('Phone number must start with country code (e.g. +1 or +91).'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          return;
+        }
+        if (phone.length < 8) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              backgroundColor: Colors.redAccent,
+              content: Text('Please enter a valid phone number.'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          return;
+        }
         ref.read(authControllerProvider.notifier).signInWithPhone(phone).then((_) {
           if (mounted) {
             final controllerState = ref.read(authControllerProvider);
             if (!controllerState.hasError) {
               setState(() => _otpSent = true);
+              _startResendTimer();
             }
           }
         });
@@ -114,7 +183,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
+            physics: theme.platform == TargetPlatform.android
+                ? const ClampingScrollPhysics()
+                : const BouncingScrollPhysics(),
             padding: const EdgeInsets.all(NoSusTheme.s24),
             // Sign-in card width on desktop/web instead of a full-bleed form.
             child: ConstrainedBox(
@@ -307,7 +378,35 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                             const SizedBox(height: 12),
                             Center(
                               child: TextButton(
-                                onPressed: () => setState(() => _otpSent = false),
+                                onPressed: _resendCooldown > 0
+                                    ? null
+                                    : () {
+                                        final phone = _phoneController.text.trim();
+                                        ref.read(authControllerProvider.notifier).signInWithPhone(phone);
+                                        _startResendTimer();
+                                      },
+                                child: Text(
+                                  _resendCooldown > 0
+                                      ? 'RESEND CODE IN ${_resendCooldown}S'
+                                      : 'RESEND CODE',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 1.0,
+                                    color: _resendCooldown > 0
+                                        ? fg.withValues(alpha: 0.3)
+                                        : fg.withValues(alpha: 0.6),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Center(
+                              child: TextButton(
+                                onPressed: () => setState(() {
+                                  _otpSent = false;
+                                  _resendCooldown = 0;
+                                  _resendTimer?.cancel();
+                                }),
                                 child: Text(
                                   'CHANGE NUMBER',
                                   style: TextStyle(
@@ -518,10 +617,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           const SizedBox(height: 12),
                           _buildOAuthIconButton(
                             icon: Icons.phone_android,
-                            label: 'CONTINUE WITH PHONE (COMING SOON)',
-                            onPressed: null,
+                            label: 'CONTINUE WITH PHONE',
+                            onPressed: () {
+                              setState(() {
+                                _isPhoneAuth = true;
+                              });
+                            },
                             fg: fg,
-                            enabled: false,
                           ),
 
                         ],

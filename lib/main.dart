@@ -15,6 +15,7 @@ import 'features/profile/providers/profile_provider.dart';
 import 'features/profile/presentation/screens/profile_screen.dart';
 import 'features/auth/presentation/widgets/auth_gate.dart';
 import 'features/groups/screens/groups_screen.dart';
+import 'features/groups/screens/group_invite_landing_screen.dart';
 import 'features/workspace/presentation/pages/workspace_tab.dart';
 import 'features/vault/presentation/pages/vault_tab.dart';
 import 'features/vault/presentation/pages/study_desk_tab.dart';
@@ -41,6 +42,7 @@ import 'core/mascot/mascot_view.dart';
 
 
 import 'features/share/presentation/screens/burn_note_viewer_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class BurnNoteToken {
   final String id;
@@ -113,13 +115,49 @@ String? extractShareToken(Uri uri) {
   return null;
 }
 
+/// Extracts a group invite code from a URL/deep link, supporting hash routing
+/// (#/join/abc123xyz), path routing (/join/abc123xyz), path segments, and custom scheme formats.
+String? extractInviteToken(Uri uri) {
+  for (final raw in [uri.fragment, uri.path]) {
+    final cleaned = raw.startsWith('/') ? raw.substring(1) : raw;
+    final parts = cleaned.split('/');
+    if (parts.length >= 2 && parts[0] == 'join' && parts[1].isNotEmpty) {
+      return parts[1];
+    }
+  }
+  if (uri.pathSegments.length >= 2 && uri.pathSegments[0] == 'join') {
+    return uri.pathSegments[1];
+  }
+  if (uri.host == 'join' && uri.pathSegments.isNotEmpty) {
+    return uri.pathSegments.first;
+  }
+  return null;
+}
+
 void main() async {
   await runZonedGuarded(
     () async {
       WidgetsFlutterBinding.ensureInitialized();
 
+      // Pre-load SharedPreferences synchronously before routing and app run
+      final prefs = await SharedPreferences.getInstance();
+
       // Initialize Supabase immediately so all early routing screens can access the client
       await SupabaseService.instance.initialize();
+
+      // Ghost-session guard: if the device has a cached JWT for a user that was
+      // deleted from auth.users (e.g. after a dev DB wipe), every Supabase write
+      // fails with RLS errors even on permissive policies. Fix: verify the session
+      // is still valid server-side; sign out silently if not.
+      final cachedSession = Supabase.instance.client.auth.currentSession;
+      if (cachedSession != null) {
+        try {
+          await Supabase.instance.client.auth.getUser(cachedSession.accessToken);
+        } catch (_) {
+          debugLog('NO SUS: Ghost session detected (user deleted). Signing out.');
+          await Supabase.instance.client.auth.signOut();
+        }
+      }
 
       // SecureSend anonymous path: a share-link recipient may have no NO SUS
       // account at all, so this branch skips Supabase/auth entirely and never
@@ -129,13 +167,21 @@ void main() async {
         // ProviderScope here is only so the mascot system (Riverpod) works on
         // this standalone entrypoint — it has no Supabase session and never
         // will; nothing mascot-related depends on one.
-        runApp(ProviderScope(child: AnonymousShareViewerScreen(token: shareToken)));
+        runApp(ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+          ],
+          child: AnonymousShareViewerScreen(token: shareToken),
+        ));
         return;
       }
 
       final burnNoteToken = extractBurnNoteToken(Uri.base);
       if (burnNoteToken != null) {
         runApp(ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+          ],
           child: BurnNoteViewerScreen(
             noteId: burnNoteToken.id,
             keyHex: burnNoteToken.keyHex,
@@ -155,10 +201,16 @@ void main() async {
         }
       }
 
-      // Listen to deep links for manual session recovery from OAuth redirects
+      // Listen to deep links for manual session recovery and invite codes
       final appLinks = AppLinks();
       appLinks.uriLinkStream.listen((uri) async {
         debugLog('NO SUS: Received Deep Link: $uri');
+        final inviteCode = extractInviteToken(uri);
+        if (inviteCode != null) {
+          _handleInAppInviteLink(inviteCode);
+          return;
+        }
+
         if (uri.scheme == 'io.supabase.nosus') {
           await handleOAuthCallback(uri);
         } else if (uri.scheme == 'io.nosus.app' && uri.host == 'v') {
@@ -173,7 +225,12 @@ void main() async {
       try {
         final initialUri = await appLinks.getInitialLink();
         if (initialUri != null) {
-          if (initialUri.scheme == 'io.supabase.nosus') {
+          final inviteCode = extractInviteToken(initialUri);
+          if (inviteCode != null) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _handleInAppInviteLink(inviteCode);
+            });
+          } else if (initialUri.scheme == 'io.supabase.nosus') {
             await handleOAuthCallback(initialUri);
           } else if (initialUri.scheme == 'io.nosus.app' && initialUri.host == 'v') {
             final token = initialUri.pathSegments.firstOrNull;
@@ -203,6 +260,7 @@ void main() async {
         ProviderScope(
           overrides: [
             remoteConfigServiceProvider.overrideWithValue(remoteConfig),
+            sharedPreferencesProvider.overrideWithValue(prefs),
           ],
           child: const MyApp(),
         ),
@@ -226,6 +284,8 @@ class MyApp extends ConsumerWidget {
     ref.watch(shareIntentProvider);
     final themeMode = ref.watch(themeModeProvider);
 
+    final inviteToken = extractInviteToken(Uri.base);
+
     return MaterialApp(
       title: 'NO SUS',
       debugShowCheckedModeBanner: false,
@@ -233,11 +293,13 @@ class MyApp extends ConsumerWidget {
       theme: NoSusTheme.lightTheme,
       darkTheme: NoSusTheme.darkTheme,
       themeMode: themeMode,
-      home: const VideoSplashScreen(
-        nextScreen: AuthGate(
-          child: WorkspaceHome(),
-        ),
-      ),
+      home: inviteToken != null
+          ? GroupInviteLandingScreen(inviteCode: inviteToken)
+          : const VideoSplashScreen(
+              nextScreen: AuthGate(
+                child: WorkspaceHome(),
+              ),
+            ),
       onGenerateRoute: (settings) {
         // Web OAuth (Google/GitHub) redirects land on e.g. "/?code=..." — not
         // exactly "/", so Flutter treats it as a distinct route instead of
@@ -290,11 +352,26 @@ class _WorkspaceHomeState extends ConsumerState<WorkspaceHome> {
     super.initState();
     _currentTab = ref.read(activeTabProvider);
     _pageController = PageController(initialPage: _currentTab);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final shared = ref.read(shareIntentProvider);
       if (shared != null) {
         _showSaveToNoSusModal(shared);
       }
+
+      // Check for pending invite code
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final pendingCode = prefs.getString('pending_invite_code');
+        if (pendingCode != null && mounted) {
+          await prefs.remove('pending_invite_code');
+          if (!mounted) return;
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => GroupInviteLandingScreen(inviteCode: pendingCode),
+            ),
+          );
+        }
+      } catch (_) {}
     });
   }
 
@@ -569,6 +646,18 @@ void _handleInAppShareView(String token) {
       context,
       MaterialPageRoute(
         builder: (context) => InAppShareViewerScreen(token: token),
+      ),
+    );
+  }
+}
+
+void _handleInAppInviteLink(String inviteCode) {
+  final context = ScreenshotGuard.instance.navigatorKey.currentContext;
+  if (context != null) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => GroupInviteLandingScreen(inviteCode: inviteCode),
       ),
     );
   }

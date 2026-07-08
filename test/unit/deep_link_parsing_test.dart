@@ -66,4 +66,41 @@ void main() {
       expect(extractShareToken(Uri.parse('https://host/NON_SUS/')), isNull);
     });
   });
+
+  group('extractInviteToken', () {
+    test('parses invite code from hash fragment', () {
+      expect(
+        extractInviteToken(Uri.parse('https://https-shubhamsahu.github.io/NON_SUS/#/join/invite123')),
+        'invite123',
+      );
+    });
+
+    test('parses invite code from path', () {
+      expect(
+        extractInviteToken(Uri.parse('https://nosus.app/join/inviteABC')),
+        'inviteABC',
+      );
+    });
+
+    test('parses invite code from path segments for deep links', () {
+      expect(
+        extractInviteToken(Uri.parse('io.supabase.nosus://join/inviteXYZ')),
+        'inviteXYZ',
+      );
+    });
+
+    test('parses invite code from host/segments for custom schemes', () {
+      expect(
+        extractInviteToken(Uri.parse('io.nosus.app://join/inviteDEF')),
+        'inviteDEF',
+      );
+    });
+
+    test('returns null when absent', () {
+      expect(
+        extractInviteToken(Uri.parse('https://nosus.app/v/tok9')),
+        isNull,
+      );
+    });
+  });
 }

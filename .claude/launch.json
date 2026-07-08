@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "web-release-static",
-      "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "5051", "--directory", "build/web"],
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "serve", "build/web", "-l", "5051"],
       "port": 5051
     }
   ]

@@ -81,6 +81,11 @@ class SecureSendConfigs {
     'min_supported_client_version',
     '1.0.0',
   );
+
+  static const appDownloadUrl = _ConfigParam(
+    'app_download_url',
+    'https://https-shubhamsahu.github.io/NON_SUS/app-release.apk',
+  );
 }
 
 

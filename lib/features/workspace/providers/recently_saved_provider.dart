@@ -124,20 +124,29 @@ class RecentlySavedState {
 }
 
 class RecentlySavedNotifier extends Notifier<RecentlySavedState> {
+  static const _keyPrefix = 'recently_saved_history_v2_';
+
   @override
   RecentlySavedState build() {
-    _loadFromPrefs();
+    final user = ref.watch(authStateProvider).value;
+    
+    if (user != null) {
+      _loadFromPrefs(user.id);
+    } else {
+      state = const RecentlySavedState();
+    }
     return const RecentlySavedState();
   }
 
-  Future<void> _loadFromPrefs() async {
+  Future<void> _loadFromPrefs(String userId) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final jsonStr = prefs.getString('recently_saved_history');
+      if (!ref.mounted) return;
+      final jsonStr = prefs.getString('$_keyPrefix$userId');
       if (jsonStr != null) {
         final List decoded = json.decode(jsonStr);
         var loadedItems = decoded.map((x) => RecentlySavedItem.fromMap(Map<String, dynamic>.from(x))).toList();
-        
+
         loadedItems = loadedItems.map((item) {
           if (item.status == 'uploading') {
             return item.copyWith(status: 'failed');
@@ -146,6 +155,8 @@ class RecentlySavedNotifier extends Notifier<RecentlySavedState> {
         }).toList();
 
         state = state.copyWith(items: loadedItems);
+      } else {
+        state = const RecentlySavedState();
       }
     } catch (e) {
       debugLog("Error loading recently saved history: $e");
@@ -153,10 +164,13 @@ class RecentlySavedNotifier extends Notifier<RecentlySavedState> {
   }
 
   Future<void> _saveToPrefs() async {
+    final user = ref.read(authStateProvider).value;
+    if (user == null) return;
+
     try {
       final prefs = await SharedPreferences.getInstance();
       final jsonStr = json.encode(state.items.map((x) => x.toMap()).toList());
-      await prefs.setString('recently_saved_history', jsonStr);
+      await prefs.setString('$_keyPrefix${user.id}', jsonStr);
     } catch (e) {
       debugLog("Error saving recently saved history: $e");
     }

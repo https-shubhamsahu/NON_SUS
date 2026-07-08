@@ -57,6 +57,7 @@ class SealedApiClient {
   /// Creates an unguessable invite code (optionally bound to an arena).
   Future<String> createInvite({String? arenaId}) async {
     final data = await _send('create_invite', {
+      // ignore: use_null_aware_elements
       if (arenaId != null) 'arena_id': arenaId,
     });
     return data['code'] as String;

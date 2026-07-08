@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/mascot/mascot_controller.dart';
 import '../core/mascot/mascot_state.dart';
 import '../core/mascot/mascot_view.dart';
+import '../core/providers/theme_provider.dart';
 
 class VideoSplashScreen extends ConsumerStatefulWidget {
   final Widget nextScreen;
@@ -69,8 +70,11 @@ class _VideoSplashScreenState extends ConsumerState<VideoSplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    final themeMode = ref.watch(themeModeProvider);
+    final isLight = themeMode == ThemeMode.light;
+    
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA),
+      backgroundColor: isLight ? const Color(0xFFFAFAFA) : const Color(0xFF0A0A0A),
       body: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: _navigateToNextScreen,
@@ -86,7 +90,7 @@ class _VideoSplashScreenState extends ConsumerState<VideoSplashScreen>
                     progress: _controller.value,
                     random: _random,
                     frameSeed: frameSeed,
-                    isLight: true,
+                    isLight: isLight,
                   ),
                   child: const SizedBox.expand(),
                 ),

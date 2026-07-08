@@ -48,18 +48,30 @@ class StudyTimelineNotifier extends AsyncNotifier<List<StudyDayData>> {
     final auth = ref.watch(authStateProvider).value;
     ref.watch(auditLogsProvider);
 
-    final userId = auth?.id ?? 'guest';
+    final now = DateTime.now();
+    final dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+    if (auth == null) {
+      return List.generate(7, (i) {
+        final date = now.subtract(Duration(days: i));
+        return StudyDayData(
+          day: dayNames[date.weekday - 1],
+          hours: 0.0,
+          scans: 0,
+        );
+      }).reversed.toList();
+    }
+
+    final userId = auth.id;
     final focusLogs = await FocusService.instance.fetchFocusLogs(userId);
     final auditCounts = await AuditService.instance.fetchAuditLogCounts();
 
     final List<StudyDayData> list = [];
-    final now = DateTime.now();
 
     for (int i = 6; i >= 0; i--) {
       final date = now.subtract(Duration(days: i));
       final dayKey = DateTime(date.year, date.month, date.day);
 
-      final dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
       final dayName = dayNames[date.weekday - 1];
 
       final focusMinutes = focusLogs[dayKey] ?? 0;

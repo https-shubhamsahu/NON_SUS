@@ -184,7 +184,7 @@ class __InAppShareViewerContentState
     );
 
     Widget docWidget;
-    switch (result.fileType) {
+    switch (result.fileType.toLowerCase()) {
       case 'pdf':
         docWidget = PdfViewer.data(
           bytes,

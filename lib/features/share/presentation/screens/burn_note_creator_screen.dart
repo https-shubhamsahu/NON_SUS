@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:encrypt/encrypt.dart' as enc;
+import 'package:uuid/uuid.dart';
 import '../../../../core/mascot/mascot_controller.dart';
 import '../../../../core/mascot/mascot_state.dart';
 import '../../../../core/mascot/mascot_view.dart';
@@ -55,16 +56,15 @@ class _BurnNoteCreatorScreenState extends ConsumerState<BurnNoteCreatorScreen> {
       final encrypted = encrypter.encrypt(text, iv: iv);
       final ciphertext = encrypted.base64;
 
-      // 3. Upload to Supabase database (Server only gets UUID and ciphertext)
-      final response = await Supabase.instance.client
-          .from('burn_notes')
-          .insert({
-            'ciphertext': ciphertext,
-          })
-          .select('id')
-          .single();
-
-      final noteId = response['id'] as String;
+      // 3. Upload to Supabase database (Server only gets UUID and ciphertext).
+      // The id is generated client-side (not read back via .select()) so the
+      // burn_notes table needs no public SELECT policy — reads only ever
+      // happen through the atomic read_and_burn_note RPC.
+      final noteId = const Uuid().v4();
+      await Supabase.instance.client.from('burn_notes').insert({
+        'id': noteId,
+        'ciphertext': ciphertext,
+      });
 
       // 4. Construct URL with key and iv as query params inside the hash fragment (Zero-Knowledge)
       // We use ?k=<key>&v=<iv> INSIDE the fragment so they are never sent to the server.
@@ -140,29 +140,31 @@ class _BurnNoteCreatorScreenState extends ConsumerState<BurnNoteCreatorScreen> {
         ),
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (_generatedLink == null) ...[
-                Text(
-                  'Write a secret message to share. The recipient can only view it once before it burns.',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: fg.withValues(alpha: 0.6),
-                    fontSize: 13,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF161616) : Colors.black.withValues(alpha: 0.03),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: fg.withValues(alpha: 0.12)),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (_generatedLink == null) ...[
+                  Text(
+                    'Write a secret message to share. The recipient can only view it once before it burns.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: fg.withValues(alpha: 0.6),
+                      fontSize: 13,
                     ),
-                    child: TextField(
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    height: 240,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF161616) : Colors.black.withValues(alpha: 0.03),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: fg.withValues(alpha: 0.12)),
+                      ),
+                      child: TextField(
                       controller: _textController,
                       maxLines: null,
                       expands: true,
@@ -283,6 +285,7 @@ class _BurnNoteCreatorScreenState extends ConsumerState<BurnNoteCreatorScreen> {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 }

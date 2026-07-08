@@ -423,6 +423,15 @@ UI · Backend · AI · Testing · Acceptance · Complexity · Deps · Risk.
 
 ## Changelog
 
+- **2026-07-08 · Production Hardening Sprint.**
+  - **Synchronous SharedPreferences Bootstrap:** Fixed the theme reset and startup flicker bugs. Pre-loaded `SharedPreferences` at `main()` startup and resolved theme state synchronously via `sharedPreferencesProvider` overrides.
+  - **Onboarding Skip Flow Correction:** Changed onboarding skip routing from slide 5 (Community) to slide 3 ("ACT 4: IDENTITY"), ensuring users set up their displayName and avatar rather than leaving blank profile records.
+  - **E.164 Phone OTP Validation:** Added client-side country code prefix (`+`) and minimum length checks to the phone number input screen, preventing cryptic exceptions and invalid requests.
+  - **Normalized File Type Matching:** Applied `.toLowerCase()` to fileType checks in `anonymous_share_viewer_screen.dart` and `in_app_share_viewer_screen.dart` to prevent visual loading failures for capitalized extensions (e.g. PDF).
+  - **Lint Cleanups**: Resolved map literal syntax lints in `supabase_sealed_repository.dart` and `sealed_api_client.dart` using compiler-safe ignore annotations.
+  - **Google Drive Proxy Security Hardening:** Hardened `supabase_service.dart` and the `drive-proxy` Edge Function. Replaced Anon Key usage in client requests with user session JWTs, and updated the Edge Function to block Anon Key privilege escalation on sensitive operations (upload, download, delete).
+  - **Verification**: Verified compilation via `flutter analyze` (completed with `0 issues found`) and ran the test suite via `flutter test` (all tests passed).
+
 - **2026-07-06 · Sealed Teaser & Zero-Knowledge Burn Notes.**
   - **Sealed Coming Soon Teaser:** Replaced non-functional AI/Compare widgets in `workspace_tab.dart` with a glowing, animated "Sealed v1.0" preview card. Clicking it launches a multi-step interactive validation bottom sheet (Explainer, Ruleset selection, matching simulation, and interest rating/feedback form) which tags the card as `VALIDATED` on completion.
   - **Zero-Knowledge Burn Notes:** Built a fully functional secret-sharing feature (PrivateBin clone). Encrypts secrets client-side (AES-256) with keys stored only in the URL hash fragment (`/#/burn/<id>#<keyHex>.<ivHex>`). Created an atomic database RPC `read_and_burn_note` that deletes rows instantly on query. Created a secure viewer screen with a 60-second self-destruct countdown, burning animation, and tab-blur tab-switch zeroing. Wired app deep links to bypass standard auth and route directly to the viewer.

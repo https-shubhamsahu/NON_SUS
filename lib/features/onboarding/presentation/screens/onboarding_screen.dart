@@ -173,7 +173,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                             HapticFeedback.lightImpact();
                             if (currentIndex == 0) {
                               _pageController.animateToPage(
-                                5,
+                                3,
                                 duration: const Duration(milliseconds: 600),
                                 curve: Curves.easeInOut,
                               );

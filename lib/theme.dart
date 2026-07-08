@@ -206,4 +206,13 @@ class NoSusTheme {
       ),
     );
   }
+
+  /// Returns platform-aware scroll physics (Clamping for Android/Web, Bouncing for iOS).
+  static ScrollPhysics getScrollPhysics(BuildContext context) {
+    final platform = Theme.of(context).platform;
+    if (platform == TargetPlatform.android || platform == TargetPlatform.fuchsia) {
+      return const ClampingScrollPhysics();
+    }
+    return const BouncingScrollPhysics();
+  }
 }

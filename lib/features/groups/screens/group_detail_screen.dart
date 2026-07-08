@@ -1275,7 +1275,6 @@ class _InviteModal extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final bg = isDark ? NoSusTheme.dCard : NoSusTheme.lCard;
     final fg = isDark ? NoSusTheme.dText : NoSusTheme.lText;
-    final subtle = isDark ? NoSusTheme.dTextSecondary : NoSusTheme.lTextSecondary;
 
     return Padding(
       padding: EdgeInsets.only(
@@ -1306,7 +1305,7 @@ class _InviteModal extends StatelessWidget {
             Text(
               'INVITE MEMBERS',
               style: TextStyle(
-                color: subtle,
+                color: fg.withValues(alpha: 0.5),
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 2.0,
@@ -1314,7 +1313,7 @@ class _InviteModal extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'Share Access Code',
+              'Share Access Link & Code',
               style: TextStyle(
                 color: fg,
                 fontSize: 22,
@@ -1324,21 +1323,45 @@ class _InviteModal extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             Container(
-              padding: const EdgeInsets.symmetric(vertical: 20),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: isDark ? const Color(0xFF1E1E1E) : Colors.grey[100],
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: Center(
-                child: Text(
-                  group.inviteCode ?? 'NO-CODE',
-                  style: TextStyle(
-                    color: fg,
-                    fontSize: 28,
-                    letterSpacing: 6.0,
-                    fontWeight: FontWeight.bold,
+              child: Column(
+                children: [
+                  const Text(
+                    'INVITE CODE',
+                    style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1.0, color: Colors.grey),
                   ),
-                ),
+                  const SizedBox(height: 4),
+                  Text(
+                    group.inviteCode ?? 'NO-CODE',
+                    style: TextStyle(
+                      color: fg,
+                      fontSize: 24,
+                      letterSpacing: 4.0,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Divider(height: 24, thickness: 0.5),
+                  const Text(
+                    'INVITE LINK',
+                    style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1.0, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'https://https-shubhamsahu.github.io/NON_SUS/#/join/${group.inviteCode}',
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: fg.withValues(alpha: 0.7),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 24),
@@ -1348,10 +1371,11 @@ class _InviteModal extends StatelessWidget {
                   child: OutlinedButton.icon(
                     onPressed: () {
                       HapticFeedback.lightImpact();
-                      Clipboard.setData(ClipboardData(text: group.inviteCode ?? ''));
+                      final link = 'https://https-shubhamsahu.github.io/NON_SUS/#/join/${group.inviteCode}';
+                      Clipboard.setData(ClipboardData(text: link));
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Invite code copied to clipboard'),
+                        const SnackBar(
+                          content: Text('Invite link copied to clipboard'),
                           behavior: SnackBarBehavior.floating,
                         ),
                       );
@@ -1359,11 +1383,12 @@ class _InviteModal extends StatelessWidget {
                     },
                     icon: Icon(Icons.copy, size: 18, color: fg),
                     label: Text(
-                      'COPY',
+                      'COPY LINK',
                       style: TextStyle(
                         color: fg,
                         fontWeight: FontWeight.bold,
-                        letterSpacing: 1.0,
+                        fontSize: 11,
+                        letterSpacing: 0.5,
                       ),
                     ),
                     style: OutlinedButton.styleFrom(
@@ -1378,18 +1403,19 @@ class _InviteModal extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton.icon(
-                     onPressed: () {
+                    onPressed: () {
                       HapticFeedback.lightImpact();
-                      final text = 'Join my secure workspace "${group.name}" on NoSus! Use code: ${group.inviteCode}';
+                      final text = 'Join my secure workspace "${group.name}" on NoSus! Use link: https://https-shubhamsahu.github.io/NON_SUS/#/join/${group.inviteCode}';
                       SharePlus.instance.share(ShareParams(text: text));
                       Navigator.pop(context);
                     },
                     icon: Icon(Icons.ios_share, size: 18, color: isDark ? Colors.black : Colors.white),
-                    label: Text(
+                    label: const Text(
                       'SHARE',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        letterSpacing: 1.0,
+                        fontSize: 11,
+                        letterSpacing: 0.5,
                       ),
                     ),
                     style: ElevatedButton.styleFrom(

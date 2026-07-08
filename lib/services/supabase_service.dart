@@ -55,9 +55,10 @@ class SupabaseService {
       '${SupabaseCredentials.url}/functions/v1/drive-proxy';
 
   String get _authHeader {
-    // Consistently use the Supabase Anon Key. The Google Drive proxy Edge Function
-    // authorizes requests signed with the Anon Key directly, which avoids failures
-    // due to expired or missing user session JWTs.
+    final token = Supabase.instance.client.auth.currentSession?.accessToken;
+    if (token != null && token.isNotEmpty) {
+      return 'Bearer $token';
+    }
     return 'Bearer ${SupabaseCredentials.anonKey}';
   }
 

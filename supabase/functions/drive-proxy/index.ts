@@ -69,10 +69,13 @@ Deno.serve(async (req: Request) => {
     const token = authHeader.replace(/^Bearer\s+/i, "");
     let isAuthorized = false;
 
-    if (token === supabaseAnonKey || (serviceRoleKey && token === serviceRoleKey)) {
+    if (serviceRoleKey && token === serviceRoleKey) {
+      isAuthorized = true;
+    } else if (path === "info" && token === supabaseAnonKey) {
+      // Public info endpoint can be checked using the Anon Key
       isAuthorized = true;
     } else {
-      // Fallback: verify as a user session JWT
+      // Fallback: verify as a user session JWT (requires actual signed-in user)
       const supabase = createClient(supabaseUrl, supabaseAnonKey, {
         global: { headers: { Authorization: authHeader } },
       });

@@ -1345,7 +1345,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           final double storagePercent = (storageMB / 100.0).clamp(0.0, 1.0);
 
           return SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
+            physics: NoSusTheme.getScrollPhysics(context),
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,

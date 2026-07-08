@@ -8,6 +8,7 @@ import '../domain/models/study_group.dart';
 import '../models/group_file.dart';
 import '../../../services/supabase_service.dart';
 import '../presentation/providers/group_dependencies.dart';
+import '../../auth/presentation/providers/auth_providers.dart';
 import '../../files/domain/models/secure_file_metadata.dart';
 import '../../files/presentation/providers/secure_file_providers.dart';
 import '../../../core/utils/debug_logger.dart';
@@ -29,33 +30,41 @@ final searchQueryProvider = NotifierProvider<SearchQueryNotifier, String>(
 
 class GroupsNotifier extends AsyncNotifier<List<StudyGroup>> {
   StreamSubscription? _sub;
-  static const _cacheKey = 'groups_cache_v1';
+  static const _cacheKeyPrefix = 'groups_cache_v2_';
 
   @override
   Future<List<StudyGroup>> build() async {
-    final repo = ref.watch(studyGroupRepositoryProvider);
+    final authState = ref.watch(authStateProvider);
+    final user = authState.value;
+    
     _sub?.cancel();
+    ref.onDispose(() => _sub?.cancel());
+
+    if (user == null) {
+      return const [];
+    }
+
+    final repo = ref.watch(studyGroupRepositoryProvider);
     _sub = repo.watchGroups().listen(
       (data) {
         state = AsyncValue.data(data);
-        _saveCache(data);
+        _saveCache(user.id, data);
       },
       onError: (err, stack) {
         debugLog("GroupsNotifier: Realtime stream error: $err");
       },
     );
-    ref.onDispose(() => _sub?.cancel());
 
     // Stale-while-revalidate: paint the last-known list immediately (no
     // spinner on a warm start), then let the fetch/stream replace it.
-    final cached = await _loadCache();
+    final cached = await _loadCache(user.id);
     if (cached != null && cached.isNotEmpty) {
       state = AsyncValue.data(cached);
     }
 
     try {
       final fresh = await repo.getGroups();
-      _saveCache(fresh);
+      _saveCache(user.id, fresh);
       return fresh;
     } catch (e) {
       debugLog("GroupsNotifier: REST fetch error: $e");
@@ -64,10 +73,10 @@ class GroupsNotifier extends AsyncNotifier<List<StudyGroup>> {
     }
   }
 
-  Future<List<StudyGroup>?> _loadCache() async {
+  Future<List<StudyGroup>?> _loadCache(String userId) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_cacheKey);
+      final raw = prefs.getString('$_cacheKeyPrefix$userId');
       if (raw == null) return null;
       return (jsonDecode(raw) as List<dynamic>)
           .map((g) => StudyGroup.fromJson(g as Map<String, dynamic>))
@@ -77,11 +86,11 @@ class GroupsNotifier extends AsyncNotifier<List<StudyGroup>> {
     }
   }
 
-  Future<void> _saveCache(List<StudyGroup> groups) async {
+  Future<void> _saveCache(String userId, List<StudyGroup> groups) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(
-        _cacheKey,
+        '$_cacheKeyPrefix$userId',
         jsonEncode(groups.map((g) => g.toJson()).toList()),
       );
     } catch (_) {}
@@ -189,8 +198,17 @@ class GroupFilesNotifier extends AsyncNotifier<Map<String, List<GroupFile>>> {
 
   @override
   Future<Map<String, List<GroupFile>>> build() async {
-    final repo = ref.watch(secureFileRepositoryProvider);
+    final authState = ref.watch(authStateProvider);
+    final user = authState.value;
+    
     _sub?.cancel();
+    ref.onDispose(() => _sub?.cancel());
+
+    if (user == null) {
+      return const {};
+    }
+
+    final repo = ref.watch(secureFileRepositoryProvider);
     _sub = repo.watchAllFiles().listen(
       (data) {
         state = AsyncValue.data(_buildFilesMap(data));
@@ -200,7 +218,6 @@ class GroupFilesNotifier extends AsyncNotifier<Map<String, List<GroupFile>>> {
         debugLog("GroupFilesNotifier: Realtime stream error: $err");
       },
     );
-    ref.onDispose(() => _sub?.cancel());
 
     try {
       final initialData = await repo.getAllFiles();

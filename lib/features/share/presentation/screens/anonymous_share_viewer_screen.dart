@@ -442,7 +442,7 @@ class _AnonymousShareViewerScreenState
     );
 
     Widget child;
-    switch (result.fileType) {
+    switch (result.fileType.toLowerCase()) {
       case 'pdf':
         child = PdfViewer.data(
           bytes,

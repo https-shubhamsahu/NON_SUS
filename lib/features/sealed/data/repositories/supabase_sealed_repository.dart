@@ -35,6 +35,7 @@ class SupabaseSealedRepository implements SealedRepository {
     await _client.from('sealed_profiles').upsert({
       'user_id': _userId,
       'handle': handle.trim().toLowerCase(),
+      // ignore: use_null_aware_elements
       if (displayName != null) 'display_name': displayName,
     });
   }

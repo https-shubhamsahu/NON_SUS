@@ -35,6 +35,14 @@ class AuditService {
     }
   }
 
+  void reset() {
+    _auditLogsSub?.cancel();
+    _auditLogsSub = null;
+    _auditLogs.clear();
+    _auditLogs.add({'time': 'Now', 'event': 'Workspace session initiated', 'status': 'INFO'});
+    _auditLogsStream.add(_auditLogs);
+  }
+
   void logEvent(
     String eventTypeOrDescription,
     String statusOrInfo, {

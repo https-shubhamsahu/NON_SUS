@@ -20,7 +20,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-
+          flutter-version: '3.44.4'
 
       - name: Get Dependencies
         run: flutter pub get
@@ -30,8 +30,11 @@ jobs:
           echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env
           echo "SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}" >> .env
 
+      - name: Analyze
+        run: flutter analyze
+
+      # Build with the subdirectory base-href required for GitHub Pages
       - name: Build Web
-          # Build with the subdirectory base-href required for GitHub Pages
         run: flutter build web --base-href "/NON_SUS/" --dart-define-from-file=.env
 
       - name: Deploy to GitHub Pages
