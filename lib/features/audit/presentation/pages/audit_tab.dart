@@ -6,6 +6,7 @@ import '../../providers/audit_provider.dart';
 import '../../../../core/mascot/mascot_controller.dart';
 import '../../../../core/mascot/mascot_state.dart';
 import '../../../../core/mascot/mascot_view.dart';
+import '../widgets/security_alerts_banner.dart';
 
 class AuditTab extends ConsumerStatefulWidget {
   const AuditTab({super.key});
@@ -54,6 +55,8 @@ class _AuditTabState extends ConsumerState<AuditTab>
           ],
         ),
         const SizedBox(height: NoSusTheme.s24),
+
+        const SecurityAlertsBanner(),
 
         // List of audit records
         Expanded(

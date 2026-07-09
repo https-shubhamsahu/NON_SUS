@@ -4,9 +4,12 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:no_sus/theme.dart';
 import '../providers/auth_providers.dart';
+import '../providers/risk_state_provider.dart';
 import '../screens/auth_screen.dart';
 import '../screens/reset_password_screen.dart';
 import '../../../../services/supabase_service.dart';
+import '../../../../services/risk_engine_service.dart';
+import '../../../../services/device_integrity_service.dart';
 import '../../../onboarding/presentation/screens/onboarding_screen.dart';
 import '../../../onboarding/presentation/providers/onboarding_providers.dart';
 
@@ -42,7 +45,23 @@ class AuthGate extends ConsumerWidget {
           }
         }
 
-        // ── 2b. Profile / Onboarding Gate ──────────────────────────────────────
+        // ── 2b. Risk gate (session_locked / require_reauth) ────────────────────
+        // Keeps the auth-state listener that clears these flags after a
+        // fresh sign-in alive for the app's lifetime — see
+        // risk_reauth_acknowledger_provider's doc comment for why a plain
+        // authStateProvider watch can't detect "this was a real sign-in".
+        ref.watch(riskReauthAcknowledgerProvider);
+        final riskState = ref.watch(riskStateProvider).value ?? RiskState.low;
+        if (riskState.sessionLocked || riskState.requireReauth) {
+          return _SecurityGateScreen(critical: riskState.sessionLocked);
+        }
+
+        // Fire-and-forget, deduped internally to once per app session — see
+        // DeviceIntegrityService.registerDeviceSeen's doc comment for why
+        // this can't run any earlier than "user is confirmed signed in".
+        DeviceIntegrityService.instance.registerDeviceSeen();
+
+        // ── 2c. Profile / Onboarding Gate ──────────────────────────────────────
         if (!SupabaseService.instance.isReachable) {
           return const Scaffold(
             body: Center(child: Text("Network connection required for secure enclave.")),
@@ -229,6 +248,96 @@ class AuthGate extends ConsumerWidget {
           ),
         );
       },
+    );
+  }
+}
+
+// ─── Security Gate (session_locked / require_reauth) ──────────────────────────
+
+/// Shown when the risk engine (recompute_user_risk in
+/// 20260710030000_risk_engine.sql) has flagged this account as 'high' or
+/// 'critical' risk. [critical] distinguishes a full lock (multiple/severe
+/// signals — e.g. active instrumentation detected) from a softer
+/// require-reauth prompt (fewer/lower-severity signals). Either way the
+/// remedy is the same: sign out and sign back in, which
+/// riskReauthAcknowledgerProvider detects and clears server-side.
+class _SecurityGateScreen extends ConsumerWidget {
+  final bool critical;
+  const _SecurityGateScreen({required this.critical});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final bg = isDark ? NoSusTheme.dBackground : NoSusTheme.lBackground;
+    final fg = isDark ? NoSusTheme.dText : NoSusTheme.lText;
+    final subtle = isDark ? NoSusTheme.dTextSecondary : NoSusTheme.lTextSecondary;
+
+    return Scaffold(
+      backgroundColor: bg,
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  critical ? Icons.gpp_bad_outlined : Icons.security_outlined,
+                  size: 56,
+                  color: critical ? Colors.redAccent : Colors.orangeAccent,
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  critical ? 'ACCESS TEMPORARILY RESTRICTED' : 'SECURITY CHECK REQUIRED',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontSize: 13,
+                    letterSpacing: 2.0,
+                    color: critical ? Colors.redAccent : Colors.orangeAccent,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  critical
+                      ? 'We detected unusual security signals on this account (e.g. tampering or repeated screenshot attempts). Sign back in to continue — this refreshes your session and clears the flag if the risk has passed.'
+                      : 'We noticed some security signals on this account recently. For your protection, please sign in again to continue.',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: subtle,
+                    height: 1.6,
+                  ),
+                ),
+                const SizedBox(height: 36),
+                SizedBox(
+                  width: double.infinity,
+                  child: GestureDetector(
+                    onTap: () => Supabase.instance.client.auth.signOut(),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      decoration: BoxDecoration(
+                        color: fg,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'SIGN OUT & RE-VERIFY',
+                          style: TextStyle(
+                            color: isDark ? Colors.black : Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

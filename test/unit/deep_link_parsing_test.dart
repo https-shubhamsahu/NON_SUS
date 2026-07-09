@@ -11,7 +11,22 @@ void main() {
   const noteId = '01234567-89ab-cdef-0123-456789abcdef';
 
   group('extractBurnNoteToken', () {
-    test('parses the production GitHub Pages link format', () {
+    test('parses the production nosus.foo link format', () {
+      final uri = Uri.parse(
+        'https://nosus.foo/#/burn/$noteId?k=$keyHex&v=$ivHex',
+      );
+      final token = extractBurnNoteToken(uri);
+      expect(token, isNotNull);
+      expect(token!.id, noteId);
+      expect(token.keyHex, keyHex);
+      expect(token.ivHex, ivHex);
+    });
+
+    test('parses the legacy GitHub Pages subdirectory link format', () {
+      // Links shared before the nosus.foo migration must keep resolving —
+      // GitHub Pages 301-redirects the old .github.io URL to the custom
+      // domain, but the fragment/query parsing itself must still work
+      // regardless of which host or base path served the page.
       final uri = Uri.parse(
         'https://https-shubhamsahu.github.io/NON_SUS/#/burn/$noteId?k=$keyHex&v=$ivHex',
       );
@@ -68,7 +83,14 @@ void main() {
   });
 
   group('extractInviteToken', () {
-    test('parses invite code from hash fragment', () {
+    test('parses invite code from hash fragment (nosus.foo)', () {
+      expect(
+        extractInviteToken(Uri.parse('https://nosus.foo/#/join/invite123')),
+        'invite123',
+      );
+    });
+
+    test('parses invite code from hash fragment (legacy GitHub Pages link)', () {
       expect(
         extractInviteToken(Uri.parse('https://https-shubhamsahu.github.io/NON_SUS/#/join/invite123')),
         'invite123',

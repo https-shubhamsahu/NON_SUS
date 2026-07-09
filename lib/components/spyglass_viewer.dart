@@ -15,6 +15,8 @@ import '../features/profile/providers/profile_provider.dart';
 import '../features/profile/providers/settings_provider.dart';
 import '../services/screenshot_guard.dart';
 import '../services/audit_service.dart';
+import '../services/device_integrity_service.dart';
+import '../features/auth/presentation/providers/risk_state_provider.dart';
 
 // ─── User identity resolved from live auth providers ────────────────────────
 
@@ -77,6 +79,13 @@ class _SpyglassViewerState extends ConsumerState<SpyglassViewer> {
 
     _initScreenshotProtection();
     _loadSecureEnclavePayload();
+
+    // Display-mirroring / accessibility-abuse check for this viewing
+    // session — logged into this group's tamper-evident audit trail.
+    unawaited(DeviceIntegrityService.instance.runViewingChecks(
+      groupId: widget.groupId,
+      fileId: widget.fileId,
+    ));
   }
 
   Future<void> _initScreenshotProtection() async {
@@ -211,6 +220,8 @@ class _SpyglassViewerState extends ConsumerState<SpyglassViewer> {
       orElse: () => userEmail.contains('@') ? userEmail.split('@').first : 'Guest Scholar',
     );
 
+    final watermarkIntensity =
+        ref.watch(riskStateProvider).value?.watermarkIntensity ?? 'normal';
     final watermarkConfig = WatermarkConfig(
       name: displayName.toUpperCase(),
       role: 'SECURE MEMBER',
@@ -219,7 +230,7 @@ class _SpyglassViewerState extends ConsumerState<SpyglassViewer> {
       opacity: isWatermarkVisible ? 0.14 : 0.0,
       fontSize: 12.0,
       angleDegrees: -28.0,
-    );
+    ).scaledForIntensity(watermarkIntensity);
 
     const viewerConfig = ViewerConfig(
       maxBlurSigma: 22.0,

@@ -1351,7 +1351,7 @@ class _InviteModal extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'https://https-shubhamsahu.github.io/NON_SUS/#/join/${group.inviteCode}',
+                    'https://nosus.foo/#/join/${group.inviteCode}',
                     textAlign: TextAlign.center,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -1371,7 +1371,7 @@ class _InviteModal extends StatelessWidget {
                   child: OutlinedButton.icon(
                     onPressed: () {
                       HapticFeedback.lightImpact();
-                      final link = 'https://https-shubhamsahu.github.io/NON_SUS/#/join/${group.inviteCode}';
+                      final link = 'https://nosus.foo/#/join/${group.inviteCode}';
                       Clipboard.setData(ClipboardData(text: link));
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -1405,7 +1405,7 @@ class _InviteModal extends StatelessWidget {
                   child: ElevatedButton.icon(
                     onPressed: () {
                       HapticFeedback.lightImpact();
-                      final text = 'Join my secure workspace "${group.name}" on NoSus! Use link: https://https-shubhamsahu.github.io/NON_SUS/#/join/${group.inviteCode}';
+                      final text = 'Join my secure workspace "${group.name}" on NoSus! Use link: https://nosus.foo/#/join/${group.inviteCode}';
                       SharePlus.instance.share(ShareParams(text: text));
                       Navigator.pop(context);
                     },

@@ -33,12 +33,14 @@ jobs:
       - name: Analyze
         run: flutter analyze
 
-      # Build with the subdirectory base-href required for GitHub Pages
+      # Custom domain (nosus.foo) serves from the root, not a subdirectory —
+      # base-href must be "/" now, not "/NON_SUS/".
       - name: Build Web
-        run: flutter build web --base-href "/NON_SUS/" --dart-define-from-file=.env
+        run: flutter build web --base-href "/" --dart-define-from-file=.env
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           folder: build/web
           branch: gh-pages
+          cname: nosus.foo

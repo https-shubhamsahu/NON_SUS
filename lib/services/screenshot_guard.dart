@@ -30,14 +30,29 @@ class ScreenshotGuard {
       await _channel.invokeMethod('enableSecure');
     } catch (_) {}
 
-    // Listen to screenshot/recording events
+    // Listen to screenshot/recording/overlay events
     _eventChannel.receiveBroadcastStream().listen((event) {
-      if (event == 'screenshot' || event == 'recording') {
-        _showFunnyPopup(event as String);
+      if (event is! Map) return;
+      final type = event['type'] as String?;
+      if (type == 'screenshot' || type == 'recording') {
+        _showFunnyPopup(type!);
+      } else if (type == 'overlay_detected') {
+        _logOverlayDetected();
       }
     }, onError: (err) {
       debugLog("ScreenshotGuard event error: $err");
     });
+  }
+
+  void _logOverlayDetected() {
+    if (activeGroupId == null) return;
+    AuditService.instance.logEvent(
+      'overlay_detected',
+      'SECURITY',
+      groupId: activeGroupId!,
+      fileId: activeFileId,
+      metadata: {'file_name': activeFileName ?? 'Vault Dashboard'},
+    );
   }
 
   void _showFunnyPopup(String type) {

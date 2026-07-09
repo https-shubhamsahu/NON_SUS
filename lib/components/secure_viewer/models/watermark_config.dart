@@ -39,6 +39,44 @@ class WatermarkConfig {
     this.angleDegrees = -28.0,
   });
 
+  /// Returns a copy scaled for the risk engine's watermark_intensity
+  /// (normal/increased/maximum — see
+  /// supabase/migrations/20260710030000_risk_engine.sql and
+  /// RiskEngineService). Denser + more opaque watermarking is one of the
+  /// engine's few automatic responses that's visible to the viewer rather
+  /// than silent — deliberately so, since a would-be leaker seeing heavier
+  /// tracing on-screen is itself a deterrent.
+  WatermarkConfig scaledForIntensity(String intensity) {
+    switch (intensity) {
+      case 'maximum':
+        return WatermarkConfig(
+          name: name,
+          role: role,
+          email: email,
+          timestamp: timestamp,
+          opacity: (opacity * 2.2).clamp(0.0, 0.5),
+          fontSize: fontSize,
+          tileSpacingX: tileSpacingX * 0.45,
+          tileSpacingY: tileSpacingY * 0.45,
+          angleDegrees: angleDegrees,
+        );
+      case 'increased':
+        return WatermarkConfig(
+          name: name,
+          role: role,
+          email: email,
+          timestamp: timestamp,
+          opacity: (opacity * 1.5).clamp(0.0, 0.35),
+          fontSize: fontSize,
+          tileSpacingX: tileSpacingX * 0.7,
+          tileSpacingY: tileSpacingY * 0.7,
+          angleDegrees: angleDegrees,
+        );
+      default:
+        return this;
+    }
+  }
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||

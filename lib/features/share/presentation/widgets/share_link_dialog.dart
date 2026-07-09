@@ -62,8 +62,8 @@ class _ShareLinkDialogState extends ConsumerState<_ShareLinkDialog> {
           );
       if (!mounted) return;
       // Uri.base.origin is only supported on Web. On native platforms, we use the
-      // production deployed GitHub Pages web app URL so anonymous recipients can view.
-      final origin = kIsWeb ? Uri.base.origin : 'https://https-shubhamsahu.github.io/NON_SUS';
+      // production deployed web app URL so anonymous recipients can view.
+      final origin = kIsWeb ? Uri.base.origin : 'https://nosus.foo';
       final cb = DateTime.now().millisecondsSinceEpoch;
       setState(() {
         _url = '$origin/?cb=$cb#/v/${link.token}';

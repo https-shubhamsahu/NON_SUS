@@ -14,7 +14,16 @@ class ShareHeartbeatClient {
       Uri.parse('${SupabaseCredentials.url}/functions/v1/share-heartbeat');
 
   /// Sends a heartbeat tick or close signal for a given view event ID.
-  Future<void> sendHeartbeat(String eventId, {bool close = false}) async {
+  ///
+  /// [eventType], when provided, reports a web-viewer deterrent signal
+  /// (devtools opened, repeated tab-visibility switches, a blocked
+  /// copy/print/save/right-click attempt — see [WebSecurityGuard]) which
+  /// the share-heartbeat function appends to that session's audit trail.
+  Future<void> sendHeartbeat(
+    String eventId, {
+    bool close = false,
+    String? eventType,
+  }) async {
     try {
       await http.post(
         _endpoint,
@@ -25,6 +34,7 @@ class ShareHeartbeatClient {
         body: jsonEncode({
           'view_event_id': eventId,
           'close': close,
+          'event_type': ?eventType,
         }),
       );
     } catch (e) {

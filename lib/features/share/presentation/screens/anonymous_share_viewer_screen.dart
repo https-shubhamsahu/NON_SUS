@@ -13,6 +13,7 @@ import '../../../../components/secure_viewer/models/watermark_config.dart';
 import '../../../../components/secure_viewer/secure_document_viewer.dart';
 import '../../data/share_fetch_client.dart';
 import '../../data/share_heartbeat_client.dart';
+import '../../../../services/web_security_guard.dart';
 import '../../domain/entities/share_link.dart';
 import '../../../../core/mascot/mascot_controller.dart';
 import '../../../../core/mascot/mascot_state.dart';
@@ -49,6 +50,20 @@ class _AnonymousShareViewerScreenState
   ShareFetchResult? _result;
   Uint8List? _bytes;
   Timer? _heartbeatTimer;
+  final _webGuard = WebSecurityGuard();
+  // Broadcasts to SecureDocumentViewer's blur layer whenever WebSecurityGuard
+  // reports a signal that suggests active inspection or capture. This can't
+  // detect an actual OS screenshot — no browser API exposes that — but
+  // DevTools opening or repeated tab-hiding are the closest real proxies,
+  // and blurring immediately on them is a genuine reactive deterrent rather
+  // than a claim of prevention.
+  final _concealSignal = StreamController<void>.broadcast();
+
+  static const _concealTriggers = {
+    'devtools_detected',
+    'visibility_hidden_repeated',
+    'automation_detected',
+  };
 
   @override
   void initState() {
@@ -64,6 +79,8 @@ class _AnonymousShareViewerScreenState
   void dispose() {
     _emailController.dispose();
     _stopHeartbeat(close: true);
+    _webGuard.detach();
+    _concealSignal.close();
     super.dispose();
   }
 
@@ -144,6 +161,18 @@ class _AnonymousShareViewerScreenState
       if (result.viewEventId != null) {
         _startHeartbeat(result.viewEventId!);
       }
+      // Deterrent layer for this viewing session — see WebSecurityGuard's
+      // honesty-rule docs: this reduces casual leak paths and reports
+      // devtools/visibility signals, it does not prevent screenshots.
+      _webGuard.attach((eventType) {
+        final eventId = _result?.viewEventId;
+        if (eventId != null) {
+          ShareHeartbeatClient.instance.sendHeartbeat(eventId, eventType: eventType);
+        }
+        if (_concealTriggers.contains(eventType)) {
+          _concealSignal.add(null);
+        }
+      });
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -496,6 +525,7 @@ class _AnonymousShareViewerScreenState
             viewerConfig: const ViewerConfig(),
             touchToRevealEnabled: result.blurEnforced,
             watermarkEnabled: result.watermarkEnforced,
+            forceConcealSignal: _concealSignal.stream,
             child: child,
           ),
         ),

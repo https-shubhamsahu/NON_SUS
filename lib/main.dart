@@ -24,6 +24,7 @@ import 'features/audit/presentation/pages/audit_tab.dart';
 import 'services/supabase_service.dart';
 import 'services/screenshot_guard.dart';
 import 'services/audit_service.dart';
+import 'services/device_integrity_service.dart';
 import 'services/share_intent_service.dart';
 import 'features/workspace/presentation/widgets/save_to_no_sus_dialog.dart';
 import 'features/focus/providers/focus_provider.dart';
@@ -60,7 +61,7 @@ BurnNoteToken? extractBurnNoteToken(Uri uri) {
 
   // ── Format 1 (new): #/burn/<uuid>?k=<keyHex>&v=<ivHex> ─────────────────
   // Extract the hash fragment, then parse query params from within it.
-  // e.g. https://host/NON_SUS/#/burn/abc-123?k=aaa...&v=bbb...
+  // e.g. https://nosus.foo/#/burn/abc-123?k=aaa...&v=bbb...
   final hashIdx = fullUrl.indexOf('#');
   if (hashIdx != -1) {
     final fragment = fullUrl.substring(hashIdx + 1); // /burn/<uuid>?k=...&v=...
@@ -249,6 +250,10 @@ void main() async {
       AuditService.instance.init();
       // 2. Block screenshots (FLAG_SECURE on Android) + funny popup on attempt
       await ScreenshotGuard.instance.initialize();
+      // 3. Device-integrity scan (root/Frida/Xposed) — fire-and-forget so a
+      // 150ms socket probe never delays first paint; findings land in the
+      // device_integrity_events ledger asynchronously.
+      unawaited(DeviceIntegrityService.instance.runStartupChecks());
 
       // Initialize remote config and feature flags
       final remoteConfig = RemoteConfigService(Supabase.instance.client);

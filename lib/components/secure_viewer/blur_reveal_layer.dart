@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -24,12 +25,26 @@ class BlurRevealLayer extends ConsumerStatefulWidget {
   /// Whether to show the "TOUCH TO REVEAL" hint when content is blurred.
   final bool showHint;
 
+  /// Whether the layer starts revealed (false) or concealed (true, the
+  /// existing default). Web viewers that don't want the sender's default
+  /// touch-to-reveal blur still pass a [forceConcealSignal] so a detected
+  /// security event can conceal on demand — this lets them start revealed.
+  final bool initiallyConcealed;
+
+  /// Emits to force an immediate conceal regardless of current touch state
+  /// — e.g. [WebSecurityGuard] detected DevTools opening or repeated tab
+  /// hiding. Does not change [showHint] or block the user from touching to
+  /// reveal again afterward; this is a reactive deterrent, not a lock.
+  final Stream<void>? forceConcealSignal;
+
   const BlurRevealLayer({
     super.key,
     required this.child,
     this.overlay,
     this.config = const ViewerConfig(),
     this.showHint = true,
+    this.initiallyConcealed = true,
+    this.forceConcealSignal,
   });
 
   @override
@@ -39,6 +54,7 @@ class BlurRevealLayer extends ConsumerStatefulWidget {
 class _BlurRevealLayerState extends ConsumerState<BlurRevealLayer>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
+  StreamSubscription<void>? _forceConcealSub;
 
   // Number of currently active pointers (supports multi-touch tracking)
   int _activePointers = 0;
@@ -48,17 +64,31 @@ class _BlurRevealLayerState extends ConsumerState<BlurRevealLayer>
     super.initState();
 
     _controller = AnimationController(
-      value: 1.0, // Start fully blurred/concealed (1.0 = concealed, 0.0 = revealed)
+      value: widget.initiallyConcealed ? 1.0 : 0.0,
       vsync: this,
     );
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Blurred on open — Nox is guarding this document.
-      if (mounted) ref.read(noxMascotProvider.notifier).play(MascotMood.protect);
+
+    _forceConcealSub = widget.forceConcealSignal?.listen((_) {
+      if (!mounted) return;
+      _controller.animateTo(
+        1.0,
+        duration: widget.config.concealDuration,
+        curve: widget.config.concealCurve,
+      );
+      ref.read(noxMascotProvider.notifier).play(MascotMood.alert);
     });
+
+    if (widget.initiallyConcealed) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        // Blurred on open — Nox is guarding this document.
+        if (mounted) ref.read(noxMascotProvider.notifier).play(MascotMood.protect);
+      });
+    }
   }
 
   @override
   void dispose() {
+    _forceConcealSub?.cancel();
     _controller.dispose();
     super.dispose();
   }

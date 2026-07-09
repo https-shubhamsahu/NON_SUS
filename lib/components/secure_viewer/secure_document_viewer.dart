@@ -51,6 +51,15 @@ class SecureDocumentViewer extends StatelessWidget {
   /// Whether the watermark overlay layer is enabled.
   final bool watermarkEnabled;
 
+  /// Forces an immediate conceal (blur) regardless of [touchToRevealEnabled]
+  /// — wired to [WebSecurityGuard]'s detections on the web viewers (DevTools
+  /// opened, repeated tab-hiding). When this is provided, the blur layer is
+  /// always present so it has something to conceal, even if the sender
+  /// didn't request touch-to-reveal-by-default; it just starts revealed in
+  /// that case (see [BlurRevealLayer.initiallyConcealed]) rather than
+  /// blurred until the first tap.
+  final Stream<void>? forceConcealSignal;
+
   const SecureDocumentViewer({
     super.key,
     required this.child,
@@ -59,14 +68,17 @@ class SecureDocumentViewer extends StatelessWidget {
     this.showHint = true,
     this.touchToRevealEnabled = true,
     this.watermarkEnabled = true,
+    this.forceConcealSignal,
   });
 
   @override
   Widget build(BuildContext context) {
-    if (touchToRevealEnabled) {
+    if (touchToRevealEnabled || forceConcealSignal != null) {
       return BlurRevealLayer(
         config: viewerConfig,
-        showHint: showHint,
+        showHint: showHint && touchToRevealEnabled,
+        initiallyConcealed: touchToRevealEnabled,
+        forceConcealSignal: forceConcealSignal,
         overlay: watermarkEnabled
             ? WatermarkOverlay(config: watermarkConfig)
             : const SizedBox.shrink(),

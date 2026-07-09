@@ -26,6 +26,7 @@
             android:theme="@style/LaunchTheme"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
+            android:filterTouchesWhenObscured="true"
             android:windowSoftInputMode="adjustResize">
             <!-- Specifies an Android theme to apply to this Activity as soon as
                  the Android process has started. This theme is visible to the user
@@ -83,5 +84,28 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        <!-- Package visibility (API 30+) for the device-integrity scanner's
+             root/hook-framework manager checks — see
+             android/app/src/main/kotlin/io/nosus/app/security/RootDetector.kt
+             and InstrumentationDetector.kt. Without these entries,
+             PackageManager.getPackageInfo() silently reports "not found"
+             for every package below regardless of whether it's installed,
+             which would make root/hook detection always negative. -->
+        <package android:name="com.topjohnwu.magisk"/>
+        <package android:name="eu.chainfire.supersu"/>
+        <package android:name="com.noshufou.android.su"/>
+        <package android:name="com.koushikdutta.superuser"/>
+        <package android:name="com.thirdparty.superuser"/>
+        <package android:name="com.yellowes.su"/>
+        <package android:name="me.phh.superuser"/>
+        <package android:name="com.kingroot.kinguser"/>
+        <package android:name="com.kingouser.com"/>
+        <package android:name="com.smedialink.oneclickroot"/>
+        <package android:name="com.zhiqupk.root.global"/>
+        <package android:name="com.alephzain.framaroot"/>
+        <package android:name="de.robv.android.xposed.installer"/>
+        <package android:name="org.meowcat.edxposed.manager"/>
+        <package android:name="io.github.lsposed.manager"/>
+        <package android:name="org.lsposed.manager"/>
     </queries>
 </manifest>

@@ -1,5 +1,6 @@
 package io.nosus.app
 
+import android.app.Activity
 import android.content.Intent
 import android.database.ContentObserver
 import android.net.Uri
@@ -8,11 +9,13 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.MediaStore
+import android.view.MotionEvent
 import android.view.WindowManager
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
+import io.nosus.app.security.DeviceIntegrityManager
 import java.io.File
 import java.io.FileOutputStream
 
@@ -20,11 +23,14 @@ class MainActivity : FlutterActivity() {
     private val SECURITY_CHANNEL = "co.nosus.app/security"
     private val SCREENSHOT_CHANNEL = "co.nosus.app/screenshot"
     private val SHARE_CHANNEL = "co.nosus.app/share"
+    private val INTEGRITY_CHANNEL = "co.nosus.app/device_integrity"
 
     private var screenshotObserver: ContentObserver? = null
+    private var screenCaptureCallback: Activity.ScreenCaptureCallback? = null
     private var eventSink: EventChannel.EventSink? = null
     private var methodChannel: MethodChannel? = null
     private var sharedData: Map<String, Any?>? = null
+    private var overlayEventCoolingDown = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -33,6 +39,55 @@ class MainActivity : FlutterActivity() {
         if (savedInstanceState == null) {
             handleIntent(intent)
         }
+        registerModernScreenshotCallback()
+    }
+
+    /**
+     * Android 14+ fires this synchronously the moment a screenshot is taken,
+     * system-wide — far more reliable than the MediaStore heuristic below,
+     * which only notices *after* the file lands on disk. Older OS versions
+     * fall back to the ContentObserver path started in configureFlutterEngine.
+     */
+    private fun registerModernScreenshotCallback() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            try {
+                val callback = Activity.ScreenCaptureCallback {
+                    eventSink?.success(mapOf("type" to "screenshot", "source" to "system_api"))
+                }
+                registerScreenCaptureCallback(mainExecutor, callback)
+                screenCaptureCallback = callback
+            } catch (_: Exception) {
+                // OEM skin variance — silently rely on the ContentObserver fallback.
+            }
+        }
+    }
+
+    private fun unregisterModernScreenshotCallback() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            screenCaptureCallback?.let {
+                try {
+                    unregisterScreenCaptureCallback(it)
+                } catch (_: Exception) { }
+            }
+        }
+    }
+
+    /**
+     * Detects tapjacking/overlay attacks: the system sets these MotionEvent
+     * flags whenever a touch was delivered through another app's window
+     * overlaying ours (SYSTEM_ALERT_WINDOW). Requires
+     * android:filterTouchesWhenObscured="true" on the activity (set in
+     * AndroidManifest.xml) to actually be populated by the framework.
+     */
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        val obscured = (ev.flags and MotionEvent.FLAG_WINDOW_IS_OBSCURED) != 0 ||
+            (ev.flags and MotionEvent.FLAG_WINDOW_IS_PARTIALLY_OBSCURED) != 0
+        if (obscured && !overlayEventCoolingDown) {
+            overlayEventCoolingDown = true
+            eventSink?.success(mapOf("type" to "overlay_detected"))
+            Handler(Looper.getMainLooper()).postDelayed({ overlayEventCoolingDown = false }, 3000)
+        }
+        return super.dispatchTouchEvent(ev)
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -87,7 +142,22 @@ class MainActivity : FlutterActivity() {
                 }
             }
 
-        // ── EventChannel: push screenshot/recording events to Dart ──
+        // ── MethodChannel: on-demand device-integrity scan (root / Frida / Xposed / display mirroring / accessibility) ──
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, INTEGRITY_CHANNEL)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "runChecks" -> {
+                        try {
+                            result.success(DeviceIntegrityManager.runAllChecks(applicationContext))
+                        } catch (e: Exception) {
+                            result.error("INTEGRITY_SCAN_FAILED", e.message, null)
+                        }
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+
+        // ── EventChannel: push screenshot/recording/overlay events to Dart ──
         EventChannel(flutterEngine.dartExecutor.binaryMessenger, SCREENSHOT_CHANNEL)
             .setStreamHandler(object : EventChannel.StreamHandler {
                 override fun onListen(arguments: Any?, events: EventChannel.EventSink) {
@@ -127,7 +197,10 @@ class MainActivity : FlutterActivity() {
                                               path.contains("screen_record") || name.contains("screen_record")
 
                             if (isScreenshot || isRecording) {
-                                eventSink?.success(if (isRecording) "recording" else "screenshot")
+                                eventSink?.success(mapOf(
+                                    "type" to if (isRecording) "recording" else "screenshot",
+                                    "source" to "media_store"
+                                ))
                             }
                         }
                     }
@@ -151,6 +224,7 @@ class MainActivity : FlutterActivity() {
 
     override fun onDestroy() {
         stopScreenshotObserver()
+        unregisterModernScreenshotCallback()
         super.onDestroy()
     }
 

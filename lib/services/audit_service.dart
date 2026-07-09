@@ -72,6 +72,9 @@ class AuditService {
         'screenshot_attempt',
         'recording_attempt',
         'unauthorized_access',
+        'overlay_detected',
+        'accessibility_detected',
+        'display_mirroring_detected',
       ];
 
       String eventType = eventTypeOrDescription;
@@ -128,6 +131,9 @@ class AuditService {
       'screenshot_attempt',
       'recording_attempt',
       'unauthorized_access',
+      'overlay_detected',
+      'accessibility_detected',
+      'display_mirroring_detected',
     ];
 
     String displayEvent = eventTypeOrDescription;
@@ -210,6 +216,15 @@ class AuditService {
         return 'Blocked screen recording attempt of "$name"';
       case 'unauthorized_access':
         return 'Unauthorized access attempt blocked';
+      case 'overlay_detected':
+        final name = metadata['file_name'] ?? 'document';
+        return 'Overlay/tapjacking attempt detected while viewing "$name"';
+      case 'accessibility_detected':
+        final services = metadata['services'];
+        final count = services is List ? services.length : 0;
+        return 'Suspicious accessibility service(s) detected during viewing ($count)';
+      case 'display_mirroring_detected':
+        return 'External display or screen mirroring detected during viewing';
       default:
         return 'Security audit event triggered: $eventType';
     }
@@ -221,7 +236,10 @@ class AuditService {
   ) {
     if (eventType == 'screenshot_attempt' ||
         eventType == 'recording_attempt' ||
-        eventType == 'unauthorized_access') {
+        eventType == 'unauthorized_access' ||
+        eventType == 'overlay_detected' ||
+        eventType == 'accessibility_detected' ||
+        eventType == 'display_mirroring_detected') {
       return 'SECURITY';
     }
     if (eventType.contains('viewed') ||

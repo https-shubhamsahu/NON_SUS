@@ -177,6 +177,97 @@ class SupabaseService {
     }
   }
 
+  /// Logs a device/session-level integrity finding (root, active
+  /// instrumentation, risk flag) to the self-scoped `device_integrity_events`
+  /// hash chain — separate from [logEvent] because these aren't tied to a
+  /// specific study group.
+  Future<void> logDeviceIntegrityEvent({
+    required String eventType,
+    required String deviceId,
+    String severity = 'info',
+    Map<String, dynamic>? metadata,
+  }) async {
+    if (!isConfigured) return;
+
+    try {
+      await Supabase.instance.client.rpc('log_device_integrity_event', params: {
+        'p_event_type': eventType,
+        'p_severity': severity,
+        'p_device_id': deviceId,
+        'p_metadata': metadata ?? {},
+      });
+    } catch (e) {
+      debugLog("SupabaseService: logDeviceIntegrityEvent RPC failed: $e");
+    }
+  }
+
+  /// Realtime stream of a single user's `user_risk_state` row (see
+  /// [RiskEngineService]). Filters explicitly to [userId] rather than
+  /// relying on RLS alone, since a super-admin's RLS grant would otherwise
+  /// let this stream return every user's row.
+  Stream<Map<String, dynamic>?> watchMyRiskState(String userId) {
+    if (!isConfigured) return Stream.value(null);
+
+    return Supabase.instance.client
+        .from('user_risk_state')
+        .stream(primaryKey: ['user_id'])
+        .eq('user_id', userId)
+        .map((rows) => rows.isEmpty ? null : rows.first)
+        .handleError((e) {
+          debugLog("SupabaseService: watchMyRiskState error: $e");
+        });
+  }
+
+  /// Clears the caller's own require_reauth/session_locked flags after a
+  /// fresh sign-in. See acknowledge_reauth() in
+  /// supabase/migrations/20260710030000_risk_engine.sql.
+  Future<void> acknowledgeReauth() async {
+    if (!isConfigured) return;
+    await Supabase.instance.client.rpc('acknowledge_reauth');
+  }
+
+  /// Recent, unacknowledged security alerts visible to the caller under
+  /// RLS — group admins see alerts for their groups, super-admins see all,
+  /// everyone sees their own. Used by the admin-facing alerts list, not by
+  /// the flagged user's own device.
+  Future<List<Map<String, dynamic>>> fetchSecurityAlerts() async {
+    if (!isConfigured) return [];
+    try {
+      final rows = await Supabase.instance.client
+          .from('security_alerts')
+          .select()
+          .eq('acknowledged', false)
+          .order('created_at', ascending: false)
+          .limit(50);
+      return List<Map<String, dynamic>>.from(rows);
+    } catch (e) {
+      debugLog("SupabaseService: fetchSecurityAlerts failed: $e");
+      return [];
+    }
+  }
+
+  /// Dismisses an alert from the admin/owner queue. See
+  /// acknowledge_security_alert() in the migration for the server-side
+  /// authorization check (group admin or super-admin only).
+  Future<void> acknowledgeSecurityAlert(String alertId) async {
+    if (!isConfigured) return;
+    await Supabase.instance.client.rpc('acknowledge_security_alert', params: {
+      'p_alert_id': alertId,
+    });
+  }
+
+  /// Records that this device is active for the current user, and flags
+  /// 'multiple_device_access' in the device-integrity ledger the first time
+  /// a *new* device shows up for an account that already has another known
+  /// device (never on a user's first-ever device). See
+  /// register_device_seen() in 20260710040000_multi_device_detection.sql.
+  Future<void> registerDeviceSeen(String deviceId) async {
+    if (!isConfigured) return;
+    await Supabase.instance.client.rpc('register_device_seen', params: {
+      'p_device_id': deviceId,
+    });
+  }
+
   /// Fetches private notes for a user.
   Future<String> fetchUserNote(String userId) async {
     if (!isConfigured) return '';

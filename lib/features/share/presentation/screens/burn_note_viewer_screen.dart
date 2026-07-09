@@ -9,6 +9,7 @@ import 'package:encrypt/encrypt.dart' as enc;
 import '../../../../core/mascot/mascot_controller.dart';
 import '../../../../core/mascot/mascot_state.dart';
 import '../../../../core/mascot/mascot_view.dart';
+import '../../../../services/web_security_guard.dart';
 
 List<int> _hexToBytes(String hex) {
   final bytes = <int>[];
@@ -43,11 +44,23 @@ class _BurnNoteViewerScreenState extends ConsumerState<BurnNoteViewerScreen> {
   int _secondsLeft = 60;
   Timer? _timer;
   StreamSubscription? _blurSubscription;
+  // Deliberately does NOT block copy/select: the note body below uses
+  // SelectableText on purpose (a recipient may need to copy the secret
+  // before it burns). No server reporting either — burn notes have no
+  // view-event ledger the way SecureSend share links do.
+  final _webGuard = WebSecurityGuard(
+    blockCopy: false,
+    blockCut: false,
+    blockSelect: false,
+    detectDevTools: false,
+    detectVisibilityChanges: false,
+  );
 
   @override
   void dispose() {
     _timer?.cancel();
     _blurSubscription?.cancel();
+    _webGuard.detach();
     super.dispose();
   }
 
@@ -55,6 +68,7 @@ class _BurnNoteViewerScreenState extends ConsumerState<BurnNoteViewerScreen> {
     if (_stage != _BurnStage.active) return;
     _timer?.cancel();
     _blurSubscription?.cancel();
+    _webGuard.detach();
     setState(() {
       _decryptedContent = null;
       _stage = _BurnStage.burned;
@@ -96,6 +110,7 @@ class _BurnNoteViewerScreenState extends ConsumerState<BurnNoteViewerScreen> {
         _stage = _BurnStage.active;
       });
       ref.read(noxMascotProvider.notifier).play(MascotMood.guard);
+      if (kIsWeb) _webGuard.attach((_) {});
 
       // 3. Start 60s countdown
       _timer = Timer.periodic(const Duration(seconds: 1), (timer) {

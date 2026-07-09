@@ -70,8 +70,8 @@ class _BurnNoteCreatorScreenState extends ConsumerState<BurnNoteCreatorScreen> {
       // We use ?k=<key>&v=<iv> INSIDE the fragment so they are never sent to the server.
       // Double-hash (#...#...) breaks in most browsers — query params inside the
       // hash are spec-compliant and preserved reliably.
-      final origin = kIsWeb ? Uri.base.origin : 'https://https-shubhamsahu.github.io';
-      final basePath = kIsWeb ? Uri.base.path.replaceAll('index.html', '').replaceAll(RegExp(r'/$'), '') : '/NON_SUS';
+      final origin = kIsWeb ? Uri.base.origin : 'https://nosus.foo';
+      final basePath = kIsWeb ? Uri.base.path.replaceAll('index.html', '').replaceAll(RegExp(r'/$'), '') : '';
       final keyHex = _bytesToHex(key.bytes);
       final ivHex = _bytesToHex(iv.bytes);
       final link = '$origin$basePath/#/burn/$noteId?k=$keyHex&v=$ivHex';

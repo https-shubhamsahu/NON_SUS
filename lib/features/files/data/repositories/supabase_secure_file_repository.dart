@@ -84,8 +84,16 @@ class SupabaseSecureFileRepository implements SecureFileRepository {
       }
     }
 
-    // 2. Upload raw binary bytes to Supabase Storage
-    await _client.storage.from('secure-files').uploadBinary(tempFileId, rawBytes);
+    // 2. Upload raw binary bytes to Supabase Storage. cacheControl: '0'
+    // means browsers/CDN never cache this response — the signed URL that
+    // resolves to these bytes already expires in minutes, but a cached
+    // response would keep serving cached bytes from local disk even after
+    // that signed URL is no longer valid for new requests.
+    await _client.storage.from('secure-files').uploadBinary(
+          tempFileId,
+          rawBytes,
+          fileOptions: const FileOptions(cacheControl: '0'),
+        );
 
     // 3. Insert metadata row in secure_files table
     await _client.from('secure_files').insert({
