@@ -38,9 +38,16 @@ jobs:
       - name: Build Web
         run: flutter build web --base-href "/" --dart-define-from-file=.env
 
+      # This repo's Pages config is the legacy (branch-based) build type,
+      # which reads the custom domain FROM this file on every deploy — the
+      # deploy action's own `cname` input isn't a recognized parameter on
+      # the pinned @v4 release, so relying on it silently does nothing and
+      # the custom domain would get reset on the next push without this.
+      - name: Write CNAME for custom domain
+        run: echo "nosus.foo" > build/web/CNAME
+
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           folder: build/web
           branch: gh-pages
-          cname: nosus.foo
