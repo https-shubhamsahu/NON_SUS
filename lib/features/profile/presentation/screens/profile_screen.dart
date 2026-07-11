@@ -1308,7 +1308,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           final groupsAsync = ref.watch(groupsProvider);
           final int groupsCount = groupsAsync.value?.length ?? 0;
 
-          final auditLogs = ref.watch(auditLogsProvider);
+          final auditLogs =
+              ref.watch(auditLogsProvider).value ?? const <Map<String, String>>[];
           final int filesViewedCount = auditLogs
               .where(
                 (log) => log['event']?.contains('Opened secure file') == true,

@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +8,7 @@ import 'package:uuid/uuid.dart';
 import '../../../../core/mascot/mascot_controller.dart';
 import '../../../../core/mascot/mascot_state.dart';
 import '../../../../core/mascot/mascot_view.dart';
+import '../../../../core/utils/web_links.dart';
 
 String _bytesToHex(List<int> bytes) {
   return bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
@@ -70,8 +70,7 @@ class _BurnNoteCreatorScreenState extends ConsumerState<BurnNoteCreatorScreen> {
       // We use ?k=<key>&v=<iv> INSIDE the fragment so they are never sent to the server.
       // Double-hash (#...#...) breaks in most browsers — query params inside the
       // hash are spec-compliant and preserved reliably.
-      final origin = kIsWeb ? Uri.base.origin : 'https://nosus.foo';
-      final basePath = kIsWeb ? Uri.base.path.replaceAll('index.html', '').replaceAll(RegExp(r'/$'), '') : '';
+      final (:origin, :basePath) = webShareLinkBase();
       final keyHex = _bytesToHex(key.bytes);
       final ivHex = _bytesToHex(iv.bytes);
       final link = '$origin$basePath/#/burn/$noteId?k=$keyHex&v=$ivHex';

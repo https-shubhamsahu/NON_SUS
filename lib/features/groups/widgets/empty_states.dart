@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/mascot/mascot_state.dart';
 import '../../../core/mascot/mascot_view.dart';
+import '../../../theme.dart';
 
 /// Minimal empty state for the groups list screen.
 class GroupsEmptyState extends StatelessWidget {
@@ -16,8 +17,8 @@ class GroupsEmptyState extends StatelessWidget {
 
     return Center(
       child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(
-          parent: BouncingScrollPhysics(),
+        physics: AlwaysScrollableScrollPhysics(
+          parent: NoSusTheme.getScrollPhysics(context),
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 16.0),
@@ -83,8 +84,8 @@ class FilesEmptyState extends StatelessWidget {
 
     return Center(
       child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(
-          parent: BouncingScrollPhysics(),
+        physics: AlwaysScrollableScrollPhysics(
+          parent: NoSusTheme.getScrollPhysics(context),
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 16.0),

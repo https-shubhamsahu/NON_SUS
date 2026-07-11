@@ -34,7 +34,7 @@ class ShareHeartbeatClient {
         body: jsonEncode({
           'view_event_id': eventId,
           'close': close,
-          'event_type': ?eventType,
+          'event_type': eventType,
         }),
       );
     } catch (e) {

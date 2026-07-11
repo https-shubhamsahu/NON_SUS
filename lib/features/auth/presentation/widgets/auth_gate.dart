@@ -63,8 +63,11 @@ class AuthGate extends ConsumerWidget {
 
         // ── 2c. Profile / Onboarding Gate ──────────────────────────────────────
         if (!SupabaseService.instance.isReachable) {
-          return const Scaffold(
-            body: Center(child: Text("Network connection required for secure enclave.")),
+          return _OfflineGateScreen(
+            onRetry: () async {
+              await SupabaseService.instance.initialize();
+              ref.invalidate(authStateProvider);
+            },
           );
         }
 
@@ -248,6 +251,115 @@ class AuthGate extends ConsumerWidget {
           ),
         );
       },
+    );
+  }
+}
+
+// ─── Offline Gate (no reachable Supabase host at startup) ─────────────────────
+
+/// Shown when [SupabaseService.isReachable] is false — replaces the old
+/// unconditional dead-end block with a retry action that re-runs
+/// [SupabaseService.initialize] and invalidates [authStateProvider] so
+/// [AuthGate] re-evaluates the reachability check.
+class _OfflineGateScreen extends StatefulWidget {
+  final Future<void> Function() onRetry;
+  const _OfflineGateScreen({required this.onRetry});
+
+  @override
+  State<_OfflineGateScreen> createState() => _OfflineGateScreenState();
+}
+
+class _OfflineGateScreenState extends State<_OfflineGateScreen> {
+  bool _isRetrying = false;
+
+  Future<void> _retry() async {
+    if (_isRetrying) return;
+    setState(() => _isRetrying = true);
+    await widget.onRetry();
+    if (mounted) setState(() => _isRetrying = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final bg = isDark ? NoSusTheme.dBackground : NoSusTheme.lBackground;
+    final fg = isDark ? NoSusTheme.dText : NoSusTheme.lText;
+    final subtle = isDark ? NoSusTheme.dTextSecondary : NoSusTheme.lTextSecondary;
+
+    return Scaffold(
+      backgroundColor: bg,
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(NoSusTheme.s24),
+            child: Container(
+              padding: const EdgeInsets.all(NoSusTheme.s32),
+              decoration: NoSusTheme.cardDecoration(context),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Center(
+                    child: Icon(Icons.wifi_off_outlined, color: Colors.amber, size: 40),
+                  ),
+                  const SizedBox(height: NoSusTheme.s24),
+                  Text(
+                    'NETWORK CONNECTION REQUIRED',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: Colors.amber,
+                      letterSpacing: 2.0,
+                      fontSize: 11,
+                    ),
+                  ),
+                  const SizedBox(height: NoSusTheme.s16),
+                  Text(
+                    'The secure enclave needs a live connection to continue. Check your connection and try again.',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: subtle,
+                      fontSize: 13,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: NoSusTheme.s32),
+                  GestureDetector(
+                    onTap: _isRetrying ? null : _retry,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      decoration: BoxDecoration(
+                        color: fg,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Center(
+                        child: _isRetrying
+                            ? SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: isDark ? Colors.black : Colors.white,
+                                ),
+                              )
+                            : Text(
+                                'RETRY',
+                                style: TextStyle(
+                                  color: isDark ? Colors.black : Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 1.5,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

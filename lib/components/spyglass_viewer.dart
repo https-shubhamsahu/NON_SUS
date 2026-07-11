@@ -485,7 +485,7 @@ class _DocumentContent extends StatelessWidget {
     final paragraphs = text.split('\n\n');
 
     return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
+      physics: NoSusTheme.getScrollPhysics(context),
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

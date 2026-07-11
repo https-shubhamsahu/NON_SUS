@@ -125,4 +125,44 @@ void main() {
       );
     });
   });
+
+  group('extractBurnFileToken', () {
+    test('parses id/key/iv from the hash fragment', () {
+      final uri = Uri.parse(
+        'https://nosus.foo/#/burnfile/$noteId?k=$keyHex&v=$ivHex',
+      );
+      final token = extractBurnFileToken(uri);
+      expect(token, isNotNull);
+      expect(token!.id, noteId);
+      expect(token.keyHex, keyHex);
+      expect(token.ivHex, ivHex);
+    });
+
+    test('does not collide with the burnfile/ vs burn/ prefix', () {
+      // "burnfile/" contains "burn" but never "burn/" (no slash immediately
+      // after "burn") — must not be picked up by extractBurnNoteToken, and
+      // extractBurnFileToken must not match a plain burn note link either.
+      final burnFileUri = Uri.parse(
+        'https://nosus.foo/#/burnfile/$noteId?k=$keyHex&v=$ivHex',
+      );
+      expect(extractBurnNoteToken(burnFileUri), isNull);
+
+      final burnNoteUri = Uri.parse(
+        'https://nosus.foo/#/burn/$noteId?k=$keyHex&v=$ivHex',
+      );
+      expect(extractBurnFileToken(burnNoteUri), isNull);
+    });
+
+    test('rejects wrong-length key/iv', () {
+      final uri = Uri.parse(
+        'https://nosus.foo/#/burnfile/$noteId?k=deadbeef&v=$ivHex',
+      );
+      expect(extractBurnFileToken(uri), isNull);
+    });
+
+    test('returns null on ordinary app URLs', () {
+      expect(extractBurnFileToken(Uri.parse('https://nosus.foo/')), isNull);
+      expect(extractBurnFileToken(Uri.parse('file:///')), isNull);
+    });
+  });
 }

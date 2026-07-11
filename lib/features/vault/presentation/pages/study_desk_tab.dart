@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../theme.dart';
+import '../../../../components/shimmer_box.dart';
+import '../../../../components/async_state_view.dart';
 import '../../../groups/models/group_file.dart';
 import '../../../groups/providers/groups_provider.dart';
 import '../../../../components/spyglass_viewer.dart';
@@ -45,57 +47,96 @@ class _StudyDeskTabState extends ConsumerState<StudyDeskTab>
   Widget build(BuildContext context) {
     super.build(context);
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final fg = isDark ? NoSusTheme.dText : NoSusTheme.lText;
 
     final filesAsync = ref.watch(groupFilesProvider);
-    final allFiles = filesAsync.maybeWhen(
-      data: (filesMap) => filesMap.values.expand((x) => x).toList(),
-      orElse: () => <GroupFile>[],
-    );
 
-    if (allFiles.isEmpty) {
-      final isDark = theme.brightness == Brightness.dark;
-      final fg = isDark ? NoSusTheme.dText : NoSusTheme.lText;
-      return Center(
-        key: const ValueKey('studydesk_tab'),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.lock_person_outlined,
-              size: 48,
-              color: fg.withValues(alpha: 0.25),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'NO DOCUMENT SELECTED',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 2.0,
-                color: fg.withValues(alpha: 0.4),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Upload and select a document in the Vault or Groups tab.',
-              style: TextStyle(
-                fontSize: 13,
-                color: isDark ? NoSusTheme.dTextSecondary : NoSusTheme.lTextSecondary,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      );
-    }
-
-    final selectedFile = allFiles.firstWhere(
-      (f) => f.id == _selectedFileId,
-      orElse: () => allFiles.first,
-    );
-
-    return Column(
+    return RefreshIndicator(
       key: const ValueKey('studydesk_tab'),
+      onRefresh: () async {
+        ref.invalidate(groupFilesProvider);
+        await ref.read(groupFilesProvider.future);
+      },
+      color: fg,
+      backgroundColor: isDark ? NoSusTheme.dCard : NoSusTheme.lCard,
+      child: LayoutBuilder(
+        builder: (context, constraints) => SingleChildScrollView(
+          physics: AlwaysScrollableScrollPhysics(
+            parent: NoSusTheme.getScrollPhysics(context),
+          ),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: AsyncStateView<Map<String, List<GroupFile>>>(
+              value: filesAsync,
+              onRetry: () => ref.invalidate(groupFilesProvider),
+              errorMessage: 'Failed to load your documents',
+              loading: (context) =>
+                  SizedBox(height: constraints.maxHeight, child: const _ViewerSkeleton()),
+              isEmpty: (filesMap) =>
+                  filesMap.values.every((files) => files.isEmpty),
+              empty: (context) => SizedBox(
+                height: constraints.maxHeight,
+                child: _buildEmptyState(theme, isDark, fg),
+              ),
+              data: (context, filesMap) {
+                final allFiles = filesMap.values.expand((x) => x).toList();
+                final selectedFile = allFiles.firstWhere(
+                  (f) => f.id == _selectedFileId,
+                  orElse: () => allFiles.first,
+                );
+                return SizedBox(
+                  height: constraints.maxHeight,
+                  child: _buildViewer(theme, allFiles, selectedFile),
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(ThemeData theme, bool isDark, Color fg) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.lock_person_outlined,
+            size: 48,
+            color: fg.withValues(alpha: 0.25),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'NO DOCUMENT SELECTED',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 2.0,
+              color: fg.withValues(alpha: 0.4),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Upload and select a document in the Vault or Groups tab.',
+            style: TextStyle(
+              fontSize: 13,
+              color: isDark ? NoSusTheme.dTextSecondary : NoSusTheme.lTextSecondary,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildViewer(
+    ThemeData theme,
+    List<GroupFile> allFiles,
+    GroupFile selectedFile,
+  ) {
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
@@ -250,6 +291,38 @@ class _StudyDeskTabState extends ConsumerState<StudyDeskTab>
               ),
             ),
           ).animate().fadeIn(duration: 350.ms),
+        ),
+      ],
+    );
+  }
+}
+
+/// Shimmer placeholder for the viewer entry card while [groupFilesProvider]
+/// is loading.
+class _ViewerSkeleton extends StatelessWidget {
+  const _ViewerSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Row(
+          children: [
+            ShimmerBox(width: 140, height: 14),
+          ],
+        ),
+        const SizedBox(height: NoSusTheme.s8),
+        const ShimmerBox(width: 200, height: 20),
+        const SizedBox(height: NoSusTheme.s24),
+        Expanded(
+          child: Container(
+            width: double.infinity,
+            decoration: NoSusTheme.cardDecoration(context),
+            child: const Center(
+              child: ShimmerBox(width: 180, height: 44, radius: 12),
+            ),
+          ),
         ),
       ],
     );

@@ -18,6 +18,9 @@ import '../../auth/presentation/providers/auth_providers.dart';
 import '../../audit/providers/audit_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../services/screenshot_guard.dart';
+import '../../../components/shimmer_box.dart';
+import '../../../components/async_state_view.dart';
+import '../../../core/utils/web_links.dart';
 
 /// Full-screen group detail page with tabbed content:
 /// Files | Notes | Members | Activity
@@ -114,6 +117,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
             ),
             TextButton(
               onPressed: () async {
+                HapticFeedback.heavyImpact();
                 final navigator = Navigator.of(context);
                 final scaffoldMessenger = ScaffoldMessenger.of(context);
                 Navigator.pop(context); // Close dialog
@@ -147,6 +151,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
             ),
             TextButton(
               onPressed: () async {
+                HapticFeedback.heavyImpact();
                 final navigator = Navigator.of(context);
                 final scaffoldMessenger = ScaffoldMessenger.of(context);
                 Navigator.pop(context); // Close dialog
@@ -202,8 +207,8 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
         color: fg,
         backgroundColor: isDark ? NoSusTheme.dCard : NoSusTheme.lCard,
         child: NestedScrollView(
-        physics: const AlwaysScrollableScrollPhysics(
-          parent: BouncingScrollPhysics(),
+        physics: AlwaysScrollableScrollPhysics(
+          parent: NoSusTheme.getScrollPhysics(context),
         ),
         headerSliverBuilder: (context, _) => [
           // ── Sliver app bar ──────────────────────────────────────────────
@@ -440,6 +445,7 @@ class _FilesTab extends ConsumerWidget {
             ),
             TextButton(
               onPressed: () {
+                HapticFeedback.heavyImpact();
                 Navigator.pop(context);
                 ref.read(groupFilesProvider.notifier).removeFile(groupId, fileId);
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -500,8 +506,12 @@ class _FilesTab extends ConsumerWidget {
     final filesAsync = ref.watch(groupFilesForGroupProvider(group.id));
 
     return filesAsync.when(
-      loading: () =>
-          const Center(child: CircularProgressIndicator(strokeWidth: 1.5)),
+      loading: () => Padding(
+        padding: const EdgeInsets.all(NoSusTheme.s24),
+        child: ShimmerListSkeleton(
+          itemBuilder: (context) => const _FileCardSkeleton(),
+        ),
+      ),
       error: (e, _) => Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -529,8 +539,8 @@ class _FilesTab extends ConsumerWidget {
             ? FilesEmptyState(onUpload: onUpload)
             : ListView.separated(
                 padding: const EdgeInsets.all(NoSusTheme.s24),
-                physics: const AlwaysScrollableScrollPhysics(
-                  parent: BouncingScrollPhysics(),
+                physics: AlwaysScrollableScrollPhysics(
+                  parent: NoSusTheme.getScrollPhysics(context),
                 ),
                 itemCount: files.length,
                 separatorBuilder: (context, index) =>
@@ -637,8 +647,12 @@ class _NotesTab extends ConsumerWidget {
     final filesAsync = ref.watch(groupFilesForGroupProvider(group.id));
 
     return filesAsync.when(
-      loading: () =>
-          const Center(child: CircularProgressIndicator(strokeWidth: 1.5)),
+      loading: () => Padding(
+        padding: const EdgeInsets.all(NoSusTheme.s24),
+        child: ShimmerListSkeleton(
+          itemBuilder: (context) => const _FileCardSkeleton(),
+        ),
+      ),
       error: (e, _) => Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -683,7 +697,7 @@ class _NotesTab extends ConsumerWidget {
 
         return ListView.separated(
           padding: const EdgeInsets.all(NoSusTheme.s24),
-          physics: const BouncingScrollPhysics(),
+          physics: NoSusTheme.getScrollPhysics(context),
           itemCount: notes.length,
           separatorBuilder: (context, index) =>
               const SizedBox(height: NoSusTheme.s12),
@@ -747,6 +761,7 @@ class _NotesTab extends ConsumerWidget {
             ),
             TextButton(
               onPressed: () {
+                HapticFeedback.heavyImpact();
                 Navigator.pop(context);
                 ref.read(groupFilesProvider.notifier).removeFile(groupId, fileId);
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -960,6 +975,35 @@ Future<void> _evaluateAndOpenFile({
   }
 }
 
+/// Shimmer placeholder matching one [FileCard] row: icon chip + name + meta.
+class _FileCardSkeleton extends StatelessWidget {
+  const _FileCardSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(NoSusTheme.s16),
+      decoration: NoSusTheme.cardDecoration(context),
+      child: const Row(
+        children: [
+          ShimmerBox(width: 40, height: 40, radius: 10),
+          SizedBox(width: NoSusTheme.s16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ShimmerBox(width: 140, height: 14),
+                SizedBox(height: 6),
+                ShimmerBox(width: 90, height: 11),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 // ─── Members tab ──────────────────────────────────────────────────────────────
 
 class _MembersTab extends ConsumerWidget {
@@ -978,13 +1022,26 @@ class _MembersTab extends ConsumerWidget {
     final membersAsync = ref.watch(groupMembersProvider(groupId));
 
     return membersAsync.when(
-      loading: () => const Center(
-        child: CircularProgressIndicator(strokeWidth: 1.5),
+      loading: () => Padding(
+        padding: const EdgeInsets.all(NoSusTheme.s24),
+        child: ShimmerListSkeleton(
+          itemBuilder: (context) => const _MemberRowSkeleton(),
+        ),
       ),
       error: (e, _) => Center(
-        child: Text(
-          'Failed to load members',
-          style: TextStyle(color: subtle),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Failed to load members',
+              style: TextStyle(color: subtle),
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () => ref.invalidate(groupMembersProvider(groupId)),
+              child: const Text('RETRY', style: TextStyle(fontSize: 11, letterSpacing: 1.5)),
+            ),
+          ],
         ),
       ),
       data: (list) {
@@ -1029,6 +1086,7 @@ class _MembersTab extends ConsumerWidget {
             ),
             TextButton(
               onPressed: () async {
+                HapticFeedback.heavyImpact();
                 final scaffoldMessenger = ScaffoldMessenger.of(context);
                 Navigator.pop(context);
                 await ref.read(groupsProvider.notifier).removeMember(groupId, member.id);
@@ -1050,8 +1108,8 @@ class _MembersTab extends ConsumerWidget {
 
     return ListView.separated(
       padding: const EdgeInsets.all(NoSusTheme.s24),
-      physics: const AlwaysScrollableScrollPhysics(
-        parent: BouncingScrollPhysics(),
+      physics: AlwaysScrollableScrollPhysics(
+        parent: NoSusTheme.getScrollPhysics(context),
       ),
       itemCount: list.length,
       separatorBuilder: (context, index) =>
@@ -1161,6 +1219,31 @@ class _MembersTab extends ConsumerWidget {
   }
 }
 
+/// Shimmer placeholder matching one member row: avatar + name + role.
+class _MemberRowSkeleton extends StatelessWidget {
+  const _MemberRowSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Row(
+      children: [
+        ShimmerBox(width: 40, height: 40, radius: 20),
+        SizedBox(width: NoSusTheme.s16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ShimmerBox(width: 120, height: 14),
+              SizedBox(height: 6),
+              ShimmerBox(width: 70, height: 11),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 // ─── Activity tab ─────────────────────────────────────────────────────────────
 
 class _ActivityTab extends ConsumerWidget {
@@ -1176,10 +1259,21 @@ class _ActivityTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final auditLogs = ref.watch(auditLogsProvider);
+    final auditLogsAsync = ref.watch(auditLogsProvider);
 
-    if (auditLogs.isEmpty) {
-      return Center(
+    return AsyncStateView<List<Map<String, String>>>(
+      value: auditLogsAsync,
+      onRetry: () => ref.invalidate(auditLogsProvider),
+      errorMessage: 'Failed to load activity',
+      loading: (context) => Padding(
+        padding: const EdgeInsets.all(NoSusTheme.s24),
+        child: ShimmerListSkeleton(
+          spacing: NoSusTheme.s16,
+          itemBuilder: (context) => const _ActivityRowSkeleton(),
+        ),
+      ),
+      isEmpty: (logs) => logs.isEmpty,
+      empty: (context) => Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -1201,58 +1295,59 @@ class _ActivityTab extends ConsumerWidget {
             ),
           ],
         ),
-      );
-    }
+      ),
+      data: (context, auditLogs) => ListView.builder(
+        padding: const EdgeInsets.all(NoSusTheme.s24),
+        physics: AlwaysScrollableScrollPhysics(
+          parent: NoSusTheme.getScrollPhysics(context),
+        ),
+        itemCount: auditLogs.length,
+        itemBuilder: (_, i) {
+          final item = auditLogs[i];
+          final event = item['event'] ?? '';
+          final time = item['time'] ?? '';
+          final status = item['status'] ?? '';
+          final icon = _iconForStatus(status);
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(NoSusTheme.s24),
-      physics: const BouncingScrollPhysics(),
-      itemCount: auditLogs.length,
-      itemBuilder: (_, i) {
-        final item = auditLogs[i];
-        final event = item['event'] ?? '';
-        final time = item['time'] ?? '';
-        final status = item['status'] ?? '';
-        final icon = _iconForStatus(status);
-
-        return Padding(
-          padding: const EdgeInsets.only(bottom: NoSusTheme.s16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: fg.withValues(alpha: 0.12),
-                    width: 0.75,
+          return Padding(
+            padding: const EdgeInsets.only(bottom: NoSusTheme.s16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: fg.withValues(alpha: 0.12),
+                      width: 0.75,
+                    ),
+                  ),
+                  child: Icon(icon, size: 14, color: subtle),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        event,
+                        style: TextStyle(color: fg, fontSize: 13, height: 1.4),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        time,
+                        style: TextStyle(color: subtle, fontSize: 11),
+                      ),
+                    ],
                   ),
                 ),
-                child: Icon(icon, size: 14, color: subtle),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      event,
-                      style: TextStyle(color: fg, fontSize: 13, height: 1.4),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      time,
-                      style: TextStyle(color: subtle, fontSize: 11),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ).animate(delay: (i * 60).ms).fadeIn(duration: 250.ms),
-        );
-      },
+              ],
+            ).animate(delay: (i * 60).ms).fadeIn(duration: 250.ms),
+          );
+        },
+      ),
     );
   }
 
@@ -1262,6 +1357,32 @@ class _ActivityTab extends ConsumerWidget {
     'INFO' => Icons.info_outline,
     _ => Icons.info_outline,
   };
+}
+
+/// Shimmer placeholder matching one activity row: icon circle + event + time.
+class _ActivityRowSkeleton extends StatelessWidget {
+  const _ActivityRowSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ShimmerBox(width: 32, height: 32, radius: 16),
+        SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ShimmerBox(width: double.infinity, height: 13),
+              SizedBox(height: 6),
+              ShimmerBox(width: 80, height: 11),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class _InviteModal extends StatelessWidget {
@@ -1275,6 +1396,8 @@ class _InviteModal extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final bg = isDark ? NoSusTheme.dCard : NoSusTheme.lCard;
     final fg = isDark ? NoSusTheme.dText : NoSusTheme.lText;
+    final (:origin, :basePath) = webShareLinkBase();
+    final inviteLink = '$origin$basePath/#/join/${group.inviteCode}';
 
     return Padding(
       padding: EdgeInsets.only(
@@ -1351,7 +1474,7 @@ class _InviteModal extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'https://nosus.foo/#/join/${group.inviteCode}',
+                    inviteLink,
                     textAlign: TextAlign.center,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -1371,8 +1494,7 @@ class _InviteModal extends StatelessWidget {
                   child: OutlinedButton.icon(
                     onPressed: () {
                       HapticFeedback.lightImpact();
-                      final link = 'https://nosus.foo/#/join/${group.inviteCode}';
-                      Clipboard.setData(ClipboardData(text: link));
+                      Clipboard.setData(ClipboardData(text: inviteLink));
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('Invite link copied to clipboard'),
@@ -1405,7 +1527,7 @@ class _InviteModal extends StatelessWidget {
                   child: ElevatedButton.icon(
                     onPressed: () {
                       HapticFeedback.lightImpact();
-                      final text = 'Join my secure workspace "${group.name}" on NoSus! Use link: https://nosus.foo/#/join/${group.inviteCode}';
+                      final text = 'Join my secure workspace "${group.name}" on NoSus! Use link: $inviteLink';
                       SharePlus.instance.share(ShareParams(text: text));
                       Navigator.pop(context);
                     },

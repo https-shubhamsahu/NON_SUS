@@ -36,6 +36,8 @@ class _UploadModalState extends ConsumerState<UploadModal>
   // New Link from Google Drive state
   final TextEditingController _urlController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
+  final FocusNode _nameFocus = FocusNode();
+  final FocusNode _urlFocus = FocusNode();
   FileType _linkType = FileType.pdf;
   bool _isLinking = false;
   int _activeTab = 0; // 0 = upload local, 1 = link drive
@@ -60,6 +62,8 @@ class _UploadModalState extends ConsumerState<UploadModal>
     _checkController.dispose();
     _urlController.dispose();
     _nameController.dispose();
+    _nameFocus.dispose();
+    _urlFocus.dispose();
     super.dispose();
   }
 
@@ -406,6 +410,8 @@ class _UploadModalState extends ConsumerState<UploadModal>
                             subtle: subtle,
                             urlController: _urlController,
                             nameController: _nameController,
+                            nameFocus: _nameFocus,
+                            urlFocus: _urlFocus,
                             selectedType: _linkType,
                             onTypeSelected: (type) =>
                                 setState(() => _linkType = type),
@@ -831,6 +837,8 @@ class _LinkState extends StatelessWidget {
   final Color subtle;
   final TextEditingController urlController;
   final TextEditingController nameController;
+  final FocusNode nameFocus;
+  final FocusNode urlFocus;
   final FileType selectedType;
   final ValueChanged<FileType> onTypeSelected;
   final String serviceAccountEmail;
@@ -843,6 +851,8 @@ class _LinkState extends StatelessWidget {
     required this.subtle,
     required this.urlController,
     required this.nameController,
+    required this.nameFocus,
+    required this.urlFocus,
     required this.selectedType,
     required this.onTypeSelected,
     required this.serviceAccountEmail,
@@ -970,16 +980,22 @@ class _LinkState extends StatelessWidget {
           // Document Name Field
           _buildTextField(
             controller: nameController,
+            focusNode: nameFocus,
             label: "Document Name",
             hint: "e.g., Lecture 4 Notes",
+            textInputAction: TextInputAction.next,
+            onSubmitted: (_) => urlFocus.requestFocus(),
           ),
           const SizedBox(height: 12),
 
           // Drive URL Field
           _buildTextField(
             controller: urlController,
+            focusNode: urlFocus,
             label: "Google Drive Link",
             hint: "https://drive.google.com/file/d/...",
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => isLinking ? null : onLinkTap(),
           ),
           const SizedBox(height: 16),
 
@@ -1079,6 +1095,9 @@ class _LinkState extends StatelessWidget {
     required TextEditingController controller,
     required String label,
     required String hint,
+    FocusNode? focusNode,
+    TextInputAction? textInputAction,
+    ValueChanged<String>? onSubmitted,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1102,6 +1121,9 @@ class _LinkState extends StatelessWidget {
           ),
           child: TextField(
             controller: controller,
+            focusNode: focusNode,
+            textInputAction: textInputAction,
+            onSubmitted: onSubmitted,
             cursorColor: fg,
             style: TextStyle(fontSize: 13, color: fg),
             decoration: InputDecoration(

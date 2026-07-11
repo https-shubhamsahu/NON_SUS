@@ -11,6 +11,8 @@ import '../widgets/empty_states.dart';
 import 'group_detail_screen.dart';
 import 'join_group_page.dart';
 import '../../../theme.dart';
+import '../../../components/shimmer_box.dart';
+import '../../../components/async_state_view.dart';
 import '../../auth/presentation/providers/auth_providers.dart';
 
 /// Main groups list screen — search, filtered list, FAB, skeleton loading.
@@ -85,19 +87,22 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen>
             },
             color: fg,
             backgroundColor: isDark ? NoSusTheme.dCard : NoSusTheme.lCard,
-            child: groupsAsync.when(
-              loading: () => _SkeletonList(),
-              error: (e, _) =>
-                  _ErrorState(onRetry: () => ref.invalidate(groupsProvider)),
-              data: (groups) => groups.isEmpty
-                  ? GroupsEmptyState(onCreateGroup: _openCreateGroup)
-                  : _GroupList(
-                      groups: groups,
-                      onCreateGroup: _openCreateGroup,
-                      onGroupTap: (group) => Navigator.of(
-                        context,
-                      ).push(_slideRoute(GroupDetailScreen(group: group))),
-                    ),
+            child: AsyncStateView<List<StudyGroup>>(
+              value: groupsAsync,
+              onRetry: () => ref.invalidate(groupsProvider),
+              errorMessage: 'Failed to load groups',
+              loading: (context) => ShimmerListSkeleton(
+                itemBuilder: (context) => const GroupCardSkeleton(),
+              ),
+              isEmpty: (groups) => groups.isEmpty,
+              empty: (context) => GroupsEmptyState(onCreateGroup: _openCreateGroup),
+              data: (context, groups) => _GroupList(
+                groups: groups,
+                onCreateGroup: _openCreateGroup,
+                onGroupTap: (group) => Navigator.of(
+                  context,
+                ).push(_slideRoute(GroupDetailScreen(group: group))),
+              ),
             ),
           ),
         ),
@@ -238,8 +243,8 @@ class _GroupList extends StatelessWidget {
       children: [
         ListView.separated(
           padding: const EdgeInsets.only(bottom: 90),
-          physics: const AlwaysScrollableScrollPhysics(
-            parent: BouncingScrollPhysics(),
+          physics: AlwaysScrollableScrollPhysics(
+            parent: NoSusTheme.getScrollPhysics(context),
           ),
           itemCount: groups.length,
           separatorBuilder: (context, index) =>
@@ -288,68 +293,6 @@ class _GroupList extends StatelessWidget {
                   .fadeIn(duration: 200.ms),
         ),
       ],
-    );
-  }
-}
-
-class _SkeletonList extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return ListView.separated(
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: 3,
-      separatorBuilder: (context, index) =>
-          const SizedBox(height: NoSusTheme.s12),
-      itemBuilder: (context, index) => const GroupCardSkeleton(),
-    );
-  }
-}
-
-class _ErrorState extends StatelessWidget {
-  final VoidCallback onRetry;
-  const _ErrorState({required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    final subtle = Theme.of(
-      context,
-    ).colorScheme.onSurface.withValues(alpha: 0.4);
-    return LayoutBuilder(
-      builder: (context, constraints) => SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(minHeight: constraints.maxHeight),
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.wifi_off_outlined, size: 36, color: subtle),
-                const SizedBox(height: 12),
-                Text(
-                  'Failed to load groups',
-                  style: TextStyle(color: subtle, fontSize: 14),
-                ),
-                const SizedBox(height: 16),
-                Semantics(
-                  button: true,
-                  label: 'Retry loading groups',
-                  child: InkWell(
-                    onTap: onRetry,
-                    borderRadius: BorderRadius.circular(8),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      child: Text(
-                        'RETRY',
-                        style: TextStyle(fontSize: 11, color: subtle, letterSpacing: 2.0),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

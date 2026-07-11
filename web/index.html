@@ -36,6 +36,91 @@
   <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
 
   <!--
+    Branded pre-boot loading screen — replaces the default blank white page
+    Flutter Web shows while the engine/assets download. Pure inline CSS (no
+    extra network request) so it paints on the very first frame, before any
+    script runs, eliminating the white flash. Colors track the OS-level
+    prefers-color-scheme so it matches whichever theme lib/screens/
+    splash_screen.dart (VideoSplashScreen) will hand off to — same palette:
+    #FAFAFA/#0A0A0A. Removed via the 'flutter-first-frame' event Flutter Web
+    dispatches once the real first frame is painted (with a timeout fallback
+    in case that event is ever missed, so a slow load never gets stuck behind
+    the overlay forever).
+  -->
+  <style>
+    html, body {
+      background: #0A0A0A;
+    }
+    #boot-loader {
+      position: fixed;
+      inset: 0;
+      z-index: 2147483647;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background-color: #0A0A0A;
+      background-image:
+        repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0px, rgba(255,255,255,0.025) 1px, transparent 1px, transparent 3px),
+        repeating-linear-gradient(90deg, rgba(255,255,255,0.02) 0px, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 3px);
+      transition: opacity 0.4s ease-out;
+    }
+    #boot-loader.boot-hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    #boot-loader .boot-mark {
+      font-family: 'VT323', 'Courier New', monospace;
+      font-size: 40px;
+      letter-spacing: 6px;
+      color: #F5F5F5;
+      image-rendering: pixelated;
+    }
+    #boot-loader .boot-bar {
+      display: flex;
+      gap: 6px;
+      margin-top: 22px;
+    }
+    #boot-loader .boot-block {
+      width: 10px;
+      height: 10px;
+      background-color: #F5F5F5;
+      opacity: 0.2;
+      animation: boot-pulse 1.1s ease-in-out infinite;
+    }
+    #boot-loader .boot-block:nth-child(2) { animation-delay: 0.12s; }
+    #boot-loader .boot-block:nth-child(3) { animation-delay: 0.24s; }
+    #boot-loader .boot-block:nth-child(4) { animation-delay: 0.36s; }
+    #boot-loader .boot-block:nth-child(5) { animation-delay: 0.48s; }
+    @keyframes boot-pulse {
+      0%, 100% { opacity: 0.18; }
+      50% { opacity: 1; }
+    }
+    #boot-loader .boot-label {
+      margin-top: 18px;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      letter-spacing: 3px;
+      color: #999999;
+    }
+    /* Light-mode overrides collected in one block, placed last, so they win
+       the cascade over the (equal-specificity) dark-mode rules above
+       regardless of source order elsewhere in this stylesheet. */
+    @media (prefers-color-scheme: light) {
+      html, body { background: #FAFAFA; }
+      #boot-loader {
+        background-color: #FAFAFA;
+        background-image:
+          repeating-linear-gradient(0deg, rgba(0,0,0,0.03) 0px, rgba(0,0,0,0.03) 1px, transparent 1px, transparent 3px),
+          repeating-linear-gradient(90deg, rgba(0,0,0,0.025) 0px, rgba(0,0,0,0.025) 1px, transparent 1px, transparent 3px);
+      }
+      #boot-loader .boot-mark { color: #0A0A0A; }
+      #boot-loader .boot-block { background-color: #0A0A0A; }
+      #boot-loader .boot-label { color: #555555; }
+    }
+  </style>
+
+  <!--
     supabase_flutter's Auth client wires up passkey/WebAuthn support by
     default, which pulls in the `passkeys_web` plugin. That plugin's
     registerWith() runs automatically on EVERY page load (Flutter Web plugin
@@ -53,6 +138,33 @@
   <script src="passkeys-bundle.js"></script>
 </head>
 <body>
+  <div id="boot-loader">
+    <div class="boot-mark">NO SUS</div>
+    <div class="boot-bar">
+      <div class="boot-block"></div>
+      <div class="boot-block"></div>
+      <div class="boot-block"></div>
+      <div class="boot-block"></div>
+      <div class="boot-block"></div>
+    </div>
+    <div class="boot-label">LOADING SECURE WORKSPACE</div>
+  </div>
+  <script>
+    (function() {
+      // Flutter Web dispatches this once the engine paints its first real
+      // frame — remove the boot loader then, with a generous timeout
+      // fallback so a missed event (older engine builds, unusual load
+      // paths) never leaves it stuck on screen forever.
+      function hideBootLoader() {
+        const el = document.getElementById('boot-loader');
+        if (!el) return;
+        el.classList.add('boot-hidden');
+        setTimeout(function() { el.remove(); }, 450);
+      }
+      window.addEventListener('flutter-first-frame', hideBootLoader, { once: true });
+      setTimeout(hideBootLoader, 12000);
+    })();
+  </script>
   <script>
     (function() {
       const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);

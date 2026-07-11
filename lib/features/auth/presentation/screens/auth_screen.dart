@@ -24,6 +24,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   final _passwordController = TextEditingController();
   final _phoneController = TextEditingController();
   final _otpController = TextEditingController();
+  final _emailFocus = FocusNode();
+  final _passwordFocus = FocusNode();
+  final _phoneFocus = FocusNode();
+  final _otpFocus = FocusNode();
 
   bool _isSignUp = false;
   bool _obscurePassword = true;
@@ -69,6 +73,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     _passwordController.dispose();
     _phoneController.dispose();
     _otpController.dispose();
+    _emailFocus.dispose();
+    _passwordFocus.dispose();
+    _phoneFocus.dispose();
+    _otpFocus.dispose();
     _resendTimer?.cancel();
     super.dispose();
   }
@@ -183,9 +191,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            physics: theme.platform == TargetPlatform.android
-                ? const ClampingScrollPhysics()
-                : const BouncingScrollPhysics(),
+            physics: NoSusTheme.getScrollPhysics(context),
             padding: const EdgeInsets.all(NoSusTheme.s24),
             // Sign-in card width on desktop/web instead of a full-bleed form.
             child: ConstrainedBox(
@@ -246,7 +252,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                             // Phone Number Field
                             TextFormField(
                               controller: _phoneController,
+                              focusNode: _phoneFocus,
                               keyboardType: TextInputType.phone,
+                              textInputAction: TextInputAction.done,
+                              onFieldSubmitted: (_) => authState.isLoading ? null : _submit(),
                               cursorColor: fg,
                               style: TextStyle(color: fg, fontSize: 14),
                               decoration: InputDecoration(
@@ -321,7 +330,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                             // OTP Verification Field
                             TextFormField(
                               controller: _otpController,
+                              focusNode: _otpFocus,
                               keyboardType: TextInputType.number,
+                              textInputAction: TextInputAction.done,
+                              onFieldSubmitted: (_) => authState.isLoading ? null : _submit(),
                               cursorColor: fg,
                               style: TextStyle(color: fg, fontSize: 14),
                               decoration: InputDecoration(
@@ -441,7 +453,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           // Email Field
                           TextFormField(
                             controller: _emailController,
+                            focusNode: _emailFocus,
                             keyboardType: TextInputType.emailAddress,
+                            textInputAction: TextInputAction.next,
+                            onFieldSubmitted: (_) => _passwordFocus.requestFocus(),
                             cursorColor: fg,
                             style: TextStyle(color: fg, fontSize: 14),
                             decoration: InputDecoration(
@@ -470,7 +485,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           // Password Field
                           TextFormField(
                             controller: _passwordController,
+                            focusNode: _passwordFocus,
                             obscureText: _obscurePassword,
+                            textInputAction: TextInputAction.done,
+                            onFieldSubmitted: (_) => authState.isLoading ? null : _submit(),
                             cursorColor: fg,
                             style: TextStyle(color: fg, fontSize: 14),
                             decoration: InputDecoration(

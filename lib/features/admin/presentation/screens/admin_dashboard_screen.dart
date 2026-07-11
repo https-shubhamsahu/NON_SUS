@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../theme.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../config/presentation/providers/config_provider.dart';
+import '../../../../core/utils/debug_logger.dart';
 
 /// The Super Admin Console for Platform Operations.
 /// Accessible only to authenticated users with 'admin' or 'super_admin' roles.
@@ -103,7 +104,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
         };
       });
     } catch (e) {
-      debugPrint('Metrics loading error: $e');
+      debugLog('Metrics loading error: $e');
     }
   }
 

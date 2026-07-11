@@ -43,6 +43,7 @@ import 'core/mascot/mascot_view.dart';
 
 
 import 'features/share/presentation/screens/burn_note_viewer_screen.dart';
+import 'features/share/presentation/screens/burn_file_viewer_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class BurnNoteToken {
@@ -101,6 +102,43 @@ BurnNoteToken? extractBurnNoteToken(Uri uri) {
   return null;
 }
 
+class BurnFileToken {
+  final String id;
+  final String keyHex;
+  final String ivHex;
+  BurnFileToken({required this.id, required this.keyHex, required this.ivHex});
+}
+
+/// Public for the same reason as [extractBurnNoteToken] — a regression here
+/// silently breaks every Burn Files link already shared into the wild. Only
+/// one URL format exists (no legacy format to carry, unlike burn notes).
+/// e.g. https://nosus.foo/#/burnfile/abc-123?k=aaa...&v=bbb...
+BurnFileToken? extractBurnFileToken(Uri uri) {
+  final fullUrl = kIsWeb ? html.window.location.href : uri.toString();
+  debugLog('NO SUS: Extracting Burn File Token from: $fullUrl');
+
+  final hashIdx = fullUrl.indexOf('#');
+  if (hashIdx == -1) return null;
+
+  final fragment = fullUrl.substring(hashIdx + 1); // /burnfile/<uuid>?k=...&v=...
+  final qIdx = fragment.indexOf('?');
+  if (qIdx == -1) return null;
+
+  final path = fragment.substring(0, qIdx); // /burnfile/<uuid>
+  final query = fragment.substring(qIdx + 1); // k=...&v=...
+  final params = Uri.splitQueryString(query);
+  final match = RegExp(r'burnfile/([a-f0-9\-]{36})', caseSensitive: false).firstMatch(path);
+  final k = params['k'];
+  final v = params['v'];
+  if (match != null && k != null && v != null && k.length == 64 && v.length == 32) {
+    debugLog('NO SUS: Burn File matched id=${match.group(1)}');
+    return BurnFileToken(id: match.group(1)!, keyHex: k, ivHex: v);
+  }
+
+  debugLog('NO SUS: No Burn File Token match in: $fullUrl');
+  return null;
+}
+
 /// Extracts a SecureSend share token from a `/v/<token>` URL, checking both
 /// the fragment (default hash-based web routing, e.g. `#/v/abc123`) and the
 /// path, so the link works regardless of URL strategy. Returns null on any
@@ -149,16 +187,20 @@ void main() async {
       // Ghost-session guard: if the device has a cached JWT for a user that was
       // deleted from auth.users (e.g. after a dev DB wipe), every Supabase write
       // fails with RLS errors even on permissive policies. Fix: verify the session
-      // is still valid server-side; sign out silently if not.
-      final cachedSession = Supabase.instance.client.auth.currentSession;
-      if (cachedSession != null) {
-        try {
-          await Supabase.instance.client.auth.getUser(cachedSession.accessToken);
-        } catch (_) {
-          debugLog('NO SUS: Ghost session detected (user deleted). Signing out.');
-          await Supabase.instance.client.auth.signOut();
+      // is still valid server-side; sign out silently if not. Fire-and-forget so
+      // this network round-trip never delays first paint — a ghost session is
+      // rare and self-corrects on the first failed write either way.
+      unawaited(() async {
+        final cachedSession = Supabase.instance.client.auth.currentSession;
+        if (cachedSession != null) {
+          try {
+            await Supabase.instance.client.auth.getUser(cachedSession.accessToken);
+          } catch (_) {
+            debugLog('NO SUS: Ghost session detected (user deleted). Signing out.');
+            await Supabase.instance.client.auth.signOut();
+          }
         }
-      }
+      }());
 
       // SecureSend anonymous path: a share-link recipient may have no NO SUS
       // account at all, so this branch skips Supabase/auth entirely and never
@@ -187,6 +229,25 @@ void main() async {
             noteId: burnNoteToken.id,
             keyHex: burnNoteToken.keyHex,
             ivHex: burnNoteToken.ivHex,
+          ),
+        ));
+        return;
+      }
+
+      // Burn Files anonymous path — same "no session, never rejoins the
+      // normal app" pattern as burn notes/SecureSend above. The recipient
+      // never has a NO SUS account (product decision — see
+      // supabase/migrations/20260710050000_burn_files.sql).
+      final burnFileToken = extractBurnFileToken(Uri.base);
+      if (burnFileToken != null) {
+        runApp(ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+          ],
+          child: BurnFileViewerScreen(
+            fileId: burnFileToken.id,
+            keyHex: burnFileToken.keyHex,
+            ivHex: burnFileToken.ivHex,
           ),
         ));
         return;
@@ -255,10 +316,14 @@ void main() async {
       // device_integrity_events ledger asynchronously.
       unawaited(DeviceIntegrityService.instance.runStartupChecks());
 
-      // Initialize remote config and feature flags
+      // Initialize remote config and feature flags. Fire-and-forget — flags/
+      // configs are mutated in place on the same instance handed to
+      // remoteConfigServiceProvider below, and every consumer already falls
+      // back to a default value until the fetch lands, so first paint never
+      // needs to wait on this network round-trip.
       final remoteConfig = RemoteConfigService(Supabase.instance.client);
       if (SupabaseService.instance.isConfigured && SupabaseService.instance.isReachable) {
-        await remoteConfig.initialize();
+        unawaited(remoteConfig.initialize());
       }
 
       runApp(
@@ -475,7 +540,7 @@ class _WorkspaceHomeState extends ConsumerState<WorkspaceHome> {
                       height: 42,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: const Color(0xFF1A1A1A),
+                        color: NoSusTheme.lBorder,
                         border: Border.all(
                           color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
                           width: 1.0,
@@ -513,6 +578,7 @@ class _WorkspaceHomeState extends ConsumerState<WorkspaceHome> {
   }
 
   void _showNotificationBanner(ShareViewEvent event, String fileName) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
@@ -522,7 +588,10 @@ class _WorkspaceHomeState extends ConsumerState<WorkspaceHome> {
           right: 16,
         ),
         duration: const Duration(seconds: 6),
-        backgroundColor: Colors.blueAccent,
+        // A dimmer blue in dark mode avoids an oversaturated highlight
+        // against the near-black background; white text/icon keeps
+        // sufficient contrast against either shade.
+        backgroundColor: isDark ? Colors.blue.shade700 : Colors.blueAccent,
         content: Row(
           children: [
             const MascotView(

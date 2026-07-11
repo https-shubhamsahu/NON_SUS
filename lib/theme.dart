@@ -103,6 +103,7 @@ class NoSusTheme {
         iconTheme: IconThemeData(color: lText),
         centerTitle: false,
       ),
+      pageTransitionsTheme: _fadeThroughTransitionsTheme,
     );
   }
 
@@ -178,8 +179,24 @@ class NoSusTheme {
         iconTheme: IconThemeData(color: dText),
         centerTitle: false,
       ),
+      pageTransitionsTheme: _fadeThroughTransitionsTheme,
     );
   }
+
+  /// Shared fade-through transition for every platform, applied to all
+  /// pushed `MaterialPageRoute`s app-wide via [ThemeData.pageTransitionsTheme]
+  /// so no individual navigation call site needs to change.
+  static const PageTransitionsTheme _fadeThroughTransitionsTheme =
+      PageTransitionsTheme(
+    builders: {
+      TargetPlatform.android: FadeForwardsPageTransitionsBuilder(),
+      TargetPlatform.iOS: FadeForwardsPageTransitionsBuilder(),
+      TargetPlatform.macOS: FadeForwardsPageTransitionsBuilder(),
+      TargetPlatform.linux: FadeForwardsPageTransitionsBuilder(),
+      TargetPlatform.windows: FadeForwardsPageTransitionsBuilder(),
+      TargetPlatform.fuchsia: FadeForwardsPageTransitionsBuilder(),
+    },
+  );
 
   // Common UI styles and decorators
   static BoxDecoration cardDecoration(BuildContext context, {double radius = r16, Color? color}) {
@@ -198,7 +215,7 @@ class NoSusTheme {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     return BoxDecoration(
-      color: color ?? (isDark ? dCard : Colors.white),
+      color: color ?? (isDark ? dCard : lCard),
       borderRadius: BorderRadius.circular(radius),
       border: Border.all(
         color: theme.colorScheme.outline,

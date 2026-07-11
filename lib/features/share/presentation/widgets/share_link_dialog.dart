@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +5,8 @@ import 'package:share_plus/share_plus.dart';
 
 import '../providers/share_providers.dart';
 import '../../../../core/mascot/mascot_controller.dart';
+import '../../../../core/utils/debug_logger.dart';
+import '../../../../core/utils/web_links.dart';
 import '../../../../core/mascot/mascot_state.dart';
 import '../../../../core/mascot/mascot_view.dart';
 
@@ -61,17 +62,15 @@ class _ShareLinkDialogState extends ConsumerState<_ShareLinkDialog> {
             requireTouchReveal: _requireTouchReveal,
           );
       if (!mounted) return;
-      // Uri.base.origin is only supported on Web. On native platforms, we use the
-      // production deployed web app URL so anonymous recipients can view.
-      final origin = kIsWeb ? Uri.base.origin : 'https://nosus.foo';
+      final (:origin, :basePath) = webShareLinkBase();
       final cb = DateTime.now().millisecondsSinceEpoch;
       setState(() {
-        _url = '$origin/?cb=$cb#/v/${link.token}';
+        _url = '$origin$basePath/?cb=$cb#/v/${link.token}';
         _step = _Step.ready;
       });
       ref.read(noxMascotProvider.notifier).play(MascotMood.approve);
     } catch (e, s) {
-      debugPrint('ShareLinkDialog: Failed to create share link: $e\n$s');
+      debugLog('ShareLinkDialog: Failed to create share link: $e\n$s');
       if (!mounted) return;
       setState(() {
         _error = 'Could not create a share link. Only the person who uploaded '
