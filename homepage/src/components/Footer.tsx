@@ -66,9 +66,12 @@ export default function Footer() {
         {/* Logo & Status (Column 2 wide) */}
         <div className="col-span-2 flex flex-col justify-between gap-6">
           <div className="flex flex-col gap-3">
-            <span className="font-mono text-base font-black tracking-widest text-white">
-              NO<span className="text-brand-gray-light font-normal text-xs ml-1 border border-brand-gray px-1 tracking-normal font-sans rounded">SUS</span>
-            </span>
+            <div className="flex items-center gap-2">
+              <img src="/app_icon.png" alt="NoSus Logo" className="h-6 w-6 object-contain" />
+              <span className="font-mono text-base font-black tracking-widest text-white">
+                NO<span className="text-brand-gray-light font-normal text-xs ml-1 border border-brand-gray px-1 tracking-normal font-sans rounded">SUS</span>
+              </span>
+            </div>
             <p className="text-[11px] text-brand-gray-light leading-relaxed max-w-xs font-medium">
               Forensic document leak prevention and zero-knowledge file distribution protocols.
             </p>
