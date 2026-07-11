@@ -1,5 +1,19 @@
 name: Deploy to GitHub Pages
 
+# Two independent deployments from one push:
+#
+#   landing  →  this repo's gh-pages branch  →  https://nosus.foo
+#               (Next.js static export of homepage/ + legal pages + shim that
+#                forwards legacy app links to the app subdomain)
+#
+#   app      →  https-shubhamsahu/nosus-app gh-pages  →  https://app.nosus.foo
+#               (Flutter web build; requires the APP_DEPLOY_TOKEN repo secret —
+#                a PAT with `contents: write` on nosus-app — plus a DNS CNAME
+#                record `app` → https-shubhamsahu.github.io)
+#
+# The jobs are independent so a missing APP_DEPLOY_TOKEN or a Flutter failure
+# never blocks the landing page deploy, and vice versa.
+
 on:
   push:
     branches:
@@ -9,8 +23,68 @@ permissions:
   contents: write
 
 jobs:
-  build-and-deploy:
-    concurrency: ci-${{ github.ref }}
+  landing:
+    concurrency: pages-landing-${{ github.ref }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: homepage/package-lock.json
+
+      - name: Build Landing Page
+        working-directory: homepage
+        run: |
+          npm ci
+          npm run lint
+          npm run build
+
+      # Play Store listing + in-app links reference nosus.foo/privacy.html etc.
+      # Those URLs must keep working at the domain root, which the landing
+      # page now owns — so the legal pages ship with the landing deploy.
+      - name: Add legal pages and favicon at root
+        run: |
+          cp web/privacy.html web/terms.html web/account-deletion.html homepage/out/
+          cp web/favicon.png homepage/out/
+
+      # This repo's Pages config is the legacy (branch-based) build type,
+      # which reads the custom domain FROM this file on every deploy — the
+      # deploy action's own `cname` input isn't a recognized parameter on
+      # the pinned @v4 release, so relying on it silently does nothing and
+      # the custom domain would get reset on the next push without this.
+      - name: Write CNAME for custom domain
+        run: echo "nosus.foo" > homepage/out/CNAME
+
+      - name: Deploy Landing to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: homepage/out
+          branch: gh-pages
+
+      # IndexNow: an open protocol (no Bing/Yandex account needed) — pinging
+      # it tells participating search engines to recrawl immediately instead
+      # of waiting for their normal crawl schedule. The key file itself
+      # (homepage/public/5dffba127ad59da20b10d1eee35f8803.txt) proves domain
+      # ownership. Best-effort: never fails the deploy.
+      - name: Ping IndexNow
+        continue-on-error: true
+        run: |
+          curl -s -X POST "https://api.indexnow.org/indexnow" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "host": "nosus.foo",
+              "key": "5dffba127ad59da20b10d1eee35f8803",
+              "keyLocation": "https://nosus.foo/5dffba127ad59da20b10d1eee35f8803.txt",
+              "urlList": ["https://nosus.foo/"]
+            }'
+
+  app:
+    concurrency: pages-app-${{ github.ref }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -33,21 +107,16 @@ jobs:
       - name: Analyze
         run: flutter analyze
 
-      # Custom domain (nosus.foo) serves from the root, not a subdirectory —
-      # base-href must be "/" now, not "/NON_SUS/".
       - name: Build Web
         run: flutter build web --base-href "/" --dart-define-from-file=.env
 
-      # This repo's Pages config is the legacy (branch-based) build type,
-      # which reads the custom domain FROM this file on every deploy — the
-      # deploy action's own `cname` input isn't a recognized parameter on
-      # the pinned @v4 release, so relying on it silently does nothing and
-      # the custom domain would get reset on the next push without this.
-      - name: Write CNAME for custom domain
-        run: echo "nosus.foo" > build/web/CNAME
+      - name: Write CNAME for app subdomain
+        run: echo "app.nosus.foo" > build/web/CNAME
 
-      - name: Deploy to GitHub Pages
+      - name: Deploy App to app.nosus.foo
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           folder: build/web
           branch: gh-pages
+          repository-name: https-shubhamsahu/nosus-app
+          token: ${{ secrets.APP_DEPLOY_TOKEN }}

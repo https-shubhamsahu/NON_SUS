@@ -6,6 +6,18 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["--yes", "serve", "build/web", "-l", "5051"],
       "port": 5051
+    },
+    {
+      "name": "web-source-static",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "serve", "web", "-l", "5052"],
+      "port": 5052
+    },
+    {
+      "name": "landing-static",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "serve", "homepage/out", "-l", "5053"],
+      "port": 5053
     }
   ]
 }
