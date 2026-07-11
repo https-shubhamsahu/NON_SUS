@@ -5,6 +5,7 @@ import { Menu, X, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { APP_URL } from "@/lib/links";
+import NoSusLogo from "./ui/Logo";
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -42,11 +43,8 @@ export default function Navbar() {
         <div className="mx-auto max-w-7xl px-6 md:px-8">
           <nav className="flex items-center justify-between">
             {/* Logo */}
-            <Link href="/" className="flex items-center gap-2 group focus:outline-none">
-              <img src="/app_icon.png" alt="NoSus Logo" className="h-6 w-6 object-contain" />
-              <span className="font-mono text-base font-black tracking-widest text-white flex items-center">
-                NO<span className="text-brand-gray-light font-normal text-xs ml-1 border border-brand-gray px-1 tracking-normal font-sans rounded">SUS</span>
-              </span>
+            <Link href="/" className="flex items-center group focus:outline-none">
+              <NoSusLogo sizeClass="text-lg md:text-xl" />
             </Link>
 
             {/* Desktop Navigation */}

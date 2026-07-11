@@ -9,6 +9,7 @@ import {
   TERMS_URL,
   ACCOUNT_DELETION_URL,
 } from "@/lib/links";
+import NoSusLogo from "./ui/Logo";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -48,7 +49,7 @@ export default function Footer() {
           of your documents?
         </h2>
         <p className="text-xs text-brand-gray-light mt-4 leading-relaxed max-w-sm font-medium">
-          Start protecting your notes, drafts, and assets from leakage today. Zero account required to begin.
+          Start protecting your notes, drafts, and assets from leakage today<span className="text-white">.</span> Zero account required to begin<span className="text-white">.</span>
         </p>
         <div className="mt-8">
           <a
@@ -66,14 +67,9 @@ export default function Footer() {
         {/* Logo & Status (Column 2 wide) */}
         <div className="col-span-2 flex flex-col justify-between gap-6">
           <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-2">
-              <img src="/app_icon.png" alt="NoSus Logo" className="h-6 w-6 object-contain" />
-              <span className="font-mono text-base font-black tracking-widest text-white">
-                NO<span className="text-brand-gray-light font-normal text-xs ml-1 border border-brand-gray px-1 tracking-normal font-sans rounded">SUS</span>
-              </span>
-            </div>
+            <NoSusLogo sizeClass="text-lg" />
             <p className="text-[11px] text-brand-gray-light leading-relaxed max-w-xs font-medium">
-              Forensic document leak prevention and zero-knowledge file distribution protocols.
+              Forensic document leak prevention and zero-knowledge file distribution protocols<span className="text-white">.</span>
             </p>
           </div>
 
@@ -111,7 +107,7 @@ export default function Footer() {
 
       {/* Footer Bottom copyright area */}
       <div className="mx-auto max-w-7xl px-6 md:px-8 py-8 border-t border-brand-gray/40 flex flex-col sm:flex-row justify-between items-center gap-4 text-[10px] font-mono text-brand-gray-light">
-        <span>© {currentYear} NO SUS sharing protocols. All rights reserved.</span>
+        <span>© {currentYear} NO SUS sharing protocols<span className="text-white">.</span> All rights reserved<span className="text-white">.</span></span>
         
         {/* Social Link Badges */}
         <div className="flex gap-6 items-center">
