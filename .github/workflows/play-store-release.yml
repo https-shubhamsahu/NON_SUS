@@ -38,8 +38,31 @@ jobs:
       - name: Analyze
         run: flutter analyze
 
+      - name: Set up release signing
+        # Without this, android/key.properties never exists in CI, and
+        # build.gradle.kts's signingConfigs.release correctly falls back to
+        # the debug keystore instead — silently uploading a debug-signed
+        # bundle to Play Store on every run. ANDROID_KEYSTORE_BASE64 is the
+        # upload-keystore.jks file base64-encoded; see RELEASE_REPORT.md for
+        # how it and the matching passwords were generated and where to set
+        # these repo secrets.
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/upload-keystore.jks
+          cat > android/key.properties <<EOF
+          storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          storeFile=upload-keystore.jks
+          EOF
+
       - name: Build App Bundle
         run: flutter build appbundle --release --dart-define-from-file=.env
+
+      # Direct-install APK attached to the GitHub Release — this is what the
+      # in-app "Download App" button links to (remote config app_download_url
+      # → github.com/…/releases/latest).
+      - name: Build APK
+        run: flutter build apk --release --dart-define-from-file=.env
 
       - name: Setup Google Play credentials
         run: |
@@ -59,15 +82,16 @@ jobs:
             Version ${{ github.ref_name || inputs.version }}
             See release notes for details.
 
-      - name: Create GitHub Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create GitHub Release with APK
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name || inputs.version }}
-          release_name: Release ${{ github.ref_name || inputs.version }}
+          name: Release ${{ github.ref_name || inputs.version }}
+          files: build/app/outputs/flutter-apk/app-release.apk
           body: |
             App Bundle uploaded to Play Store (Internal Testing track).
+            The attached `app-release.apk` is the direct-install build served
+            by the in-app "Download App" button.
 
             **Next Steps:**
             1. Test the app on devices via Google Play Console internal testing
@@ -78,4 +102,4 @@ jobs:
 
       - name: Cleanup
         if: always()
-        run: rm -f $HOME/.android/service-account-key.json .env
+        run: rm -f $HOME/.android/service-account-key.json .env android/key.properties android/app/upload-keystore.jks

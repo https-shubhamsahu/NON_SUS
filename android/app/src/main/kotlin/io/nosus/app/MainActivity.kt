@@ -11,6 +11,7 @@ import android.os.Looper
 import android.provider.MediaStore
 import android.view.MotionEvent
 import android.view.WindowManager
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
@@ -33,6 +34,13 @@ class MainActivity : FlutterActivity() {
     private var overlayEventCoolingDown = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Must be called before super.onCreate() — installs the AndroidX
+        // SplashScreen compat shim (styles.xml's windowSplashScreen*
+        // attributes) so it's active on API < 31 too, and hands off cleanly
+        // to the real platform SplashScreen on API 31+. Kept up only until
+        // Flutter's first frame; lib/screens/splash_screen.dart's
+        // VideoSplashScreen owns everything the user actually watches.
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         // Block screenshots and screen recordings — content appears black
         window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
@@ -316,7 +324,8 @@ class MainActivity : FlutterActivity() {
             }
             return cacheFile
         } catch (e: Exception) {
-            e.printStackTrace()
+            // Deliberately swallowed, not logged — printStackTrace() writes
+            // to stderr/logcat unconditionally, including in release builds.
             return null
         }
     }

@@ -3,22 +3,27 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
-    <!-- Storage and file picker permissions -->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29" />
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
-    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
-
-    <!-- Notification permission (Android 13+) -->
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- No storage/media/notification permissions are declared: file_picker's
+         pickFiles() calls (upload_modal.dart, profile_screen.dart,
+         burn_file_creator_screen.dart) all use `withData: true`, which reads
+         bytes through Android's Storage Access Framework picker UI via a
+         content:// URI — this never touches READ_EXTERNAL_STORAGE/
+         READ_MEDIA_* on any API level. There is no permission_handler
+         dependency and no code path that would ever request them. Likewise,
+         every in-app notification (e.g. _showNotificationBanner in
+         main.dart) is a ScaffoldMessenger SnackBar, not a system
+         notification, so POST_NOTIFICATIONS was dead weight. Do not add any
+         of these back without an actual code path that needs them —
+         Play Store's Data Safety review and least-privilege expectations
+         both flag unused dangerous-permission declarations. -->
 
     <application
         android:label="NO SUS"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon"
         android:allowBackup="false"
-        android:fullBackupContent="false">
+        android:fullBackupContent="false"
+        android:networkSecurityConfig="@xml/network_security_config">
         <activity
             android:name=".MainActivity"
             android:exported="true"

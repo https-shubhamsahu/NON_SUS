@@ -32,13 +32,22 @@ android {
                 keystorePropertiesFile.inputStream().use { stream ->
                     keystoreProperties.load(stream)
                 }
-                keyAlias = keystoreProperties.getProperty("keyAlias")
-                keyPassword = keystoreProperties.getProperty("keyPassword")
+                // A present-but-blank key.properties (e.g. checked out fresh,
+                // template never filled in) must be treated the same as a
+                // missing file. Properties.getProperty("storeFile") on a line
+                // like "storeFile=" returns "" (empty string), which is not
+                // null — file("") resolves to the project directory itself,
+                // a non-null File that would otherwise slip past the
+                // `storeFile != null` check below and get selected as a
+                // broken "release" signing config instead of falling back
+                // to debug signing.
                 val storeFilePath = keystoreProperties.getProperty("storeFile")
-                if (storeFilePath != null) {
+                if (!storeFilePath.isNullOrBlank()) {
+                    keyAlias = keystoreProperties.getProperty("keyAlias")
+                    keyPassword = keystoreProperties.getProperty("keyPassword")
                     storeFile = file(storeFilePath)
+                    storePassword = keystoreProperties.getProperty("storePassword")
                 }
-                storePassword = keystoreProperties.getProperty("storePassword")
             }
         }
     }
@@ -46,7 +55,7 @@ android {
     buildTypes {
         release {
             val releaseConfig = signingConfigs.findByName("release")
-            if (releaseConfig != null && releaseConfig.storeFile != null) {
+            if (releaseConfig != null && releaseConfig.storeFile != null && releaseConfig.storeFile!!.exists()) {
                 signingConfig = releaseConfig
             } else {
                 signingConfig = signingConfigs.getByName("debug")
@@ -73,4 +82,11 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // Modern Android 12+ SplashScreen API, backported to minSdk via the
+    // compat shim so pre-12 devices get equivalent behavior through the
+    // same windowSplashScreen* theme attributes (see styles.xml).
+    implementation("androidx.core:core-splashscreen:1.0.1")
 }
