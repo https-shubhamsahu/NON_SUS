@@ -1,0 +1,127 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-black: #080808;
+  --color-brand-gray-dark: #141414;
+  --color-brand-gray: #1e1e1e;
+  --color-brand-gray-light: #888888;
+  --font-sans: var(--font-geist-sans), sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
+}
+
+:root {
+  --background: #080808;
+  --foreground: #ffffff;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #080808;
+}
+::-webkit-scrollbar-thumb {
+  background: #252525;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #404040;
+}
+
+/* Swiss typography / Grid styles */
+.swiss-grid {
+  background-size: 40px 40px;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+}
+
+/* Pixel divider */
+.pixel-divider {
+  height: 4px;
+  background-image: repeating-linear-gradient(
+    90deg,
+    #ffffff,
+    #ffffff 4px,
+    transparent 4px,
+    transparent 8px
+  );
+  opacity: 0.15;
+}
+
+/* Paper card with pixel border */
+.paper-card {
+  background: #0e0e0e;
+  border: 1px solid #1a1a1a;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+  position: relative;
+}
+
+.paper-card::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border: 1px dashed rgba(255, 255, 255, 0.07);
+  pointer-events: none;
+}
+
+/* Accessibility Keyboard Focus Styles */
+*:focus-visible {
+  outline: 2px dashed #ffffff;
+  outline-offset: 4px;
+}
+
+/* Lux & Nox mark: breathing idle loop (mood 0 in MASCOT_GUIDE.md) */
+@keyframes luxnoxBreathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}
+.luxnox-breathe {
+  animation: luxnoxBreathe 4.5s ease-in-out infinite;
+}
+
+/* Slow-orbiting instrument ring around the mark */
+@keyframes luxnoxRing {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.luxnox-ring {
+  animation: luxnoxRing 60s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .luxnox-breathe,
+  .luxnox-ring {
+    animation: none;
+  }
+}
+
+/* Custom ink spread effect utility */
+@keyframes inkSpread {
+  from {
+    transform: scale(0);
+    opacity: 0.6;
+  }
+  to {
+    transform: scale(3);
+    opacity: 0;
+  }
+}
+
+.ink-dot {
+  position: absolute;
+  border-radius: 50%;
+  background: #ffffff;
+  pointer-events: none;
+  animation: inkSpread 0.8s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+}
