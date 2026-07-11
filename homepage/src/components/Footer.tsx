@@ -8,8 +8,10 @@ import {
   PRIVACY_URL,
   TERMS_URL,
   ACCOUNT_DELETION_URL,
+  RELEASES_URL,
 } from "@/lib/links";
 import NoSusLogo from "./ui/Logo";
+import AppLink from "./AppLink";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -20,6 +22,7 @@ export default function Footer() {
       { name: "Burn Notes", href: "#features" },
       { name: "Burn Files", href: "#features" },
       { name: "Open the App", href: APP_URL },
+      { name: "Android APK", href: RELEASES_URL },
     ],
     Resources: [
       { name: "How It Works", href: "#how-it-works" },
@@ -52,12 +55,9 @@ export default function Footer() {
           Start protecting your notes, drafts, and assets from leakage today<span className="text-white">.</span> Zero account required to begin<span className="text-white">.</span>
         </p>
         <div className="mt-8">
-          <a
-            href={APP_URL}
-            className="inline-flex items-center gap-2 bg-white text-black px-10 py-4 text-xs font-bold uppercase tracking-wider hover:bg-black hover:text-white border border-white transition-all rounded-sm group"
-          >
+          <AppLink className="inline-flex items-center gap-2 bg-white text-black px-10 py-4 text-xs font-bold uppercase tracking-wider hover:bg-black hover:text-white border border-white transition-all rounded-sm group">
             Get Started Free <ArrowUpRight className="h-4 w-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-          </a>
+          </AppLink>
         </div>
       </div>
 

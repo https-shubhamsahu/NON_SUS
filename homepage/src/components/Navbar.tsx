@@ -6,6 +6,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { APP_URL } from "@/lib/links";
 import NoSusLogo from "./ui/Logo";
+import AppLink from "./AppLink";
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -61,7 +62,8 @@ export default function Navbar() {
               ))}
             </ul>
 
-            {/* CTAs — both land on the Flutter web app, which owns auth */}
+            {/* CTAs — Sign In goes to the web app; "Open the App" is
+                app-aware on Android (chooser: native app / APK / browser) */}
             <div className="hidden md:flex items-center gap-6">
               <a
                 href={APP_URL}
@@ -69,14 +71,11 @@ export default function Navbar() {
               >
                 Sign In
               </a>
-              <a
-                href={APP_URL}
-                className="relative inline-flex items-center justify-center overflow-hidden border border-white bg-white px-5 py-2.5 text-xs font-bold tracking-wider uppercase text-black transition-all hover:bg-black hover:text-white group"
-              >
+              <AppLink className="relative inline-flex items-center justify-center overflow-hidden border border-white bg-white px-5 py-2.5 text-xs font-bold tracking-wider uppercase text-black transition-all hover:bg-black hover:text-white group">
                 <span className="relative z-10 flex items-center gap-1.5">
                   Open the App <ArrowUpRight className="h-3.5 w-3.5" />
                 </span>
-              </a>
+              </AppLink>
             </div>
 
             {/* Mobile Hamburger */}
@@ -123,13 +122,12 @@ export default function Navbar() {
               >
                 Sign In
               </a>
-              <a
-                href={APP_URL}
-                onClick={() => setMobileMenuOpen(false)}
+              <AppLink
+                onNavigate={() => setMobileMenuOpen(false)}
                 className="flex items-center justify-center bg-white py-3 text-sm font-bold tracking-wider uppercase text-black"
               >
                 Open the App
-              </a>
+              </AppLink>
             </div>
           </motion.div>
         )}

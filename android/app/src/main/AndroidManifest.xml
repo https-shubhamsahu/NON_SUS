@@ -58,6 +58,16 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="io.nosus.app" android:host="v" />
             </intent-filter>
+            <!-- Plain app launcher for the website's "Open in app" flow
+                 (nosus.foo → io.nosus.app://open). Carries no payload; the
+                 deep-link parsers in lib/main.dart ignore it, so the app
+                 just opens normally. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="io.nosus.app" android:host="open" />
+            </intent-filter>
             <!-- Android Share Intent Filter -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
