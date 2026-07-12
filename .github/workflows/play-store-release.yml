@@ -64,10 +64,28 @@ jobs:
       - name: Build APK
         run: flutter build apk --release --dart-define-from-file=.env
 
-      - name: Setup Google Play credentials
-        run: |
-          mkdir -p $HOME/.android
-          echo '${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}' > $HOME/.android/service-account-key.json
+      # GitHub Release FIRST: the website's "Download the App" button and the
+      # in-app download URL both point at releases/latest, so the APK must
+      # publish even if the Play upload below fails — which it will on the
+      # very first run, because Google requires a new Play app's first
+      # artifact to be uploaded manually through the Console UI before the
+      # API is allowed to upload.
+      - name: Create GitHub Release with APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name || inputs.version }}
+          name: Release ${{ github.ref_name || inputs.version }}
+          files: build/app/outputs/flutter-apk/app-release.apk
+          body: |
+            The attached `app-release.apk` is the direct-install build served
+            by the website's and the app's "Download App" buttons.
+
+            **Next Steps:**
+            1. Test the app on devices via Google Play Console internal testing
+            2. Promote to Closed Testing or Production when ready
+            3. Monitor crash reports and ANRs in Play Console
+          draft: false
+          prerelease: false
 
       - name: Upload to Play Store (Internal Testing)
         uses: r0adkll/upload-google-play@v1
@@ -81,24 +99,6 @@ jobs:
           whatsnew: |
             Version ${{ github.ref_name || inputs.version }}
             See release notes for details.
-
-      - name: Create GitHub Release with APK
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.ref_name || inputs.version }}
-          name: Release ${{ github.ref_name || inputs.version }}
-          files: build/app/outputs/flutter-apk/app-release.apk
-          body: |
-            App Bundle uploaded to Play Store (Internal Testing track).
-            The attached `app-release.apk` is the direct-install build served
-            by the in-app "Download App" button.
-
-            **Next Steps:**
-            1. Test the app on devices via Google Play Console internal testing
-            2. Promote to Closed Testing or Production when ready
-            3. Monitor crash reports and ANRs in Play Console
-          draft: false
-          prerelease: false
 
       - name: Cleanup
         if: always()

@@ -2,7 +2,7 @@ name: no_sus
 description: "NO SUS — Secure study group workspace with file sharing, watermarking, and audit logging."
 publish_to: 'none'
 
-version: 1.1.0+7
+version: 1.1.1+8
 
 environment:
   sdk: ^3.12.1
