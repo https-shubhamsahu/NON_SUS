@@ -11,6 +11,7 @@ import '../../../../core/mascot/mascot_view.dart';
 import '../../../../core/utils/web_links.dart';
 import '../../../../services/burn_file_crypto.dart';
 import '../../data/burn_file_client.dart';
+import '../../data/redemption_code_client.dart';
 
 /// "Burn Files" creator — file.io-style anonymous upload. No login on
 /// either end (product decision): the sender doesn't need an account, and
@@ -53,6 +54,7 @@ class _BurnFileCreatorScreenState extends ConsumerState<BurnFileCreatorScreen> {
   bool _isProcessing = false;
   String? _statusLabel;
   String? _generatedLink;
+  String? _generatedCode;
 
   @override
   void initState() {
@@ -120,8 +122,26 @@ class _BurnFileCreatorScreenState extends ConsumerState<BurnFileCreatorScreen> {
       final ivHex = bytesToHex(keyMaterial.iv.bytes);
       final link = '$origin$basePath/#/burnfile/${initResult.fileId}?k=$keyHex&v=$ivHex';
 
+      // 6. Also mint a short redemption code pointing at the same key/IV —
+      // best-effort: the link already works on its own, so a hiccup here
+      // shouldn't fail the whole operation, just leave the code section
+      // hidden.
+      String? code;
+      try {
+        final codeResult = await RedemptionCodeClient.instance.createCode(
+          targetKind: 'file',
+          targetId: initResult.fileId,
+          keyHex: keyHex,
+          ivHex: ivHex,
+        );
+        code = codeResult.code;
+      } catch (_) {
+        code = null;
+      }
+
       setState(() {
         _generatedLink = link;
+        _generatedCode = code;
         _isProcessing = false;
         _statusLabel = null;
       });
@@ -173,6 +193,18 @@ class _BurnFileCreatorScreenState extends ConsumerState<BurnFileCreatorScreen> {
     if (_generatedLink == null) return;
     SharePlus.instance.share(
       ShareParams(text: 'Here\'s a file — it self-destructs after one download: $_generatedLink'),
+    );
+  }
+
+  void _copyCodeToClipboard() {
+    if (_generatedCode == null) return;
+    Clipboard.setData(ClipboardData(text: _generatedCode!));
+    HapticFeedback.mediumImpact();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Code copied to clipboard!'),
+        behavior: SnackBarBehavior.floating,
+      ),
     );
   }
 
@@ -318,6 +350,46 @@ class _BurnFileCreatorScreenState extends ConsumerState<BurnFileCreatorScreen> {
                             style: const TextStyle(fontSize: 12, color: Colors.green),
                           ),
                         ),
+                        if (_generatedCode != null) ...[
+                          const SizedBox(height: 20),
+                          Text(
+                            'OR SHARE THIS CODE',
+                            style: TextStyle(fontSize: 10, letterSpacing: 1.0, color: fg.withValues(alpha: 0.4), fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF161616) : Colors.black.withValues(alpha: 0.03),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.lightBlueAccent.withValues(alpha: 0.3)),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  _generatedCode!,
+                                  style: const TextStyle(fontSize: 20, letterSpacing: 4, fontWeight: FontWeight.bold, color: Colors.lightBlueAccent),
+                                ),
+                                const SizedBox(width: 12),
+                                InkWell(
+                                  onTap: _copyCodeToClipboard,
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: const Padding(
+                                    padding: EdgeInsets.all(4),
+                                    child: Icon(Icons.copy_rounded, size: 16, color: Colors.lightBlueAccent),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Expires in ~20 min, one-time use — anyone with this code can open the file.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 10.5, color: fg.withValues(alpha: 0.4)),
+                          ),
+                        ],
                         const SizedBox(height: 32),
                         SizedBox(
                           width: double.infinity,
@@ -347,6 +419,7 @@ class _BurnFileCreatorScreenState extends ConsumerState<BurnFileCreatorScreen> {
                           onPressed: () {
                             setState(() {
                               _generatedLink = null;
+                              _generatedCode = null;
                               _selectedFile = null;
                             });
                           },

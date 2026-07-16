@@ -9,10 +9,8 @@ import '../../../../core/mascot/mascot_controller.dart';
 import '../../../../core/mascot/mascot_state.dart';
 import '../../../../core/mascot/mascot_view.dart';
 import '../../../../core/utils/web_links.dart';
-
-String _bytesToHex(List<int> bytes) {
-  return bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
-}
+import '../../../../services/burn_file_crypto.dart' show bytesToHex;
+import '../../data/redemption_code_client.dart';
 
 class BurnNoteCreatorScreen extends ConsumerStatefulWidget {
   const BurnNoteCreatorScreen({super.key});
@@ -25,6 +23,7 @@ class _BurnNoteCreatorScreenState extends ConsumerState<BurnNoteCreatorScreen> {
   final _textController = TextEditingController();
   bool _isGenerating = false;
   String? _generatedLink;
+  String? _generatedCode;
 
   @override
   void dispose() {
@@ -71,12 +70,28 @@ class _BurnNoteCreatorScreenState extends ConsumerState<BurnNoteCreatorScreen> {
       // Double-hash (#...#...) breaks in most browsers — query params inside the
       // hash are spec-compliant and preserved reliably.
       final (:origin, :basePath) = webShareLinkBase();
-      final keyHex = _bytesToHex(key.bytes);
-      final ivHex = _bytesToHex(iv.bytes);
+      final keyHex = bytesToHex(key.bytes);
+      final ivHex = bytesToHex(iv.bytes);
       final link = '$origin$basePath/#/burn/$noteId?k=$keyHex&v=$ivHex';
+
+      // 5. Also mint a short redemption code pointing at the same key/IV —
+      // best-effort: the link already works on its own.
+      String? code;
+      try {
+        final codeResult = await RedemptionCodeClient.instance.createCode(
+          targetKind: 'note',
+          targetId: noteId,
+          keyHex: keyHex,
+          ivHex: ivHex,
+        );
+        code = codeResult.code;
+      } catch (_) {
+        code = null;
+      }
 
       setState(() {
         _generatedLink = link;
+        _generatedCode = code;
         _isGenerating = false;
       });
       ref.read(noxMascotProvider.notifier).play(MascotMood.approve);
@@ -108,6 +123,18 @@ class _BurnNoteCreatorScreenState extends ConsumerState<BurnNoteCreatorScreen> {
     if (_generatedLink == null) return;
     SharePlus.instance.share(
       ShareParams(text: 'Read my self-destructing secret note: $_generatedLink'),
+    );
+  }
+
+  void _copyCodeToClipboard() {
+    if (_generatedCode == null) return;
+    Clipboard.setData(ClipboardData(text: _generatedCode!));
+    HapticFeedback.mediumImpact();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Code copied to clipboard!'),
+        behavior: SnackBarBehavior.floating,
+      ),
     );
   }
 
@@ -240,6 +267,46 @@ class _BurnNoteCreatorScreenState extends ConsumerState<BurnNoteCreatorScreen> {
                           style: const TextStyle(fontSize: 12, color: Colors.green),
                         ),
                       ),
+                      if (_generatedCode != null) ...[
+                        const SizedBox(height: 20),
+                        Text(
+                          'OR SHARE THIS CODE',
+                          style: TextStyle(fontSize: 10, letterSpacing: 1.0, color: fg.withValues(alpha: 0.4), fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF161616) : Colors.black.withValues(alpha: 0.03),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.lightBlueAccent.withValues(alpha: 0.3)),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                _generatedCode!,
+                                style: const TextStyle(fontSize: 20, letterSpacing: 4, fontWeight: FontWeight.bold, color: Colors.lightBlueAccent),
+                              ),
+                              const SizedBox(width: 12),
+                              InkWell(
+                                onTap: _copyCodeToClipboard,
+                                borderRadius: BorderRadius.circular(8),
+                                child: const Padding(
+                                  padding: EdgeInsets.all(4),
+                                  child: Icon(Icons.copy_rounded, size: 16, color: Colors.lightBlueAccent),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Expires in ~20 min, one-time use — anyone with this code can open the note.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 10.5, color: fg.withValues(alpha: 0.4)),
+                        ),
+                      ],
                       const SizedBox(height: 32),
                       SizedBox(
                         width: double.infinity,
@@ -271,6 +338,7 @@ class _BurnNoteCreatorScreenState extends ConsumerState<BurnNoteCreatorScreen> {
                         onPressed: () {
                           setState(() {
                             _generatedLink = null;
+                            _generatedCode = null;
                             _textController.clear();
                           });
                         },

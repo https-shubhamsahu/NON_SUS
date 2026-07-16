@@ -36,9 +36,9 @@ Real-crypto test suites are slow (~14 min). The gnu-linker workaround lives in `
 
 ## Architecture
 
-**State management:** Riverpod 3 (`flutter_riverpod`). Entry point `lib/main.dart` wires Supabase init, deep-link handling (`app_links`), and the tab shell (Groups / Workspace / Vault / Audit / Profile).
+**State management:** Riverpod 3 (`flutter_riverpod`). Entry point `lib/main.dart` wires Supabase init, deep-link handling (`app_links`), and a `PageView` tab shell — in order: Workspace, Vault, Study Desk, Audit Log, Groups (`lib/components/floating_nav.dart` defines the labels/icons; `activeTabProvider` drives the index). Profile is not a tab — it's pushed as a route from the avatar button in the header.
 
-**Feature-first layout:** `lib/features/<feature>/` with `data/` (clients, repositories), `domain/` (entities), `presentation/` (screens, widgets, providers). Older features (e.g. `groups`) are flatter (`screens/`, `widgets/`, `providers/` at feature root) — match whichever style the feature you're editing uses.
+**Feature-first layout:** `lib/features/<feature>/` with `data/` (clients, repositories), `domain/` (entities), `presentation/` (screens, widgets, providers). Older features (e.g. `groups`) are flatter (`screens/`, `widgets/`, `providers/` at feature root) — match whichever style the feature you're editing uses. Access data only through repositories from presentation code — don't call Supabase clients directly from widgets in Clean-Architecture features.
 
 **Cross-cutting layers:**
 - `lib/services/`: singletons — `supabase_service.dart`, `audit_service.dart`, `screenshot_guard.dart`, `device_integrity_service.dart`, `risk_engine_service.dart`, `web_security_guard.dart`, `burn_file_crypto.dart`
@@ -49,9 +49,16 @@ Real-crypto test suites are slow (~14 min). The gnu-linker workaround lives in `
 
 **Deep-link URL contract:** `extractBurnNoteToken` / `extractBurnFileToken` in `lib/main.dart` are public and covered by `test/unit/deep_link_parsing_test.dart`. Burn links are already shared into the wild — silently changing what parses is a production outage. Keep legacy formats parsing.
 
+**Mascots (Lux/Nox):** two Rive-driven characters (`assets/mascot/*.riv`) that react to app state — see `MASCOT_GUIDE.md` for the full mood table. Driven imperatively via Riverpod, e.g. `ref.read(luxMascotProvider.notifier).play(MascotMood.lookAround)`. Never let a mascot occupy content space; respect `MediaQuery.disableAnimations` (locks to `MascotMood.idle`).
+
+**Product rules (`PROJECT_CONSTITUTION.md` is the authoritative source):**
+- Copy/marketing must never outrun the actual cryptography — e.g. don't claim screenshot-proofing in a browser (impossible) or "the server cannot see it" ahead of what's actually implemented.
+- No v2/v3 duplicate files or parallel branch iterations of the same feature — edit in place.
+- Every new table gets RLS; SQL migrations are incremental and idempotent, never edited after landing.
+
 ## FHE subsystem guardrails
 
-(From `.cursor/rules/no-sus-fhe.mdc`; applies to `lib/features/fhe/`, `lib/config/fhe_config.dart`, `services/fhe-compute/`, `supabase/functions/fhe-proxy/`. Full context in `services/fhe-compute/NEXT_SESSION.md` and `INTEGRATION_GUIDE.md`.)
+(From `.cursor/rules/no-sus-fhe.mdc`; applies to `lib/features/fhe/`, `lib/config/fhe_config.dart`, `services/fhe-compute/`, `supabase/functions/fhe-proxy/`. Full context in `services/fhe-compute/NEXT_SESSION.md` and `INTEGRATION_GUIDE.md`. `SHIELD.md` documents the (shelved) architecture that reuses this same FHE spine: `lib/features/sealed/`, `supabase/functions/{sealed-api,pact-matcher}` — kept in the repo but not the active product, per `PROJECT_CONSTITUTION.md` §4.)
 
 - **Additive only.** Never modify existing AES storage, upload/download, sharing, viewing, auth, or existing Supabase objects. FHE is for encrypted *computation*; AES stays responsible for storage.
 - **Off by default.** Every capability sits behind a granular flag in `lib/config/fhe_config.dart`; never add a single global FHE switch.

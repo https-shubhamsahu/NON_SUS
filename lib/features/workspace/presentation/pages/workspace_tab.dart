@@ -17,6 +17,7 @@ import '../../providers/recently_saved_provider.dart';
 import '../../../files/presentation/providers/upload_provider.dart';
 import '../../../share/presentation/screens/burn_note_creator_screen.dart';
 import '../../../share/presentation/screens/burn_file_creator_screen.dart';
+import '../../../share/presentation/screens/redeem_code_screen.dart';
 import '../../../../core/mascot/mascot_controller.dart';
 import '../../../../core/mascot/mascot_state.dart';
 import '../../../../core/mascot/mascot_view.dart';
@@ -173,6 +174,13 @@ class _WorkspaceTabState extends ConsumerState<WorkspaceTab>
           const _BurnFileTeaserCard()
               .animate()
               .fadeIn(duration: 400.ms)
+              .slideY(begin: 0.05, end: 0),
+
+          const SizedBox(height: NoSusTheme.s16),
+
+          const _RedeemCodeTeaserCard()
+              .animate()
+              .fadeIn(duration: 430.ms)
               .slideY(begin: 0.05, end: 0),
           const SizedBox(height: NoSusTheme.s16),
 
@@ -1329,6 +1337,76 @@ class _BurnFileTeaserCard extends StatelessWidget {
                   const SizedBox(height: 3),
                   Text(
                     'Anonymous file drop — self-destructs after one download.',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: fg.withValues(alpha: 0.54),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right,
+              color: fg.withValues(alpha: 0.45),
+              size: 20,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RedeemCodeTeaserCard extends StatelessWidget {
+  const _RedeemCodeTeaserCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final fg = theme.colorScheme.onSurface;
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(NoSusTheme.r16),
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => const RedeemCodeScreen(),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: NoSusTheme.cardDecoration(context),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: fg.withValues(alpha: 0.2)),
+                color: fg.withValues(alpha: 0.03),
+              ),
+              child: Icon(Icons.key_outlined, color: fg.withValues(alpha: 0.8), size: 22),
+            ),
+            const SizedBox(width: NoSusTheme.s16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Redeem a Code',
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 14.5,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    'Got a short code instead of a link? Enter it here.',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodyMedium?.copyWith(

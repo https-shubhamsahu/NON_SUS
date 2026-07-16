@@ -4,6 +4,13 @@
 //           (burn_note_creator_screen.dart)
 //   files → burn-file-init → PUT ciphertext to signed URL → burn-file-confirm
 //           (burn_file_client.dart / burn_file_creator_screen.dart)
+//   codes → create-redemption-code / redeem-code
+//           (redemption_code_client.dart) — see
+//           supabase/migrations/20260713000000_burn_redemption_codes.sql for
+//           why this path trades zero-knowledge for a short, typeable code:
+//           the server briefly holds the key/IV, compensated by a short
+//           expiry, single-use, and rate limiting. The link stays untouched
+//           and keeps its original guarantee.
 import { APP_URL, SUPABASE_ANON_KEY, SUPABASE_URL } from "./links";
 import {
   bytesToHex,
@@ -16,13 +23,43 @@ import {
 export const NOTE_MAX_CHARS = 10000;
 export const FILE_MAX_BYTES = 50 * 1024 * 1024; // enforced again server-side
 
+export type BurnResult = { link: string; code: string | null };
+
 function shareLink(kind: "burn" | "burnfile", id: string, key: Uint8Array, iv: Uint8Array): string {
   // Key + IV live in the fragment — never transmitted to any server.
   return `${APP_URL}#/${kind}/${id}?k=${bytesToHex(key)}&v=${bytesToHex(iv)}`;
 }
 
-/** Creates a real self-destructing note; returns the one-time link. */
-export async function createBurnNote(text: string): Promise<string> {
+/** Best-effort: mints a short redemption code for an already-created note/file.
+ * Never throws — the link already works on its own, so a hiccup here should
+ * just leave the code section hidden, not fail the whole operation. */
+async function mintCode(
+  targetKind: "note" | "file",
+  targetId: string,
+  keyHex: string,
+  ivHex: string,
+): Promise<string | null> {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/create-redemption-code`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY },
+      body: JSON.stringify({
+        target_kind: targetKind,
+        target_id: targetId,
+        key_hex: keyHex,
+        iv_hex: ivHex,
+      }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return typeof data.code === "string" ? data.code : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Creates a real self-destructing note; returns the one-time link + a short redemption code. */
+export async function createBurnNote(text: string): Promise<BurnResult> {
   const { key, iv } = generateKeyMaterial();
   const ciphertext = await encryptNote(text, key, iv);
   const noteId = globalThis.crypto.randomUUID();
@@ -40,7 +77,11 @@ export async function createBurnNote(text: string): Promise<string> {
   if (!res.ok) {
     throw new Error("Could not create the note. Please try again in a moment.");
   }
-  return shareLink("burn", noteId, key, iv);
+
+  const keyHex = bytesToHex(key);
+  const ivHex = bytesToHex(iv);
+  const code = await mintCode("note", noteId, keyHex, ivHex);
+  return { link: shareLink("burn", noteId, key, iv), code };
 }
 
 export type BurnFileProgress =
@@ -48,12 +89,12 @@ export type BurnFileProgress =
   | { phase: "uploading" }
   | { phase: "sealing" };
 
-/** Encrypts + uploads a real one-time file drop; returns the one-time link. */
+/** Encrypts + uploads a real one-time file drop; returns the one-time link + a short redemption code. */
 export async function createBurnFile(
   file: File,
   expiryHours: number,
   onProgress: (p: BurnFileProgress) => void,
-): Promise<string> {
+): Promise<BurnResult> {
   if (file.size <= 0) throw new Error("That file looks empty.");
   if (file.size > FILE_MAX_BYTES) {
     throw new Error("Too large — Burn Files are capped at 50MB.");
@@ -110,5 +151,29 @@ export async function createBurnFile(
     throw new Error(confirm.error ?? "Could not seal this upload.");
   }
 
-  return shareLink("burnfile", init.file_id, key, iv);
+  const keyHex = bytesToHex(key);
+  const ivHex = bytesToHex(iv);
+  const code = await mintCode("file", init.file_id, keyHex, ivHex);
+  return { link: shareLink("burnfile", init.file_id, key, iv), code };
+}
+
+/** Recipient side: resolves a short redemption code into the same kind of
+ * link a sender would share, so the existing app viewer handles the rest —
+ * no need to duplicate note/file viewing here. */
+export async function redeemCode(code: string): Promise<string> {
+  const trimmed = code.trim();
+  if (!trimmed) throw new Error("Enter a code first.");
+
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/redeem-code`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY },
+    body: JSON.stringify({ code: trimmed }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error ?? "That code could not be redeemed.");
+  }
+
+  const kind = data.target_kind === "file" ? "burnfile" : "burn";
+  return `${APP_URL}#/${kind}/${data.target_id}?k=${data.key_hex}&v=${data.iv_hex}`;
 }

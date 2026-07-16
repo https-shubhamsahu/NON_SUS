@@ -9,16 +9,18 @@ import {
   Copy,
   AlertTriangle,
   RotateCcw,
+  Key,
 } from "lucide-react";
 import {
   createBurnFile,
   createBurnNote,
+  redeemCode,
   FILE_MAX_BYTES,
   NOTE_MAX_CHARS,
 } from "@/lib/burnApi";
 import { BorderTrail } from "@/components/ui/border-trail";
 
-type Tab = "note" | "file";
+type Tab = "note" | "file" | "redeem";
 type Phase = "idle" | "working" | "done" | "error";
 
 const EXPIRY_CHOICES = [
@@ -33,19 +35,25 @@ export default function BurnTool() {
   const [statusLabel, setStatusLabel] = useState("");
   const [error, setError] = useState("");
   const [link, setLink] = useState("");
+  const [code, setCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [codeCopied, setCodeCopied] = useState(false);
   const [noteText, setNoteText] = useState("");
   const [expiryHours, setExpiryHours] = useState(24);
   const [dragOver, setDragOver] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [redeemInput, setRedeemInput] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const reset = () => {
     setPhase("idle");
     setError("");
     setLink("");
+    setCode(null);
     setCopied(false);
+    setCodeCopied(false);
     setStatusLabel("");
+    setRedeemInput("");
   };
 
   const switchTab = (next: Tab) => {
@@ -64,8 +72,9 @@ export default function BurnTool() {
     setPhase("working");
     setStatusLabel("ENCRYPTING IN BROWSER…");
     try {
-      const url = await createBurnNote(text);
-      setLink(url);
+      const result = await createBurnNote(text);
+      setLink(result.link);
+      setCode(result.code);
       setNoteText("");
       setPhase("done");
     } catch (e) {
@@ -77,7 +86,7 @@ export default function BurnTool() {
     if (!file || phase === "working") return;
     setPhase("working");
     try {
-      const url = await createBurnFile(file, expiryHours, (p) => {
+      const result = await createBurnFile(file, expiryHours, (p) => {
         setStatusLabel(
           p.phase === "encrypting"
             ? "ENCRYPTING IN BROWSER…"
@@ -86,7 +95,8 @@ export default function BurnTool() {
               : "SEALING…",
         );
       });
-      setLink(url);
+      setLink(result.link);
+      setCode(result.code);
       setPhase("done");
     } catch (e) {
       fail(e);
@@ -99,10 +109,30 @@ export default function BurnTool() {
     handleFile(e.dataTransfer.files?.[0]);
   };
 
+  const handleRedeem = async () => {
+    if (phase === "working") return;
+    setPhase("working");
+    setStatusLabel("LOOKING UP CODE…");
+    try {
+      const url = await redeemCode(redeemInput);
+      setStatusLabel("UNLOCKED — OPENING…");
+      window.location.href = url;
+    } catch (e) {
+      fail(e);
+    }
+  };
+
   const copyLink = async () => {
     await navigator.clipboard.writeText(link);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const copyCode = async () => {
+    if (!code) return;
+    await navigator.clipboard.writeText(code);
+    setCodeCopied(true);
+    setTimeout(() => setCodeCopied(false), 2000);
   };
 
   return (
@@ -196,43 +226,82 @@ export default function BurnTool() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="flex flex-col items-center justify-center gap-4 text-center w-full"
+              className="flex flex-col items-center justify-center gap-3 text-center w-full"
             >
               <div className="flex items-center gap-2 text-white">
                 <Lock className="h-4 w-4 text-green-400" />
                 <span className="text-[10px] font-bold tracking-widest uppercase">
-                  LINK MINTED
+                  READY TO SHARE
                 </span>
               </div>
 
-              <div className="w-[85%] z-20">
-                <input
-                  type="text"
-                  readOnly
-                  value={link}
-                  onFocus={(e) => e.target.select()}
-                  className="w-full bg-brand-black border border-white/20 px-3 py-2 text-[10px] font-mono text-brand-gray-light rounded-xl text-center focus:outline-none min-w-0"
-                />
-              </div>
+              {code ? (
+                <>
+                  <span className="text-[7px] font-mono tracking-widest text-brand-gray-light uppercase">
+                    Share this code
+                  </span>
+                  <span className="font-mono text-2xl font-bold tracking-[0.35em] text-white">
+                    {code}
+                  </span>
 
-              <button
-                onClick={copyLink}
-                className="bg-white text-black px-6 py-2.5 text-[9px] font-bold uppercase tracking-widest hover:bg-black hover:text-white border border-white transition-all rounded-full flex items-center gap-2 z-20"
-              >
-                {copied ? (
-                  <>
-                    <Check className="h-3 w-3" /> Copied
-                  </>
-                ) : (
-                  <>
-                    <Copy className="h-3 w-3" /> Copy Link
-                  </>
-                )}
-              </button>
+                  <button
+                    onClick={copyCode}
+                    className="bg-white text-black px-6 py-2.5 text-[9px] font-bold uppercase tracking-widest hover:bg-black hover:text-white border border-white transition-all rounded-full flex items-center gap-2 z-20"
+                  >
+                    {codeCopied ? (
+                      <>
+                        <Check className="h-3 w-3" /> Copied
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-3 w-3" /> Copy Code
+                      </>
+                    )}
+                  </button>
 
-              <p className="text-[8px] text-brand-gray-light leading-relaxed max-w-[220px]">
-                The key lives in this URL hash<span className="text-white">.</span> We cannot recover it<span className="text-white">.</span> One-time read only<span className="text-white">.</span>
-              </p>
+                  <button
+                    onClick={copyLink}
+                    className="text-[8px] font-mono uppercase tracking-wider text-brand-gray-light hover:text-white transition-colors underline underline-offset-2 z-20"
+                  >
+                    {copied ? "Link copied" : "or copy the full link"}
+                  </button>
+
+                  <p className="text-[7px] text-brand-gray-light leading-relaxed max-w-[230px]">
+                    Code: ~20 min, one-time use, easy to text or read aloud<span className="text-white">.</span> Link: true zero-knowledge — the key never touches our server<span className="text-white">.</span>
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="w-[85%] z-20">
+                    <input
+                      type="text"
+                      readOnly
+                      value={link}
+                      onFocus={(e) => e.target.select()}
+                      className="w-full bg-brand-black border border-white/20 px-3 py-2 text-[10px] font-mono text-brand-gray-light rounded-xl text-center focus:outline-none min-w-0"
+                    />
+                  </div>
+
+                  <button
+                    onClick={copyLink}
+                    className="bg-white text-black px-6 py-2.5 text-[9px] font-bold uppercase tracking-widest hover:bg-black hover:text-white border border-white transition-all rounded-full flex items-center gap-2 z-20"
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="h-3 w-3" /> Copied
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-3 w-3" /> Copy Link
+                      </>
+                    )}
+                  </button>
+
+                  <p className="text-[8px] text-brand-gray-light leading-relaxed max-w-[220px]">
+                    The key lives in this URL hash<span className="text-white">.</span> We cannot recover it<span className="text-white">.</span> One-time read only<span className="text-white">.</span>
+                  </p>
+                </>
+              )}
 
               <button
                 onClick={reset}
@@ -286,6 +355,14 @@ export default function BurnTool() {
                 >
                   File
                 </button>
+                <button
+                  onClick={() => switchTab("redeem")}
+                  className={`px-4 py-1.5 text-[9px] font-bold uppercase tracking-wider transition-colors ${
+                    tab === "redeem" ? "bg-white text-black" : "text-brand-gray-light hover:text-white"
+                  }`}
+                >
+                  Redeem
+                </button>
               </div>
 
               {tab === "note" ? (
@@ -322,7 +399,7 @@ export default function BurnTool() {
                     Burn Note
                   </button>
                 </div>
-              ) : (
+              ) : tab === "file" ? (
                 <div className="flex flex-col items-center w-full">
                   {/* Circular Upload Area */}
                   <div
@@ -368,6 +445,35 @@ export default function BurnTool() {
                       </button>
                     ))}
                   </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center w-full">
+                  <Key className="h-7 w-7 text-white mb-3" />
+                  <input
+                    type="text"
+                    value={redeemInput}
+                    onChange={(e) => setRedeemInput(e.target.value.toUpperCase().slice(0, 8))}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleRedeem(); }}
+                    placeholder="ABCD1234"
+                    autoCapitalize="characters"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    className="w-[70%] bg-brand-black/50 border border-white/10 hover:border-white/30 focus:border-white focus:outline-none py-3 text-center text-lg font-mono tracking-[0.35em] text-white rounded-xl uppercase"
+                  />
+                  <p className="text-[7.5px] font-mono text-brand-gray-light mt-3 uppercase text-center max-w-[220px] leading-relaxed">
+                    Got a short code instead of a link? Enter it here to open the note or file.
+                  </p>
+                  <button
+                    onClick={handleRedeem}
+                    disabled={!redeemInput.trim()}
+                    className={`mt-5 px-6 py-2.5 text-[9px] font-bold uppercase tracking-widest rounded-full border transition-all ${
+                      redeemInput.trim()
+                        ? "bg-white text-black border-white hover:bg-black hover:text-white active:scale-95"
+                        : "bg-transparent text-white/30 border-white/10 cursor-not-allowed"
+                    }`}
+                  >
+                    Unlock
+                  </button>
                 </div>
               )}
             </motion.div>
