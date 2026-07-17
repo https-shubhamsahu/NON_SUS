@@ -23,6 +23,7 @@ export default function Navbar() {
   const navLinks = [
     { name: "Features", href: "#features" },
     { name: "How It Works", href: "#how-it-works" },
+    { name: "Use Cases", href: "#use-cases" },
     { name: "Lux & Nox", href: "#mascots" },
     { name: "Security", href: "#security" },
     { name: "Under the Hood", href: "#developers" },
@@ -44,17 +45,17 @@ export default function Navbar() {
         <div className="mx-auto max-w-7xl px-6 md:px-8">
           <nav className="flex items-center justify-between">
             {/* Logo */}
-            <Link href="/" className="flex items-center group focus:outline-none">
+            <Link href="/" className="flex items-center shrink-0 group focus:outline-none">
               <NoSusLogo sizeClass="text-lg md:text-xl" />
             </Link>
 
             {/* Desktop Navigation */}
-            <ul className="hidden md:flex items-center gap-8">
+            <ul className="hidden xl:flex items-center gap-7">
               {navLinks.map((link) => (
                 <li key={link.name}>
                   <Link
                     href={link.href}
-                    className="text-xs font-medium text-brand-gray-light hover:text-white transition-colors tracking-wider uppercase focus:outline-none focus:text-white"
+                    className="text-xs font-medium text-brand-gray-light hover:text-white transition-colors tracking-wider uppercase focus:outline-none focus:text-white whitespace-nowrap"
                   >
                     {link.name}
                   </Link>
@@ -64,7 +65,7 @@ export default function Navbar() {
 
             {/* CTAs — Sign In goes to the web app; "Open the App" is
                 app-aware on Android (chooser: native app / APK / browser) */}
-            <div className="hidden md:flex items-center gap-6">
+            <div className="hidden xl:flex items-center gap-6">
               <a
                 href={APP_URL}
                 className="text-xs font-semibold text-brand-gray-light hover:text-white transition-colors tracking-wider uppercase"
@@ -81,7 +82,7 @@ export default function Navbar() {
             {/* Mobile Hamburger */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-1 text-brand-gray-light hover:text-white focus:outline-none"
+              className="xl:hidden p-1 text-brand-gray-light hover:text-white focus:outline-none"
               aria-label="Toggle mobile menu"
             >
               {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -98,7 +99,7 @@ export default function Navbar() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-40 bg-brand-black/98 pt-28 px-6 md:hidden flex flex-col justify-between pb-8"
+            className="fixed inset-0 z-40 bg-brand-black/98 pt-28 px-6 xl:hidden flex flex-col justify-between gap-8 pb-8 overflow-y-auto"
           >
             <ul className="flex flex-col gap-6">
               {navLinks.map((link) => (

@@ -21,16 +21,24 @@ export default function FaqAccordion() {
       a: "Yes. Our Burn Files and Burn Notes features are fully anonymous and require no account registration on either the sender or recipient end. Sharing limits apply dynamically.",
     },
     {
-      q: "What makes NO SUS different from Google Drive?",
-      a: "Unlike Google Drive, NO SUS is designed for temporary, high-security transfers. We support dynamic watermarking overlays, touch-to-reveal blur barriers, browser-debugger block lists, and atomic single-use claiming databases that delete content immediately upon view.",
-    },
-    {
       q: "Can I revoke access?",
       a: "Yes. In the SecureSend link sharing dashboard, you can revoke any active share link instantly, shutting down active sessions and rendering the shared file immediately inaccessible.",
     },
     {
       q: "Can I prevent screenshots?",
       a: "On mobile clients, native screenshots and screen recorders are blocked system-wide using OS flag overrides. In browser environments where screenshot blocking is technically impossible, we use touch-to-reveal blur overlays and personalized identity watermarks to deter and trace leaks.",
+    },
+    {
+      q: "Can governments read my files?",
+      a: "It depends on the feature. Burn Notes and Burn Files are zero-knowledge: the encryption key never leaves your browser, so there's no key on our servers for anyone to compel access to, including us. Other shared documents (SecureSend, study group files) aren't end-to-end encrypted; they're protected by strict access-control policies, but a valid legal order compelling our infrastructure provider could theoretically reach them, the same as with any cloud storage service.",
+    },
+    {
+      q: "What happens if your servers get hacked?",
+      a: "For Burn Notes and Burn Files, an attacker gets ciphertext with no key attached, which is useless on its own. For other stored documents, the same access-control policies that protect them from other users would need to be bypassed too, but since those files aren't end-to-end encrypted, a full breach of the storage layer could expose their contents.",
+    },
+    {
+      q: "Can AI companies train on my files?",
+      a: "No. File content is never sent to or processed by any AI or LLM service, and we don't share data with AI companies.",
     },
   ];
 
@@ -63,11 +71,8 @@ export default function FaqAccordion() {
         />
 
         <div className="text-center mb-16">
-          <span className="text-[10px] font-bold tracking-widest text-brand-gray-light uppercase mb-2 block">
-            Common Inquiries
-          </span>
           <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tight text-white leading-none">
-            Frequently Asked
+            Frequently Asked Questions
           </h2>
         </div>
 

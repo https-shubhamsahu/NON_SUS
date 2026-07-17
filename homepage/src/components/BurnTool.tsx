@@ -115,7 +115,7 @@ export default function BurnTool() {
     setStatusLabel("LOOKING UP CODE…");
     try {
       const url = await redeemCode(redeemInput);
-      setStatusLabel("UNLOCKED — OPENING…");
+      setStatusLabel("UNLOCKED · OPENING…");
       window.location.href = url;
     } catch (e) {
       fail(e);
@@ -156,19 +156,19 @@ export default function BurnTool() {
       {isHovered && (
         <>
           <motion.div
-            className="absolute w-[350px] h-[350px] sm:w-[390px] sm:h-[390px] rounded-full border-2 border-white/20 pointer-events-none z-0"
+            className="absolute w-[390px] h-[390px] sm:w-[450px] sm:h-[450px] rounded-full border-2 border-white/20 pointer-events-none z-0"
             initial={{ scale: 1, opacity: 0.6 }}
             animate={{ scale: 1.35, opacity: 0 }}
             transition={{ repeat: Infinity, duration: 2.2, ease: "easeOut" }}
           />
           <motion.div
-            className="absolute w-[350px] h-[350px] sm:w-[390px] sm:h-[390px] rounded-full border-2 border-white/10 pointer-events-none z-0"
+            className="absolute w-[390px] h-[390px] sm:w-[450px] sm:h-[450px] rounded-full border-2 border-white/10 pointer-events-none z-0"
             initial={{ scale: 1, opacity: 0.6 }}
             animate={{ scale: 1.6, opacity: 0 }}
             transition={{ repeat: Infinity, duration: 2.2, delay: 0.7, ease: "easeOut" }}
           />
           <motion.div
-            className="absolute w-[350px] h-[350px] sm:w-[390px] sm:h-[390px] rounded-full border border-dashed border-white/5 pointer-events-none z-0"
+            className="absolute w-[390px] h-[390px] sm:w-[450px] sm:h-[450px] rounded-full border border-dashed border-white/5 pointer-events-none z-0"
             initial={{ scale: 1, opacity: 0.4 }}
             animate={{ scale: 1.95, opacity: 0 }}
             transition={{ repeat: Infinity, duration: 2.2, delay: 1.4, ease: "easeOut" }}
@@ -180,7 +180,7 @@ export default function BurnTool() {
       <div
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        className={`relative z-10 w-[340px] h-[340px] sm:w-[380px] sm:h-[380px] border-4 border-white/80 bg-brand-black/95 text-left flex flex-col items-center justify-center p-6 shadow-[8px_8px_0px_0px_rgba(255,255,255,0.05)] transition-all duration-300 liquid-blob ${
+        className={`relative z-10 w-[380px] h-[380px] sm:w-[440px] sm:h-[440px] border-4 border-white/80 bg-brand-black/95 text-left flex flex-col items-center justify-center p-6 shadow-[8px_8px_0px_0px_rgba(255,255,255,0.05)] transition-all duration-300 liquid-blob ${
           dragOver ? "scale-105 border-white bg-white/5" : ""
         }`}
       >
@@ -267,7 +267,7 @@ export default function BurnTool() {
                   </button>
 
                   <p className="text-[7px] text-brand-gray-light leading-relaxed max-w-[230px]">
-                    Code: ~20 min, one-time use, easy to text or read aloud<span className="text-white">.</span> Link: true zero-knowledge — the key never touches our server<span className="text-white">.</span>
+                    Code: ~20 min, one-time use, easy to text or read aloud<span className="text-white">.</span> Link: true zero-knowledge, the key never touches our server<span className="text-white">.</span>
                   </p>
                 </>
               ) : (

@@ -1,11 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { FileText, Lock, Shield, Eye } from "lucide-react";
 
 export default function DeviceScreenshots() {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  // Below `sm` only the phone mock renders (laptop/tablet are hidden), so its
+  // constant +200/+80 offset (tuned for sitting beside the other two layers)
+  // would otherwise shove it almost entirely off-screen. Track the viewport
+  // and zero that base offset out when it's the only layer visible.
+  const [showTablet, setShowTablet] = useState(true);
+
+  useEffect(() => {
+    const update = () => setShowTablet(window.innerWidth >= 640);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -119,8 +131,8 @@ export default function DeviceScreenshots() {
           {/* Phone Frame (iPhone Mock) - Foreground layer offset right */}
           <motion.div
             style={{
-              x: mousePos.x * 60 + 200,
-              y: mousePos.y * 60 + 80,
+              x: mousePos.x * 60 + (showTablet ? 200 : 0),
+              y: mousePos.y * 60 + (showTablet ? 80 : 0),
             }}
             className="absolute z-30 w-[170px] h-[320px] border-[6px] border-black bg-brand-gray-dark rounded-[24px] shadow-2xl overflow-hidden"
           >

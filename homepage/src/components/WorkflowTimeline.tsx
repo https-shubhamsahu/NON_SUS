@@ -58,9 +58,6 @@ export default function WorkflowTimeline() {
       <div className="sticky top-0 h-screen overflow-hidden flex flex-col justify-center">
         
         <div className="mx-auto max-w-7xl w-full px-6 md:px-8 mb-12">
-          <span className="text-[10px] font-bold tracking-widest text-brand-gray-light uppercase mb-2 block">
-            Operations Pipeline
-          </span>
           <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tight text-white leading-none">
             End-to-End Governance
           </h2>

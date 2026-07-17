@@ -55,12 +55,9 @@ export default function FeaturesGrid() {
       <div className="mx-auto max-w-7xl px-6 md:px-8">
         
         <div className="max-w-2xl mb-16">
-          <span className="text-[10px] font-bold tracking-widest text-brand-gray-light uppercase mb-2 block">
-            Capabilities List
-          </span>
           <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tight text-white">
-            Engineered for <br />
-            Absolute Control.
+            Every Control, <br />
+            In Detail.
           </h2>
         </div>
 

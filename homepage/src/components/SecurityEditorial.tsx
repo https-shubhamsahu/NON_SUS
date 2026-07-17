@@ -23,9 +23,6 @@ export default function SecurityEditorial() {
           {/* Editorial Content (Left Column) */}
           <div className="lg:col-span-6 flex flex-col justify-center gap-8">
             <div>
-              <span className="text-[10px] font-bold tracking-widest text-brand-gray-light uppercase mb-2 block">
-                Security Ethos
-              </span>
               <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tight text-white leading-none">
                 Absolute Governance. <br />
                 No Excuses.
@@ -80,7 +77,7 @@ export default function SecurityEditorial() {
                   </div>
                   <div className="py-4">
                     <p className="text-xs text-brand-gray-light leading-relaxed font-medium">
-                      Our zero-knowledge architecture processes payload encryption entirely in your browser. Decryption keys are managed via the browser&apos;s URL hash segment, preventing them from ever leaking to third-party endpoints or system logs.
+                      For Burn Notes and Burn Files, encryption happens entirely in your browser and the key never reaches our servers, managed via the URL hash segment instead. Other shared documents are protected by strict access-control policies rather than end-to-end encryption.
                     </p>
                   </div>
                   <div className="border-t border-brand-gray pt-4 flex items-center justify-between text-[10px] font-mono text-brand-gray-light">

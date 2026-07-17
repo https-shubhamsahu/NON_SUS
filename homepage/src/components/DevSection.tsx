@@ -22,13 +22,13 @@ https://nosus.foo/#/burn/<uuid>?k=<key>&v=<iv>
               │       │        │       │
               │       │        │       └─ 128-bit AES IV (32 hex chars)
               │       │        └─ 256-bit AES key (64 hex chars)
-              │       └─ note id — the ONLY part the server knows
+              │       └─ note id, the ONLY part the server knows
               └─ URL fragment: browsers never send anything after
                  "#" over the network, so the key and IV exist
                  only in your and your recipient's browsers.
 
 # The ciphertext in the database is useless without the
-# fragment — the server cannot decrypt what it stores.`,
+# fragment: the server cannot decrypt what it stores.`,
     claim: `-- Claiming a burn note is one atomic statement:
 DELETE FROM burn_notes
  WHERE id = <note_id>
@@ -72,8 +72,8 @@ entry_hash = sha256(
 
             <p className="text-xs text-brand-gray-light leading-relaxed font-medium">
               Security claims you can check, not marketing copy. These are the actual
-              link format, claim semantics, and ledger construction used in production —
-              the client is open source, so every one of them is inspectable.
+              link format, claim semantics, and ledger construction used in production.
+              The client is open source, so every one of them is inspectable.
             </p>
 
             <div className="flex gap-4 border-t border-brand-gray/60 pt-6">

@@ -59,9 +59,6 @@ export default function TrustMetrics() {
         {/* Core Pillars Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-20">
           <div className="md:col-span-1 flex flex-col justify-center">
-            <span className="text-[10px] font-bold tracking-widest text-brand-gray-light uppercase mb-2">
-              System Foundations
-            </span>
             <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tight leading-none text-white">
               Trust Built on <br />
               Proof, Not Promises.

@@ -219,7 +219,7 @@ export default function LivePreview() {
                       Midterm_Notes_Draft.pdf
                     </h4>
                     <p className="text-[10px] text-brand-gray-light leading-relaxed font-medium">
-                      Unit 4 — Signals &amp; Systems. Sampling theorem: a band-limited signal can be perfectly reconstructed when sampled above the Nyquist rate. Aliasing occurs below it; anti-aliasing filters must precede the sampler. See worked examples 4.2&ndash;4.6 before Friday&apos;s review session.
+                      Unit 4: Signals &amp; Systems. Sampling theorem: a band-limited signal can be perfectly reconstructed when sampled above the Nyquist rate. Aliasing occurs below it; anti-aliasing filters must precede the sampler. See worked examples 4.2-4.6 before Friday&apos;s review session.
                     </p>
                   </motion.div>
                 )}

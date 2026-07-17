@@ -24,16 +24,16 @@ export default function Testimonials() {
   ];
 
   return (
-    <section className="py-24 bg-brand-gray-dark/20 border-b border-brand-gray/80 relative">
+    <section id="use-cases" className="py-24 bg-brand-gray-dark/20 border-b border-brand-gray/80 relative">
       <div className="mx-auto max-w-7xl px-6 md:px-8">
-        
+
         <div className="text-center max-w-2xl mx-auto mb-16">
-          <span className="text-[10px] font-bold tracking-widest text-brand-gray-light uppercase mb-2 block">
-            Field Scenarios
-          </span>
           <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tight text-white leading-none">
-            Built for Creators
+            Where a Leak Actually Costs Something
           </h2>
+          <p className="text-xs text-brand-gray-light mt-3 leading-relaxed font-medium">
+            Scenarios the product is built for, not customer testimonials.
+          </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

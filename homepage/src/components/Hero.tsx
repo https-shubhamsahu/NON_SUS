@@ -21,17 +21,29 @@ export default function Hero() {
         distortion={0.04}
       />
       <ParallaxStars speed={0.4} />
+      {/* Fades the light-ray glow into the next section's flat black instead
+          of cutting off hard at the section boundary. */}
+      <div className="absolute inset-x-0 bottom-0 z-[1] h-56 md:h-72 bg-gradient-to-b from-transparent to-brand-black pointer-events-none" />
       <div className="relative z-10 w-full max-w-7xl px-6 md:px-8 flex flex-col items-center justify-center">
         {/* 1. Header (Centered Headline & Subtitle) */}
         <div className="flex flex-col items-center text-center max-w-4xl gap-6">
+          <motion.span
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="text-[10px] font-bold tracking-widest text-brand-gray-light uppercase"
+          >
+            Document Leak Attribution
+          </motion.span>
+
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.1 }}
-            className="text-4xl sm:text-5xl md:text-7xl font-black tracking-tighter uppercase leading-[0.95] text-white select-none"
+            className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tighter uppercase leading-[0.95] text-white select-none"
           >
-            Secure Documents<span className="text-brand-gray-light">.</span> <br />
-            <span className="text-brand-gray-light">Without Compromise</span><span className="text-white">.</span>
+            If It Leaks<span className="text-brand-gray-light">,</span> <br />
+            <span className="text-brand-gray-light">You&apos;ll Know Exactly Who</span><span className="text-white">.</span>
           </motion.h1>
 
           <motion.p
@@ -40,9 +52,8 @@ export default function Hero() {
             transition={{ duration: 0.7, delay: 0.2 }}
             className="text-sm sm:text-base md:text-lg text-brand-gray-light font-medium leading-relaxed max-w-2xl"
           >
-            Self-destructing notes and file drops, encrypted in your browser before
-            they leave it — plus tracked, watermarked document sharing with a
-            tamper-evident audit ledger<span className="text-white">.</span> Try it right here; no account needed<span className="text-white">.</span>
+            Every document you share is watermarked to whoever opens it<span className="text-white">.</span> Every note you burn
+            disappears before anyone else can<span className="text-white">.</span> Try it right here; no account needed<span className="text-white">.</span>
           </motion.p>
         </div>
 

@@ -18,8 +18,8 @@ const geistMono = Geist_Mono({
 // Copy is aligned to what the page actually leads with (the real, working
 // Burn Note/File tool in the hero) — not generic file-sharing copy.
 export const metadata: Metadata = {
-  title: "NO SUS — Self-Destructing Notes & Secure Sharing",
-  description: "Create real self-destructing notes and anonymous file drops — no login. Tracked, watermarked document sharing with a tamper-evident audit ledger.",
+  title: "NO SUS - Know Who Leaked Your Document",
+  description: "Every document you share is watermarked to whoever opens it, so leaks trace back to one name. Self-destructing notes and files leave nothing behind. No login required.",
   keywords: [
     "self-destructing notes",
     "anonymous file sharing",
@@ -41,8 +41,8 @@ export const metadata: Metadata = {
     apple: "/apple-touch-icon.png",
   },
   openGraph: {
-    title: "NO SUS — No-Login Self-Destructing Notes & File Drops",
-    description: "Zero-knowledge file drop and watermarked links with real-time audit ledger. Designed for students, researchers, and secure teams.",
+    title: "NO SUS - Know Who Leaked Your Document",
+    description: "Every shared document is watermarked to whoever opens it, with a tamper-evident audit ledger behind it. Self-destructing notes and files leave nothing behind at all.",
     url: "https://nosus.foo",
     siteName: "NO SUS",
     locale: "en_US",
@@ -52,14 +52,14 @@ export const metadata: Metadata = {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "NO SUS — self-destructing notes, no-login file drops, watermarked document sharing",
+        alt: "NO SUS: self-destructing notes, no-login file drops, watermarked document sharing",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "NO SUS — Self-Destructing Notes & Secure Sharing",
-    description: "Real self-destructing notes and anonymous file drops — no login required. Try it right on the page.",
+    title: "NO SUS - Know Who Leaked Your Document",
+    description: "Every document you share is watermarked to whoever opens it. Try the self-destructing note and file tools right on the page.",
     images: ["/og-image.png"],
   },
   robots: {

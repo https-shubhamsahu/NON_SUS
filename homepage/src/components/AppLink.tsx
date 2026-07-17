@@ -109,7 +109,7 @@ export default function AppLink({
               </a>
 
               <p className="text-[9px] font-mono text-brand-gray-light leading-relaxed mt-1">
-                Links you receive always open in any browser — recipients never
+                Links you receive always open in any browser. Recipients never
                 need the app.
               </p>
             </motion.div>

@@ -22,7 +22,7 @@ export default function LuxNoxSection() {
       name: "LUX",
       title: "The Light Guide",
       personality: "Curious · Encouraging · Observant",
-      role: "Your workspace navigator and study-desk companion. Lux keeps you oriented — pointing through onboarding, celebrating finished uploads, waiting patiently beside long jobs.",
+      role: "Your workspace navigator and study-desk companion. Lux keeps you oriented, pointing through onboarding, celebrating finished uploads, waiting patiently beside long jobs.",
       moods: ["guide", "celebrate", "think", "lookAround"],
     },
     {
@@ -30,7 +30,7 @@ export default function LuxNoxSection() {
       name: "NOX",
       title: "The Dark Guard",
       personality: "Protective · Quiet · Alert",
-      role: "The silent security sentinel. Nox appears at high-security moments — standing guard over the vault, flashing alert when a screenshot is blocked, stamping watermarks as documents are viewed.",
+      role: "The silent security sentinel. Nox appears at high-security moments, standing guard over the vault, flashing alert when a screenshot is blocked, stamping watermarks as documents are viewed.",
       moods: ["guard", "protect", "alert", "verify", "stamp"],
     },
   ];
@@ -56,7 +56,7 @@ export default function LuxNoxSection() {
               >
                 <Image
                   src="/luxandnox.png"
-                  alt="Lux and Nox — the NO SUS lab mark: a white cat and a black cat curled into a yin-yang"
+                  alt="Lux and Nox, the NO SUS lab mark: a white cat and a black cat curled into a yin-yang"
                   width={230}
                   height={230}
                   priority={false}
@@ -71,16 +71,13 @@ export default function LuxNoxSection() {
           {/* The story + character cards */}
           <div className="lg:col-span-7 flex flex-col gap-8">
             <div>
-              <span className="text-[10px] font-bold tracking-widest text-brand-gray-light uppercase mb-2 block">
-                The Lab Mascots
-              </span>
               <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tight text-white leading-none">
                 Meet Lux &amp; Nox.
               </h2>
               <p className="text-xs text-brand-gray-light mt-4 leading-relaxed max-w-lg font-medium">
                 Two cats, one mark. Inside the app they are living characters with a
-                19-mood animation language — from a breathing idle loop to a sentinel
-                guard stance — driven by what is actually happening to your documents.
+                19-mood animation language, from a breathing idle loop to a sentinel
+                guard stance, driven by what is actually happening to your documents.
                 And they respect your reduced-motion settings, always.
               </p>
             </div>

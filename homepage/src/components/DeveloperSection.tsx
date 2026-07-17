@@ -23,7 +23,7 @@ export default function DeveloperSection() {
             About the Developer
           </span>
           <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tight text-white leading-none">
-            One Person. Whole Stack.
+            One Person, Directly Accountable.
           </h2>
         </div>
 
@@ -40,7 +40,7 @@ export default function DeveloperSection() {
               <div className="absolute inset-[-6px] border border-dashed border-white/20 rounded" />
               <Image
                 src={DEVELOPER.photo}
-                alt={`${DEVELOPER.name} — developer of NO SUS`}
+                alt={`${DEVELOPER.name}, developer of NO SUS`}
                 width={180}
                 height={180}
                 className="rounded object-cover grayscale"
@@ -59,7 +59,7 @@ export default function DeveloperSection() {
           {/* Story */}
           <div className="md:col-span-8 flex flex-col gap-5">
             <p className="text-xs text-brand-gray-light leading-relaxed font-medium">
-              NO SUS is designed, built, and operated end-to-end by one developer —
+              NO SUS is designed, built, and operated end-to-end by one developer:
               the Flutter client, the Postgres schema and its row-level-security
               policies, the edge functions, the cryptography, the CI pipeline, and
               this page. No growth team, no tracking SDKs, no investors to please.
@@ -67,7 +67,7 @@ export default function DeveloperSection() {
             <p className="text-xs text-brand-gray-light leading-relaxed font-medium">
               The architecture is deliberately zero-budget: everything rides on
               free tiers, which forces the kind of design honesty this product
-              preaches — the server stores ciphertext it cannot read, deletes it
+              preaches. The server stores ciphertext it cannot read, deletes it
               atomically on first view, and keeps a hash-chained ledger nobody can
               quietly edit. The entire client is open source; check the claims
               yourself.
