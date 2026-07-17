@@ -62,7 +62,11 @@ class AuthGate extends ConsumerWidget {
         DeviceIntegrityService.instance.registerDeviceSeen();
 
         // ── 2c. Profile / Onboarding Gate ──────────────────────────────────────
-        if (!SupabaseService.instance.isReachable) {
+        // Mock fallback mode (no credentials configured — see
+        // SupabaseCredentials) has no backend to reach by design, so it must
+        // not trip this gate. Only a *configured* backend that's momentarily
+        // unreachable should block here.
+        if (SupabaseService.instance.isConfigured && !SupabaseService.instance.isReachable) {
           return _OfflineGateScreen(
             onRetry: () async {
               await SupabaseService.instance.initialize();

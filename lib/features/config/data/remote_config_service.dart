@@ -5,8 +5,13 @@ import '../domain/feature_flag.dart';
 
 /// Service responsible for managing dynamic feature flags and remote configs.
 /// It caches the values locally and keeps them updated in real-time.
+///
+/// A null [SupabaseClient] means mock fallback mode (no backend): every
+/// lookup returns its caller-provided default and [initialize] is a no-op —
+/// constructing this must never touch `Supabase.instance`, which throws when
+/// the SDK was never initialized.
 class RemoteConfigService {
-  final SupabaseClient _supabase;
+  final SupabaseClient? _supabase;
   final Map<String, FeatureFlag> _flags = {};
   final Map<String, dynamic> _configs = {};
   RealtimeChannel? _flagsChannel;
@@ -21,11 +26,16 @@ class RemoteConfigService {
 
   /// Loads all flags and configurations from the database and starts real-time subscriptions.
   Future<void> initialize() async {
+    final supabase = _supabase;
+    if (supabase == null) {
+      debugLog('Config: No backend (mock fallback mode). Using defaults.');
+      return;
+    }
     try {
       debugLog('Config: Initializing remote configuration...');
       
       // Fetch initial feature flags
-      final flagRows = await _supabase.from('feature_flags').select();
+      final flagRows = await supabase.from('feature_flags').select();
       _flags.clear();
       for (final row in flagRows) {
         final flag = FeatureFlag.fromJson(row);
@@ -34,7 +44,7 @@ class RemoteConfigService {
       debugLog('Config: Loaded ${_flags.length} feature flags.');
 
       // Fetch initial remote configurations
-      final configRows = await _supabase.from('remote_configs').select();
+      final configRows = await supabase.from('remote_configs').select();
       _configs.clear();
       for (final row in configRows) {
         _configs[row['config_key'] as String] = row['config_value'];
@@ -81,8 +91,10 @@ class RemoteConfigService {
 
   /// Subscribes to real-time database modifications to support instant remote toggles.
   void _subscribeToRealtime() {
+    final supabase = _supabase;
+    if (supabase == null) return;
     try {
-      _flagsChannel = _supabase
+      _flagsChannel = supabase
           .channel('public:feature_flags')
           .onPostgresChanges(
             event: PostgresChangeEvent.all,
@@ -107,7 +119,7 @@ class RemoteConfigService {
           )
           .subscribe();
 
-      _configsChannel = _supabase
+      _configsChannel = supabase
           .channel('public:remote_configs')
           .onPostgresChanges(
             event: PostgresChangeEvent.all,
@@ -140,10 +152,10 @@ class RemoteConfigService {
   /// Closes real-time channels when disposing.
   void dispose() {
     if (_flagsChannel != null) {
-      _supabase.removeChannel(_flagsChannel!);
+      _supabase?.removeChannel(_flagsChannel!);
     }
     if (_configsChannel != null) {
-      _supabase.removeChannel(_configsChannel!);
+      _supabase?.removeChannel(_configsChannel!);
     }
   }
 }

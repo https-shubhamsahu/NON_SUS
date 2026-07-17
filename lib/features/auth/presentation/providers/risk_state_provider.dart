@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/supabase/supabase_providers.dart';
+import '../../../../services/supabase_service.dart';
 import '../../../../services/risk_engine_service.dart';
 import 'auth_providers.dart';
 
@@ -29,6 +30,12 @@ final riskStateProvider = StreamProvider<RiskState>((ref) {
 /// the exact same lock screen again forever — recompute_user_risk() only
 /// re-runs on a NEW security event, so the flags never clear on their own.
 final riskReauthAcknowledgerProvider = Provider<void>((ref) {
+  // Mock fallback mode: supabaseClientProvider throws by design (no backend
+  // to hold a real session), and there's no server-side risk state to
+  // acknowledge against anyway.
+  if (!SupabaseService.instance.isConfigured || !SupabaseService.instance.isReachable) {
+    return;
+  }
   final sub = ref
       .watch(supabaseClientProvider)
       .auth

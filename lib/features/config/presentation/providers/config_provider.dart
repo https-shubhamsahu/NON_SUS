@@ -2,12 +2,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../../core/utils/debug_logger.dart';
+import '../../../../core/supabase/supabase_bootstrap.dart';
 import '../../data/remote_config_service.dart';
 
 
 /// Provider for the [RemoteConfigService] singleton.
+///
+/// main.dart overrides this with the boot-time instance; this default body
+/// only runs in tests or entrypoints without the override, so it must stay
+/// safe when Supabase was never initialized (mock fallback mode).
 final remoteConfigServiceProvider = Provider<RemoteConfigService>((ref) {
-  final service = RemoteConfigService(Supabase.instance.client);
+  final service = RemoteConfigService(
+    SupabaseBootstrap.isConfigured ? Supabase.instance.client : null,
+  );
   ref.onDispose(() => service.dispose());
   return service;
 });

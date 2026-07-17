@@ -190,17 +190,21 @@ void main() async {
       // is still valid server-side; sign out silently if not. Fire-and-forget so
       // this network round-trip never delays first paint — a ghost session is
       // rare and self-corrects on the first failed write either way.
-      unawaited(() async {
-        final cachedSession = Supabase.instance.client.auth.currentSession;
-        if (cachedSession != null) {
-          try {
-            await Supabase.instance.client.auth.getUser(cachedSession.accessToken);
-          } catch (_) {
-            debugLog('NO SUS: Ghost session detected (user deleted). Signing out.');
-            await Supabase.instance.client.auth.signOut();
+      // (Guarded: Supabase.instance throws if the SDK was never initialized,
+      // which is exactly the mock fallback mode case.)
+      if (SupabaseService.instance.isConfigured) {
+        unawaited(() async {
+          final cachedSession = Supabase.instance.client.auth.currentSession;
+          if (cachedSession != null) {
+            try {
+              await Supabase.instance.client.auth.getUser(cachedSession.accessToken);
+            } catch (_) {
+              debugLog('NO SUS: Ghost session detected (user deleted). Signing out.');
+              await Supabase.instance.client.auth.signOut();
+            }
           }
-        }
-      }());
+        }());
+      }
 
       // SecureSend anonymous path: a share-link recipient may have no NO SUS
       // account at all, so this branch skips Supabase/auth entirely and never
@@ -321,7 +325,12 @@ void main() async {
       // remoteConfigServiceProvider below, and every consumer already falls
       // back to a default value until the fetch lands, so first paint never
       // needs to wait on this network round-trip.
-      final remoteConfig = RemoteConfigService(Supabase.instance.client);
+      // In mock fallback mode there is no Supabase client at all — a null
+      // client makes the service serve defaults (touching Supabase.instance
+      // uninitalized would throw and kill boot before runApp).
+      final remoteConfig = RemoteConfigService(
+        SupabaseService.instance.isConfigured ? Supabase.instance.client : null,
+      );
       if (SupabaseService.instance.isConfigured && SupabaseService.instance.isReachable) {
         unawaited(remoteConfig.ensureInitialized());
       }
