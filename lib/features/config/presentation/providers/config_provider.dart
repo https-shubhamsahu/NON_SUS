@@ -15,7 +15,7 @@ final remoteConfigServiceProvider = Provider<RemoteConfigService>((ref) {
 /// FutureProvider to handle initialization of the remote config.
 final configInitializerProvider = FutureProvider<void>((ref) async {
   final service = ref.watch(remoteConfigServiceProvider);
-  await service.initialize();
+  await service.ensureInitialized();
 });
 
 /// Family provider to check if a specific [flagKey] is enabled for the current user.
@@ -88,6 +88,14 @@ class SecureSendConfigs {
     // tagged release. (The old nosus.foo/app-release.apk was never actually
     // hosted; it 404'd in production.)
     'https://github.com/https-shubhamsahu/NON_SUS/releases/latest',
+  );
+
+  static const appLatestVersion = _ConfigParam(
+    'app_latest_version',
+    // Empty default = "latest version unknown" — the update banner stays
+    // hidden rather than guessing. The row is bumped as part of each release
+    // (see CLAUDE.md, CI section).
+    '',
   );
 }
 

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../theme.dart';
 
 import '../../../auth/presentation/providers/auth_providers.dart';
@@ -18,6 +19,8 @@ import 'advanced_settings_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../services/supabase_service.dart';
 import '../../../config/presentation/providers/config_provider.dart';
+import '../../../config/presentation/providers/app_update_provider.dart';
+import '../../../config/domain/app_update.dart';
 import '../../../admin/presentation/screens/admin_dashboard_screen.dart';
 import '../../../../core/mascot/mascot_controller.dart';
 import '../../../../core/mascot/mascot_state.dart';
@@ -764,6 +767,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       final info = await PackageInfo.fromPlatform();
       versionLabel = 'Version: ${info.version} (Build ${info.buildNumber})';
     } catch (_) {}
+    // Point-in-time read; the check itself ran at app start (appUpdateProvider).
+    final updateStatus = ref.read(appUpdateProvider).value;
     if (!mounted) return;
 
     showDialog(
@@ -791,6 +796,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 versionLabel,
                 style: TextStyle(color: fg, fontSize: 12),
               ),
+              if (updateStatus is AppUpdateAvailable) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Update available: v${updateStatus.latestVersion}',
+                  style: TextStyle(
+                    color: fg,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
               const SizedBox(height: 8),
               Text(
                 'Framework: Flutter & Riverpod',
@@ -813,6 +829,23 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ],
           ),
           actions: [
+            if (updateStatus is AppUpdateAvailable)
+              TextButton(
+                onPressed: () async {
+                  final uri = Uri.parse(updateStatus.downloadUrl);
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  }
+                },
+                child: Text(
+                  'GET UPDATE',
+                  style: TextStyle(
+                    color: fg,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 11,
+                  ),
+                ),
+              ),
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: Text(

@@ -323,7 +323,7 @@ void main() async {
       // needs to wait on this network round-trip.
       final remoteConfig = RemoteConfigService(Supabase.instance.client);
       if (SupabaseService.instance.isConfigured && SupabaseService.instance.isReachable) {
-        unawaited(remoteConfig.initialize());
+        unawaited(remoteConfig.ensureInitialized());
       }
 
       runApp(

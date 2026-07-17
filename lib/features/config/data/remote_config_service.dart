@@ -11,8 +11,13 @@ class RemoteConfigService {
   final Map<String, dynamic> _configs = {};
   RealtimeChannel? _flagsChannel;
   RealtimeChannel? _configsChannel;
+  Future<void>? _initFuture;
 
   RemoteConfigService(this._supabase);
+
+  /// Memoized [initialize] — safe to await from multiple call sites without
+  /// re-fetching or double-subscribing the realtime channels.
+  Future<void> ensureInitialized() => _initFuture ??= initialize();
 
   /// Loads all flags and configurations from the database and starts real-time subscriptions.
   Future<void> initialize() async {

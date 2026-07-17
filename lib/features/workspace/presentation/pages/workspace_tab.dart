@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../theme.dart';
 import '../../../../components/study_chart.dart';
 import '../../../../components/offline_banner.dart';
+import '../../../../components/update_banner.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../profile/providers/profile_provider.dart';
 import '../../../../core/supabase/supabase_bootstrap.dart';
@@ -99,6 +100,7 @@ class _WorkspaceTabState extends ConsumerState<WorkspaceTab>
         padding: const EdgeInsets.only(bottom: 24),
         children: [
           const OfflineBanner(),
+          const UpdateBanner(),
           if (!isLive) const SizedBox(height: NoSusTheme.s16),
           // ── Welcome + Status Banner ───────────────────────────────────────────
           Container(

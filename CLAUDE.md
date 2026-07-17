@@ -32,7 +32,7 @@ Real-crypto test suites are slow (~14 min). The gnu-linker workaround lives in `
 ## CI
 
 - `.github/workflows/gh-pages.yml`: on push to `main` — analyze, build web, deploy to GitHub Pages. It writes `nosus.foo` into `build/web/CNAME`; the deploy action's `cname` input does nothing on the pinned version, so keep that step.
-- `.github/workflows/play-store-release.yml`: on `v*.*.*` tags — builds a signed AAB (keystore comes from `ANDROID_KEYSTORE_BASE64` secret; without `android/key.properties` the Gradle config silently falls back to debug signing).
+- `.github/workflows/play-store-release.yml`: on `v*.*.*` tags — builds a signed AAB (keystore comes from `ANDROID_KEYSTORE_BASE64` secret; without `android/key.properties` the Gradle config silently falls back to debug signing), publishes a GitHub Release with the APK (what `releases/latest` download buttons serve), then uploads to Play internal track. After tagging, also bump the `app_latest_version` row in `remote_configs` — it drives the in-app update banner (`lib/features/config/presentation/providers/app_update_provider.dart`).
 
 ## Architecture
 
