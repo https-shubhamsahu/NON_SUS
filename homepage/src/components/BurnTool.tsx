@@ -44,8 +44,12 @@ export default function BurnTool() {
   const [isHovered, setIsHovered] = useState(false);
   const [redeemInput, setRedeemInput] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Bumped on every new create + on reset, so a slow redemption-code mint
+  // from a previous (or abandoned) share can never overwrite the current one.
+  const generationRef = useRef(0);
 
   const reset = () => {
+    generationRef.current++;
     setPhase("idle");
     setError("");
     setLink("");
@@ -69,14 +73,18 @@ export default function BurnTool() {
   const handleCreateNote = async () => {
     const text = noteText.trim();
     if (!text) return;
+    const generation = ++generationRef.current;
     setPhase("working");
     setStatusLabel("ENCRYPTING IN BROWSER…");
     try {
       const result = await createBurnNote(text);
       setLink(result.link);
-      setCode(result.code);
       setNoteText("");
       setPhase("done");
+      // Arrives a moment after "done" — never blocks it.
+      result.codePromise.then((code) => {
+        if (generationRef.current === generation) setCode(code);
+      });
     } catch (e) {
       fail(e);
     }
@@ -84,6 +92,7 @@ export default function BurnTool() {
 
   const handleFile = async (file: File | undefined | null) => {
     if (!file || phase === "working") return;
+    const generation = ++generationRef.current;
     setPhase("working");
     try {
       const result = await createBurnFile(file, expiryHours, (p) => {
@@ -96,8 +105,10 @@ export default function BurnTool() {
         );
       });
       setLink(result.link);
-      setCode(result.code);
       setPhase("done");
+      result.codePromise.then((code) => {
+        if (generationRef.current === generation) setCode(code);
+      });
     } catch (e) {
       fail(e);
     }

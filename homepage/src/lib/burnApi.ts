@@ -23,7 +23,7 @@ import {
 export const NOTE_MAX_CHARS = 10000;
 export const FILE_MAX_BYTES = 50 * 1024 * 1024; // enforced again server-side
 
-export type BurnResult = { link: string; code: string | null };
+export type BurnResult = { link: string; codePromise: Promise<string | null> };
 
 function shareLink(kind: "burn" | "burnfile", id: string, key: Uint8Array, iv: Uint8Array): string {
   // Key + IV live in the fragment — never transmitted to any server.
@@ -80,8 +80,11 @@ export async function createBurnNote(text: string): Promise<BurnResult> {
 
   const keyHex = bytesToHex(key);
   const ivHex = bytesToHex(iv);
-  const code = await mintCode("note", noteId, keyHex, ivHex);
-  return { link: shareLink("burn", noteId, key, iv), code };
+  // Not awaited: the link is the actual deliverable and is already ready.
+  // The code is a secondary convenience — let it arrive whenever it arrives
+  // instead of making every share wait on a 4th network round trip.
+  const codePromise = mintCode("note", noteId, keyHex, ivHex);
+  return { link: shareLink("burn", noteId, key, iv), codePromise };
 }
 
 export type BurnFileProgress =
@@ -153,8 +156,9 @@ export async function createBurnFile(
 
   const keyHex = bytesToHex(key);
   const ivHex = bytesToHex(iv);
-  const code = await mintCode("file", init.file_id, keyHex, ivHex);
-  return { link: shareLink("burnfile", init.file_id, key, iv), code };
+  // Same as createBurnNote: not awaited, arrives after the "done" state.
+  const codePromise = mintCode("file", init.file_id, keyHex, ivHex);
+  return { link: shareLink("burnfile", init.file_id, key, iv), codePromise };
 }
 
 /** Recipient side: resolves a short redemption code into the same kind of

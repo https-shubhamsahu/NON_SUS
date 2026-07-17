@@ -71,25 +71,30 @@ Deno.serve(async (req: Request) => {
     return json({ error: "Missing or invalid declared_size_bytes" }, 400);
   }
 
-  const { data: flag } = await admin
-    .from("feature_flags")
-    .select("is_active")
-    .eq("flag_key", "burn_files_enabled")
-    .maybeSingle();
+  // Independent reads — run concurrently instead of paying for two sequential
+  // round trips. Order still matters for the rate-limit RPC below: that one
+  // stays after the kill-switch check so a disabled feature never burns a
+  // caller's quota.
+  const [{ data: flag }, { data: configRows }] = await Promise.all([
+    admin
+      .from("feature_flags")
+      .select("is_active")
+      .eq("flag_key", "burn_files_enabled")
+      .maybeSingle(),
+    admin
+      .from("remote_configs")
+      .select("config_key, config_value")
+      .in("config_key", [
+        "burn_files_max_size_bytes",
+        "burn_files_default_expiry_hours",
+        "burn_files_max_expiry_hours",
+        "burn_files_rate_limit_per_hour",
+        "burn_files_rate_limit_window_minutes",
+      ]),
+  ]);
   if (flag && flag.is_active === false) {
     return json({ error: "Burn Files is temporarily disabled" }, 503);
   }
-
-  const { data: configRows } = await admin
-    .from("remote_configs")
-    .select("config_key, config_value")
-    .in("config_key", [
-      "burn_files_max_size_bytes",
-      "burn_files_default_expiry_hours",
-      "burn_files_max_expiry_hours",
-      "burn_files_rate_limit_per_hour",
-      "burn_files_rate_limit_window_minutes",
-    ]);
   const cfg = (key: string, fallback: number): number => {
     const row = configRows?.find((r: any) => r.config_key === key);
     return row ? Number(row.config_value) : fallback;
