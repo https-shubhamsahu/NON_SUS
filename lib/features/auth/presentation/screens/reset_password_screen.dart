@@ -149,31 +149,36 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                           },
                         ),
                         const SizedBox(height: NoSusTheme.s32),
-                        GestureDetector(
-                          onTap: authState.isLoading ? null : _submit,
-                          child: Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(vertical: 15),
-                            decoration: BoxDecoration(color: fg, borderRadius: BorderRadius.circular(14)),
-                            child: Center(
-                              child: authState.isLoading
-                                  ? SizedBox(
-                                      width: 18,
-                                      height: 18,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: isDark ? Colors.black : Colors.white,
+                        Semantics(
+                          button: true,
+                          enabled: !authState.isLoading,
+                          label: 'Update password',
+                          child: GestureDetector(
+                            onTap: authState.isLoading ? null : _submit,
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(vertical: 15),
+                              decoration: BoxDecoration(color: fg, borderRadius: BorderRadius.circular(14)),
+                              child: Center(
+                                child: authState.isLoading
+                                    ? SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: isDark ? Colors.black : Colors.white,
+                                        ),
+                                      )
+                                    : Text(
+                                        'UPDATE PASSWORD',
+                                        style: TextStyle(
+                                          color: isDark ? Colors.black : Colors.white,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 1.5,
+                                        ),
                                       ),
-                                    )
-                                  : Text(
-                                      'UPDATE PASSWORD',
-                                      style: TextStyle(
-                                        color: isDark ? Colors.black : Colors.white,
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w700,
-                                        letterSpacing: 1.5,
-                                      ),
-                                    ),
+                              ),
                             ),
                           ),
                         ),

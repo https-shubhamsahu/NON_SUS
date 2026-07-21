@@ -76,42 +76,49 @@ class FloatingNav extends StatelessWidget {
                   final isSelected = currentIndex == index;
 
                   return Expanded(
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () => onTap(index),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 250),
-                        curve: Curves.easeInOut,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            AnimatedScale(
-                              duration: const Duration(milliseconds: 200),
-                              scale: isSelected ? 1.15 : 1.0,
-                              child: Icon(
-                                isSelected ? item.selectedIcon : item.icon,
-                                color: isSelected
-                                    ? theme.colorScheme.onSurface
-                                    : theme.colorScheme.onSurface
-                                        .withValues(alpha: 0.4),
-                                size: 24,
-                              ),
+                    child: Semantics(
+                      button: true,
+                      selected: isSelected,
+                      label: '${item.label} tab',
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => onTap(index),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 250),
+                          curve: Curves.easeInOut,
+                          child: ExcludeSemantics(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                AnimatedScale(
+                                  duration: const Duration(milliseconds: 200),
+                                  scale: isSelected ? 1.15 : 1.0,
+                                  child: Icon(
+                                    isSelected ? item.selectedIcon : item.icon,
+                                    color: isSelected
+                                        ? theme.colorScheme.onSurface
+                                        : theme.colorScheme.onSurface
+                                            .withValues(alpha: 0.4),
+                                    size: 24,
+                                  ),
+                                ),
+                                const SizedBox(height: NoSusTheme.s4),
+                                Text(
+                                  item.label,
+                                  style: theme.textTheme.labelLarge?.copyWith(
+                                    fontSize: 10,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w600
+                                        : FontWeight.normal,
+                                    color: isSelected
+                                        ? theme.colorScheme.onSurface
+                                        : theme.colorScheme.onSurface
+                                            .withValues(alpha: 0.4),
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: NoSusTheme.s4),
-                            Text(
-                              item.label,
-                              style: theme.textTheme.labelLarge?.copyWith(
-                                fontSize: 10,
-                                fontWeight: isSelected
-                                    ? FontWeight.w600
-                                    : FontWeight.normal,
-                                color: isSelected
-                                    ? theme.colorScheme.onSurface
-                                    : theme.colorScheme.onSurface
-                                        .withValues(alpha: 0.4),
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
                       ),
                     ),

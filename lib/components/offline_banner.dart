@@ -55,9 +55,10 @@ class _OfflineBannerState extends State<OfflineBanner> {
               style: theme.textTheme.bodyMedium?.copyWith(fontSize: 12),
             ),
           ),
-          GestureDetector(
-            onTap: () => setState(() => _dismissed = true),
-            child: Icon(
+          IconButton(
+            onPressed: () => setState(() => _dismissed = true),
+            tooltip: 'Dismiss offline notice',
+            icon: Icon(
               Icons.close,
               size: 16,
               color: theme.colorScheme.onSurface.withValues(alpha: 0.4),

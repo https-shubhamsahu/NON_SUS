@@ -113,7 +113,7 @@ void main() {
 
     test('parses invite code from host/segments for custom schemes', () {
       expect(
-        extractInviteToken(Uri.parse('io.nosus.app://join/inviteDEF')),
+        extractInviteToken(Uri.parse('foo.nosus.app://join/inviteDEF')),
         'inviteDEF',
       );
     });
@@ -163,6 +163,54 @@ void main() {
     test('returns null on ordinary app URLs', () {
       expect(extractBurnFileToken(Uri.parse('https://nosus.foo/')), isNull);
       expect(extractBurnFileToken(Uri.parse('file:///')), isNull);
+    });
+  });
+
+  group('extractBurnFilesToken', () {
+    const noteId2 = 'fedcba98-7654-3210-fedc-ba9876543210';
+    const keyHex2 =
+        'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc'; // 64
+    const ivHex2 = 'dddddddddddddddddddddddddddddddd'; // 32
+
+    test('parses a two-file batch from the hash fragment', () {
+      final uri = Uri.parse(
+        'https://app.nosus.foo/#/burnfiles/$noteId,$noteId2?k=$keyHex,$keyHex2&v=$ivHex,$ivHex2',
+      );
+      final tokens = extractBurnFilesToken(uri);
+      expect(tokens, isNotNull);
+      expect(tokens!.length, 2);
+      expect(tokens[0].id, noteId);
+      expect(tokens[0].keyHex, keyHex);
+      expect(tokens[0].ivHex, ivHex);
+      expect(tokens[1].id, noteId2);
+      expect(tokens[1].keyHex, keyHex2);
+      expect(tokens[1].ivHex, ivHex2);
+    });
+
+    test('does not collide with the singular burnfile/ link, and vice versa', () {
+      // The two routes must stay structurally disjoint so a link generated
+      // under one format is never silently reinterpreted by the other.
+      final singleUri = Uri.parse(
+        'https://app.nosus.foo/#/burnfile/$noteId?k=$keyHex&v=$ivHex',
+      );
+      expect(extractBurnFilesToken(singleUri), isNull);
+
+      final batchUri = Uri.parse(
+        'https://app.nosus.foo/#/burnfiles/$noteId,$noteId2?k=$keyHex,$keyHex2&v=$ivHex,$ivHex2',
+      );
+      expect(extractBurnFileToken(batchUri), isNull);
+    });
+
+    test('rejects mismatched id/key/iv list lengths', () {
+      final uri = Uri.parse(
+        'https://app.nosus.foo/#/burnfiles/$noteId,$noteId2?k=$keyHex&v=$ivHex,$ivHex2',
+      );
+      expect(extractBurnFilesToken(uri), isNull);
+    });
+
+    test('returns null on ordinary app URLs', () {
+      expect(extractBurnFilesToken(Uri.parse('https://app.nosus.foo/')), isNull);
+      expect(extractBurnFilesToken(Uri.parse('file:///')), isNull);
     });
   });
 }

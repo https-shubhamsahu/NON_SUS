@@ -1,4 +1,4 @@
-package io.nosus.app
+package foo.nosus.app
 
 import android.app.Activity
 import android.content.Intent
@@ -16,7 +16,8 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
-import io.nosus.app.security.DeviceIntegrityManager
+import foo.nosus.app.security.DeviceIntegrityManager
+import foo.nosus.app.security.PlayIntegrityManager
 import java.io.File
 import java.io.FileOutputStream
 
@@ -25,6 +26,7 @@ class MainActivity : FlutterActivity() {
     private val SCREENSHOT_CHANNEL = "co.nosus.app/screenshot"
     private val SHARE_CHANNEL = "co.nosus.app/share"
     private val INTEGRITY_CHANNEL = "co.nosus.app/device_integrity"
+    private val PLAY_INTEGRITY_CHANNEL = "co.nosus.app/play_integrity"
 
     private var screenshotObserver: ContentObserver? = null
     private var screenCaptureCallback: Activity.ScreenCaptureCallback? = null
@@ -159,6 +161,23 @@ class MainActivity : FlutterActivity() {
                             result.success(DeviceIntegrityManager.runAllChecks(applicationContext))
                         } catch (e: Exception) {
                             result.error("INTEGRITY_SCAN_FAILED", e.message, null)
+                        }
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+
+        // ── MethodChannel: Play Integrity standard token request (scaffolded,
+        // not enabled — see PlayIntegrityManager.kt) ──
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, PLAY_INTEGRITY_CHANNEL)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "requestToken" -> {
+                        val nonce = call.argument<String>("nonce")
+                        if (nonce == null) {
+                            result.error("BAD_ARGS", "Missing nonce parameter", null)
+                        } else {
+                            PlayIntegrityManager.requestToken(applicationContext, nonce, result)
                         }
                     }
                     else -> result.notImplemented()

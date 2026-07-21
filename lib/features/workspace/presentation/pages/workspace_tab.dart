@@ -1229,7 +1229,10 @@ class _BurnNoteTeaserCard extends StatelessWidget {
     final theme = Theme.of(context);
     final fg = theme.colorScheme.onSurface;
 
-    return InkWell(
+    return Semantics(
+      button: true,
+      label: 'Burn Notes — zero-knowledge encrypted self-destructing secrets',
+      child: InkWell(
       borderRadius: BorderRadius.circular(NoSusTheme.r16),
       onTap: () {
         Navigator.of(context).push(
@@ -1287,6 +1290,7 @@ class _BurnNoteTeaserCard extends StatelessWidget {
           ],
         ),
       ),
+      ),
     );
   }
 }
@@ -1299,7 +1303,10 @@ class _BurnFileTeaserCard extends StatelessWidget {
     final theme = Theme.of(context);
     final fg = theme.colorScheme.onSurface;
 
-    return InkWell(
+    return Semantics(
+      button: true,
+      label: 'Burn Files — share files that self-destruct after one download',
+      child: InkWell(
       borderRadius: BorderRadius.circular(NoSusTheme.r16),
       onTap: () {
         Navigator.of(context).push(
@@ -1357,6 +1364,7 @@ class _BurnFileTeaserCard extends StatelessWidget {
           ],
         ),
       ),
+      ),
     );
   }
 }
@@ -1369,7 +1377,10 @@ class _RedeemCodeTeaserCard extends StatelessWidget {
     final theme = Theme.of(context);
     final fg = theme.colorScheme.onSurface;
 
-    return InkWell(
+    return Semantics(
+      button: true,
+      label: 'Redeem a code',
+      child: InkWell(
       borderRadius: BorderRadius.circular(NoSusTheme.r16),
       onTap: () {
         Navigator.of(context).push(
@@ -1426,6 +1437,7 @@ class _RedeemCodeTeaserCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }

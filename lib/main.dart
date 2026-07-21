@@ -2,10 +2,11 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:universal_html/html.dart' as html;
 
-
+import 'config/crash_reporting_config.dart';
 import 'theme.dart';
 import 'features/profile/presentation/widgets/profile_avatar.dart';
 import 'core/providers/theme_provider.dart';
@@ -139,6 +140,47 @@ BurnFileToken? extractBurnFileToken(Uri uri) {
   return null;
 }
 
+/// Multi-file Burn Files share — a NEW, additive link shape living on its
+/// own `burnfiles` (plural) path so it can never collide with or change the
+/// parsing of `burnfile/<uuid>` links already shared into the wild. Each
+/// file keeps its own independent key/IV (the exact same per-file crypto as
+/// [extractBurnFileToken] — no new crypto primitive, just N of them), so the
+/// only new thing here is the list-shaped URL, not the encryption scheme.
+/// e.g. https://app.nosus.foo/#/burnfiles/id1,id2?k=key1,key2&v=iv1,iv2
+List<BurnFileToken>? extractBurnFilesToken(Uri uri) {
+  final fullUrl = kIsWeb ? html.window.location.href : uri.toString();
+
+  final hashIdx = fullUrl.indexOf('#');
+  if (hashIdx == -1) return null;
+
+  final fragment = fullUrl.substring(hashIdx + 1); // /burnfiles/<id,id,...>?k=...&v=...
+  final qIdx = fragment.indexOf('?');
+  if (qIdx == -1) return null;
+
+  final path = fragment.substring(0, qIdx);
+  final query = fragment.substring(qIdx + 1);
+  final params = Uri.splitQueryString(query);
+
+  final match = RegExp(r'burnfiles/([a-f0-9,\-]+)', caseSensitive: false).firstMatch(path);
+  final ids = match?.group(1)?.split(',') ?? const [];
+  final keys = params['k']?.split(',') ?? const [];
+  final ivs = params['v']?.split(',') ?? const [];
+
+  if (ids.isEmpty || ids.length != keys.length || ids.length != ivs.length) {
+    return null;
+  }
+  final tokens = <BurnFileToken>[];
+  for (var i = 0; i < ids.length; i++) {
+    final id = ids[i];
+    final k = keys[i];
+    final v = ivs[i];
+    if (id.length != 36 || k.length != 64 || v.length != 32) return null;
+    tokens.add(BurnFileToken(id: id, keyHex: k, ivHex: v));
+  }
+  debugLog('NO SUS: Burn Files batch matched, count=${tokens.length}');
+  return tokens;
+}
+
 /// Extracts a SecureSend share token from a `/v/<token>` URL, checking both
 /// the fragment (default hash-based web routing, e.g. `#/v/abc123`) and the
 /// path, so the link works regardless of URL strategy. Returns null on any
@@ -177,6 +219,28 @@ void main() async {
   await runZonedGuarded(
     () async {
       WidgetsFlutterBinding.ensureInitialized();
+
+      // Crash reporting — no-op unless SENTRY_DSN is supplied via
+      // --dart-define (see lib/config/crash_reporting_config.dart). Used at
+      // the low-level `SentryFlutter.init(configure)` form (no `appRunner`)
+      // so it slots into this existing bootstrap sequence instead of
+      // requiring runApp() to move inside a callback. sendDefaultPii is
+      // explicitly off and tracing defaults to 0% — this product's premise
+      // is zero-knowledge/no-tracking, so crash capture stays scoped to
+      // errors, not analytics.
+      if (CrashReportingConfig.isEnabled) {
+        await SentryFlutter.init((options) {
+          options.dsn = CrashReportingConfig.sentryDsn;
+          options.tracesSampleRate = CrashReportingConfig.tracesSampleRate;
+          options.sendDefaultPii = false;
+        });
+      }
+      FlutterError.onError = (details) {
+        FlutterError.presentError(details);
+        if (CrashReportingConfig.isEnabled) {
+          Sentry.captureException(details.exception, stackTrace: details.stack);
+        }
+      };
 
       // Pre-load SharedPreferences synchronously before routing and app run
       final prefs = await SharedPreferences.getInstance();
@@ -248,10 +312,28 @@ void main() async {
           overrides: [
             sharedPreferencesProvider.overrideWithValue(prefs),
           ],
-          child: BurnFileViewerScreen(
-            fileId: burnFileToken.id,
+          child: BurnFileViewerScreen(files: [(
+            id: burnFileToken.id,
             keyHex: burnFileToken.keyHex,
             ivHex: burnFileToken.ivHex,
+          )]),
+        ));
+        return;
+      }
+
+      // Multi-file share — checked after the single-file path so an old
+      // `burnfile/<uuid>` link (no trailing 's') is never re-parsed here;
+      // the two regexes are structurally disjoint (see extractBurnFilesToken).
+      final burnFilesToken = extractBurnFilesToken(Uri.base);
+      if (burnFilesToken != null) {
+        runApp(ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+          ],
+          child: BurnFileViewerScreen(
+            files: burnFilesToken
+                .map((t) => (id: t.id, keyHex: t.keyHex, ivHex: t.ivHex))
+                .toList(),
           ),
         ));
         return;
@@ -279,7 +361,7 @@ void main() async {
 
         if (uri.scheme == 'io.supabase.nosus') {
           await handleOAuthCallback(uri);
-        } else if (uri.scheme == 'io.nosus.app' && uri.host == 'v') {
+        } else if (uri.scheme == 'foo.nosus.app' && uri.host == 'v') {
           final token = uri.pathSegments.firstOrNull;
           if (token != null && token.isNotEmpty) {
             _handleInAppShareView(token);
@@ -298,7 +380,7 @@ void main() async {
             });
           } else if (initialUri.scheme == 'io.supabase.nosus') {
             await handleOAuthCallback(initialUri);
-          } else if (initialUri.scheme == 'io.nosus.app' && initialUri.host == 'v') {
+          } else if (initialUri.scheme == 'foo.nosus.app' && initialUri.host == 'v') {
             final token = initialUri.pathSegments.firstOrNull;
             if (token != null && token.isNotEmpty) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -350,6 +432,9 @@ void main() async {
       // Catch all unhandled async errors (e.g. Supabase realtime WebSocket failures)
       // These are logged but do NOT crash the app — the mock fallback data remains active.
       debugLog('NO SUS: Caught unhandled async error: $error');
+      if (CrashReportingConfig.isEnabled) {
+        Sentry.captureException(error, stackTrace: stack);
+      }
     },
   );
 }

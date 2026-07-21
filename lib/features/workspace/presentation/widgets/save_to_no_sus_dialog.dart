@@ -818,7 +818,7 @@ class _SaveToNoSusDialogState extends ConsumerState<SaveToNoSusDialog>
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
-                  child: Text(
+                  child: const Text(
                     'IMPORT CONTENT',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,

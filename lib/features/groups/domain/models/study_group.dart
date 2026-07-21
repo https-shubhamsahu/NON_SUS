@@ -29,6 +29,18 @@ class GroupMember {
         initials: json['initials'] as String? ?? '?',
         isAdmin: json['isAdmin'] as bool? ?? false,
       );
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is GroupMember &&
+          id == other.id &&
+          name == other.name &&
+          initials == other.initials &&
+          isAdmin == other.isAdmin;
+
+  @override
+  int get hashCode => Object.hash(id, name, initials, isAdmin);
 }
 
 // ─── StudyGroup ───────────────────────────────────────────────────────────────
@@ -88,5 +100,30 @@ class StudyGroup {
             DateTime.fromMillisecondsSinceEpoch(0),
         isWatermarkEnabled: json['isWatermarkEnabled'] as bool? ?? true,
         inviteCode: json['inviteCode'] as String?,
+      );
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is StudyGroup &&
+          id == other.id &&
+          name == other.name &&
+          description == other.description &&
+          listEquals(members, other.members) &&
+          fileCount == other.fileCount &&
+          lastActivity == other.lastActivity &&
+          isWatermarkEnabled == other.isWatermarkEnabled &&
+          inviteCode == other.inviteCode;
+
+  @override
+  int get hashCode => Object.hash(
+        id,
+        name,
+        description,
+        Object.hashAll(members),
+        fileCount,
+        lastActivity,
+        isWatermarkEnabled,
+        inviteCode,
       );
 }

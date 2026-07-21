@@ -180,17 +180,20 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
         : NoSusTheme.lTextSecondary;
     final cardBg = isDark ? NoSusTheme.dCard : NoSusTheme.lCard;
 
-    final groupsAsync = ref.watch(groupsProvider);
-    final group = groupsAsync.maybeWhen(
-      data: (list) {
-        try {
-          return list.firstWhere((g) => g.id == widget.group.id);
-        } catch (_) {
-          return widget.group;
-        }
-      },
-      orElse: () => widget.group,
-    );
+    // .select() narrows this widget's rebuild trigger to just THIS group's
+    // data (now that StudyGroup has value equality) instead of the whole
+    // groups list — previously this rebuilt the entire scaffold/tabs
+    // whenever ANY group changed, not just this one.
+    final group = ref.watch(groupsProvider.select((async) => async.maybeWhen(
+          data: (list) {
+            try {
+              return list.firstWhere((g) => g.id == widget.group.id);
+            } catch (_) {
+              return widget.group;
+            }
+          },
+          orElse: () => widget.group,
+        )));
 
     return Scaffold(
       backgroundColor: bg,
@@ -245,7 +248,10 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
                   }
                 },
                 itemBuilder: (context) {
-                  final isCurrentUserAdmin = group.members.any((m) => m.id == ref.watch(authStateProvider).value?.id && m.isAdmin);
+                  // ref.read, not watch — this callback only runs when the
+                  // menu opens, not during reactive build, so watching here
+                  // registers a listener with no effect.
+                  final isCurrentUserAdmin = group.members.any((m) => m.id == ref.read(authStateProvider).value?.id && m.isAdmin);
                   return [
                     const PopupMenuItem(
                       value: 'leave',
@@ -274,7 +280,10 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
               // Upload FAB in app bar
               Padding(
                 padding: const EdgeInsets.only(right: 16),
-                child: GestureDetector(
+                child: Semantics(
+                  button: true,
+                  label: 'Upload file',
+                  child: GestureDetector(
                   onTap: _openUploadModal,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
@@ -305,6 +314,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
                         ),
                       ],
                     ),
+                  ),
                   ),
                 ),
               ),
@@ -843,7 +853,10 @@ class _PinnedNoteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return Semantics(
+      button: true,
+      label: 'Open pinned note ${note.name}',
+      child: GestureDetector(
       onTap: onOpen,
       child: Container(
         padding: const EdgeInsets.all(NoSusTheme.s16),
@@ -940,10 +953,11 @@ class _PinnedNoteCard extends StatelessWidget {
           ],
         ),
       ),
-    )
-    .animate(delay: (index * 80).ms)
+      )
+    .animate(delay: (index.clamp(0, 10) * 80).ms)
     .fadeIn(duration: 250.ms)
-    .slideY(begin: 0.03, end: 0);
+    .slideY(begin: 0.03, end: 0),
+    );
   }
 }
 
@@ -1211,7 +1225,7 @@ class _MembersTab extends ConsumerWidget {
                 ],
               ),
             )
-            .animate(delay: (i * 60).ms)
+            .animate(delay: (i.clamp(0, 10) * 60).ms)
             .fadeIn(duration: 250.ms)
             .slideY(begin: 0.03, end: 0);
       },
@@ -1344,7 +1358,7 @@ class _ActivityTab extends ConsumerWidget {
                   ),
                 ),
               ],
-            ).animate(delay: (i * 60).ms).fadeIn(duration: 250.ms),
+            ).animate(delay: (i.clamp(0, 10) * 60).ms).fadeIn(duration: 250.ms),
           );
         },
       ),

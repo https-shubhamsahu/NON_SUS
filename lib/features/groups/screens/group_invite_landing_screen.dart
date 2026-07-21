@@ -193,10 +193,10 @@ class _GroupInviteLandingScreenState extends ConsumerState<GroupInviteLandingScr
                           ? Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                MascotView(
+                                const MascotView(
                                   character: MascotCharacter.nox,
                                   size: 64,
-                                  fallback: const Icon(Icons.warning_amber_rounded, size: 64, color: Colors.orange),
+                                  fallback: Icon(Icons.warning_amber_rounded, size: 64, color: Colors.orange),
                                 ),
                                 const SizedBox(height: 20),
                                 const Text(
@@ -234,11 +234,11 @@ class _GroupInviteLandingScreenState extends ConsumerState<GroupInviteLandingScr
                               mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                Center(
+                                const Center(
                                   child: MascotView(
                                     character: MascotCharacter.duo,
                                     size: 72,
-                                    fallback: const Icon(Icons.group_add_outlined, size: 72, color: Colors.orangeAccent),
+                                    fallback: Icon(Icons.group_add_outlined, size: 72, color: Colors.orangeAccent),
                                   ),
                                 ),
                                 const SizedBox(height: 24),

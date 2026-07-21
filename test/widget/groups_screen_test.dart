@@ -58,5 +58,36 @@ void main() {
       expect(find.text('Math 101'), findsOneWidget);
       expect(find.text('Physics'), findsOneWidget);
     });
+
+    testWidgets('group cards and create-group FAB are announced as labeled buttons', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            groupsProvider.overrideWith(() => MockGroupsNotifier()),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(
+              body: GroupsScreen(),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Regression guard for the accessibility fixes in GroupCard and the
+      // create-group FAB — checks the Semantics widgets' own configuration.
+      final groupCardFinder = find.byWidgetPredicate(
+        (w) => w is Semantics && w.properties.label == 'Open group Math 101',
+      );
+      expect(groupCardFinder, findsOneWidget);
+      expect(tester.widget<Semantics>(groupCardFinder).properties.button, isTrue);
+
+      final createFabFinder = find.byWidgetPredicate(
+        (w) => w is Semantics && w.properties.label == 'Create group',
+      );
+      expect(createFabFinder, findsOneWidget);
+      expect(tester.widget<Semantics>(createFabFinder).properties.button, isTrue);
+    });
   });
 }

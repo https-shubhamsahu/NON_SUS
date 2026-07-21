@@ -51,9 +51,7 @@ class _RedeemCodeScreenState extends State<RedeemCodeScreen> {
       if (!mounted) return;
       final viewer = result.targetKind == 'file'
           ? BurnFileViewerScreen(
-              fileId: result.targetId,
-              keyHex: result.keyHex,
-              ivHex: result.ivHex,
+              files: [(id: result.targetId, keyHex: result.keyHex, ivHex: result.ivHex)],
             )
           : BurnNoteViewerScreen(
               noteId: result.targetId,

@@ -1,0 +1,6 @@
+- [ ] Accept Android SDK licenses via `sdkmanager --licenses`
+- [ ] Verify Gradle JDK is 17
+- [ ] Run Gradle configuration (`./gradlew tasks`) and resolve component prompts
+- [ ] Analyze plugin updates for AGP 9.0 / Built-in Kotlin compatibility
+- [ ] Sanity-check release signing via `signingReport`
+- [ ] Verify signed release build via `assembleRelease`

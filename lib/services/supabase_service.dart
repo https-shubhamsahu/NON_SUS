@@ -177,6 +177,30 @@ class SupabaseService {
     }
   }
 
+  /// Forwards a Play Integrity token to supabase/functions/verify-play-integrity
+  /// for server-side verification against Google's API — a Postgres RPC can't
+  /// make the outbound HTTPS call to Google itself, hence an edge function
+  /// (via functions.invoke) rather than .rpc() like the other calls here.
+  /// See [PlayIntegrityService] — this is unreachable while
+  /// AppIntegrityConfig.enabled is false.
+  Future<Map<String, dynamic>?> verifyPlayIntegrityToken({
+    required String token,
+    required String nonce,
+  }) async {
+    if (!isConfigured) return null;
+
+    try {
+      final response = await Supabase.instance.client.functions.invoke(
+        'verify-play-integrity',
+        body: {'token': token, 'nonce': nonce},
+      );
+      return response.data as Map<String, dynamic>?;
+    } catch (e) {
+      debugLog("SupabaseService: verifyPlayIntegrityToken failed: $e");
+      return null;
+    }
+  }
+
   /// Logs a device/session-level integrity finding (root, active
   /// instrumentation, risk flag) to the self-scoped `device_integrity_events`
   /// hash chain — separate from [logEvent] because these aren't tied to a

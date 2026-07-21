@@ -9,7 +9,7 @@ void main() {
     const user = AuthenticatedUser(id: 'user-1', email: 'student@example.com');
     final container = ProviderContainer(
       overrides: [
-        authRepositoryProvider.overrideWithValue(_FakeAuthRepository(user)),
+        authRepositoryProvider.overrideWithValue(const _FakeAuthRepository(user)),
       ],
     );
     addTearDown(container.dispose);

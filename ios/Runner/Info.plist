@@ -84,10 +84,10 @@
 		</dict>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>io.nosus.app</string>
+			<string>foo.nosus.app</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>io.nosus.app</string>
+				<string>foo.nosus.app</string>
 			</array>
 		</dict>
 	</array>

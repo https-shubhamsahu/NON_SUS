@@ -1,4 +1,6 @@
+import 'package:encrypt/encrypt.dart' as enc;
 import 'package:file_picker/file_picker.dart' as fp;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,6 +21,14 @@ import '../../data/redemption_code_client.dart';
 /// knowledge design, extended to arbitrary binary files — see
 /// lib/services/burn_file_crypto.dart for why the filename/mimetype are
 /// packed INSIDE the encrypted payload rather than sent to the server.
+///
+/// Supports sharing multiple files as one link: each file keeps its own
+/// independent key/IV (same crypto as a single file, just N of them) and
+/// the whole encrypt→upload→confirm pipeline runs in PARALLEL across files
+/// — for real speed, not just as a checkbox feature. The combined ciphertext
+/// across every file in one share is capped at [_maxTotalBytes] (25MB);
+/// the per-file cap is enforced authoritatively server-side via
+/// remote_configs' burn_files_max_size_bytes.
 class BurnFileCreatorScreen extends ConsumerStatefulWidget {
   /// Pre-fills the picker with a file shared into the app from another app
   /// (Photos, Files, WhatsApp, etc. via Android's share intent) — the
@@ -48,94 +58,157 @@ extension on _ExpiryOption {
       };
 }
 
+// Combined cap across every file in ONE share. The per-file cap is the
+// authoritative server-side remote_configs value (also 25MB by default) —
+// this is the client-side "does this whole share fit" pre-flight check, so
+// the user gets instant feedback instead of a failed network call partway
+// through a multi-file upload.
+const int _maxTotalBytes = 25 * 1024 * 1024;
+const int _maxFilesPerShare = 10;
+
+class _EncryptJob {
+  final Uint8List packed;
+  final Uint8List keyBytes;
+  final Uint8List ivBytes;
+  const _EncryptJob(this.packed, this.keyBytes, this.ivBytes);
+}
+
+// Top-level so it's eligible to run on a background isolate via compute() —
+// AES-CBC over a multi-MB file is real CPU work, and running it off the UI
+// thread is what keeps the picker/progress UI responsive while several
+// files encrypt at once. compute() degrades to a plain synchronous call on
+// platforms without isolate support, so this is safe everywhere.
+Uint8List _encryptOnIsolate(_EncryptJob job) {
+  return encryptBurnFilePayload(job.packed, enc.Key(job.keyBytes), enc.IV(job.ivBytes));
+}
+
 class _BurnFileCreatorScreenState extends ConsumerState<BurnFileCreatorScreen> {
-  fp.PlatformFile? _selectedFile;
+  final List<fp.PlatformFile> _selectedFiles = [];
   _ExpiryOption _expiry = _ExpiryOption.oneDay;
   bool _isProcessing = false;
   String? _statusLabel;
   String? _generatedLink;
   String? _generatedCode;
+  int _filesDoneCount = 0;
 
   @override
   void initState() {
     super.initState();
-    _selectedFile = widget.prefilledFile;
+    if (widget.prefilledFile != null) _selectedFiles.add(widget.prefilledFile!);
   }
 
-  Future<void> _pickFile() async {
-    final result = await fp.FilePicker.pickFiles(withData: true);
+  int get _totalBytes => _selectedFiles.fold(0, (sum, f) => sum + f.size);
+  bool get _overLimit => _totalBytes > _maxTotalBytes;
+
+  Future<void> _pickFiles() async {
+    final result = await fp.FilePicker.pickFiles(withData: true, allowMultiple: true);
     if (result == null || result.files.isEmpty) return;
-    setState(() => _selectedFile = result.files.first);
+    setState(() {
+      for (final f in result.files) {
+        if (_selectedFiles.length >= _maxFilesPerShare) break;
+        _selectedFiles.add(f);
+      }
+    });
+  }
+
+  void _removeFile(int index) {
+    setState(() => _selectedFiles.removeAt(index));
+  }
+
+  Future<({String fileId, String keyHex, String ivHex})> _burnOneFile(fp.PlatformFile file) async {
+    final bytes = file.bytes!;
+    final keyMaterial = generateBurnFileKeyMaterial();
+    final packed = packBurnFilePayload(
+      fileName: file.name,
+      mimeType: _guessMimeType(file.extension),
+      fileBytes: bytes,
+    );
+    final ciphertext = await compute(
+      _encryptOnIsolate,
+      _EncryptJob(packed, keyMaterial.key.bytes, keyMaterial.iv.bytes),
+    );
+
+    final initResult = await BurnFileClient.instance.init(
+      declaredSizeBytes: ciphertext.length,
+      expiryHours: _expiry.hours,
+    );
+
+    await Supabase.instance.client.storage
+        .from('burn-files')
+        .uploadBinaryToSignedUrl(initResult.fileId, initResult.uploadToken, ciphertext);
+
+    await BurnFileClient.instance.confirm(initResult.fileId);
+
+    if (mounted) setState(() => _filesDoneCount++);
+
+    return (
+      fileId: initResult.fileId,
+      keyHex: bytesToHex(keyMaterial.key.bytes),
+      ivHex: bytesToHex(keyMaterial.iv.bytes),
+    );
   }
 
   Future<void> _burnAndUpload() async {
-    final file = _selectedFile;
-    final bytes = file?.bytes;
-    if (file == null || bytes == null) {
+    if (_selectedFiles.isEmpty || _selectedFiles.any((f) => f.bytes == null)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please choose a file first.')),
+        const SnackBar(content: Text('Please choose at least one file first.')),
+      );
+      return;
+    }
+    if (_overLimit) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Total size is ${_formatSize(_totalBytes)} — Burn Files shares are capped at 25MB combined.')),
       );
       return;
     }
 
     setState(() {
       _isProcessing = true;
-      _statusLabel = 'ENCRYPTING...';
+      _filesDoneCount = 0;
+      _statusLabel = _selectedFiles.length > 1
+          ? 'ENCRYPTING ${_selectedFiles.length} FILES...'
+          : 'ENCRYPTING...';
     });
     ref.read(noxMascotProvider.notifier).play(MascotMood.guard);
 
     try {
-      // 1. Zero-knowledge pack + encrypt — key/IV never leave this device
-      // except embedded in the share link's URL fragment.
-      final keyMaterial = generateBurnFileKeyMaterial();
-      final packed = packBurnFilePayload(
-        fileName: file.name,
-        mimeType: _guessMimeType(file.extension),
-        fileBytes: bytes,
-      );
-      final ciphertext = encryptBurnFilePayload(packed, keyMaterial.key, keyMaterial.iv);
-
-      // 2. Reserve a file id + signed upload URL (rate-limited server-side).
-      setState(() => _statusLabel = 'REQUESTING SECURE SLOT...');
-      final initResult = await BurnFileClient.instance.init(
-        declaredSizeBytes: ciphertext.length,
-        expiryHours: _expiry.hours,
+      // Every file's encrypt→init→upload→confirm pipeline is independent —
+      // running them concurrently is the real speed win for a multi-file
+      // share, not just parallelizing the upload step.
+      final triples = await Future.wait(
+        _selectedFiles.map((f) => _burnOneFile(f)),
       );
 
-      // 3. Upload the encrypted blob directly to Storage.
-      setState(() => _statusLabel = 'UPLOADING...');
-      await Supabase.instance.client.storage
-          .from('burn-files')
-          .uploadBinaryToSignedUrl(
-            initResult.fileId,
-            initResult.uploadToken,
-            ciphertext,
-          );
-
-      // 4. Confirm — only after this does the file become downloadable.
       setState(() => _statusLabel = 'SEALING...');
-      await BurnFileClient.instance.confirm(initResult.fileId);
 
-      // 5. Build the share link. Filename deliberately never appears here.
       final (:origin, :basePath) = webShareLinkBase();
-      final keyHex = bytesToHex(keyMaterial.key.bytes);
-      final ivHex = bytesToHex(keyMaterial.iv.bytes);
-      final link = '$origin$basePath/#/burnfile/${initResult.fileId}?k=$keyHex&v=$ivHex';
-
-      // 6. Also mint a short redemption code pointing at the same key/IV —
-      // best-effort: the link already works on its own, so a hiccup here
-      // shouldn't fail the whole operation, just leave the code section
-      // hidden.
+      final String link;
       String? code;
-      try {
-        final codeResult = await RedemptionCodeClient.instance.createCode(
-          targetKind: 'file',
-          targetId: initResult.fileId,
-          keyHex: keyHex,
-          ivHex: ivHex,
-        );
-        code = codeResult.code;
-      } catch (_) {
+      if (triples.length == 1) {
+        // Exactly the original single-file link shape — unchanged so every
+        // burn-file link already shared into the wild keeps working, and so
+        // the common case doesn't pay for multi-file link overhead.
+        final t = triples.single;
+        link = '$origin$basePath/#/burnfile/${t.fileId}?k=${t.keyHex}&v=${t.ivHex}';
+        try {
+          final codeResult = await RedemptionCodeClient.instance.createCode(
+            targetKind: 'file',
+            targetId: t.fileId,
+            keyHex: t.keyHex,
+            ivHex: t.ivHex,
+          );
+          code = codeResult.code;
+        } catch (_) {
+          code = null;
+        }
+      } else {
+        // New multi-file shape. Redemption codes stay single-target only
+        // (see supabase/migrations/20260713000000_burn_redemption_codes.sql)
+        // — a multi-file share only gets the link, not a short code.
+        final ids = triples.map((t) => t.fileId).join(',');
+        final keys = triples.map((t) => t.keyHex).join(',');
+        final ivs = triples.map((t) => t.ivHex).join(',');
+        link = '$origin$basePath/#/burnfiles/$ids?k=$keys&v=$ivs';
         code = null;
       }
 
@@ -242,47 +315,100 @@ class _BurnFileCreatorScreenState extends ConsumerState<BurnFileCreatorScreen> {
               children: [
                 if (_generatedLink == null) ...[
                   Text(
-                    'Drop a file, get a link. Nobody needs an account — not you, not them. Once it\'s downloaded once, it\'s gone.',
+                    'Drop up to $_maxFilesPerShare files, get one link. Nobody needs an account — not you, not them. Once downloaded, they\'re gone.',
                     style: theme.textTheme.bodyMedium?.copyWith(color: fg.withValues(alpha: 0.6), fontSize: 13),
                   ),
                   const SizedBox(height: 20),
-                  InkWell(
-                    onTap: _isProcessing ? null : _pickFile,
-                    borderRadius: BorderRadius.circular(16),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
-                      decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF161616) : Colors.black.withValues(alpha: 0.03),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: _selectedFile != null ? Colors.orangeAccent.withValues(alpha: 0.4) : fg.withValues(alpha: 0.12),
+                  if (_selectedFiles.isNotEmpty) ...[
+                    ..._selectedFiles.asMap().entries.map((entry) {
+                      final i = entry.key;
+                      final f = entry.value;
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF161616) : Colors.black.withValues(alpha: 0.03),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.orangeAccent.withValues(alpha: 0.3)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.insert_drive_file_outlined, size: 18, color: Colors.orangeAccent),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  f.name,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: fg.withValues(alpha: 0.85)),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(_formatSize(f.size), style: TextStyle(fontSize: 11, color: fg.withValues(alpha: 0.4))),
+                              if (!_isProcessing) ...[
+                                const SizedBox(width: 4),
+                                IconButton(
+                                  onPressed: () => _removeFile(i),
+                                  tooltip: 'Remove ${f.name}',
+                                  icon: Icon(Icons.close_rounded, size: 16, color: fg.withValues(alpha: 0.4)),
+                                ),
+                              ],
+                            ],
+                          ),
                         ),
-                      ),
-                      child: Column(
-                        children: [
-                          Icon(
-                            _selectedFile != null ? Icons.insert_drive_file_outlined : Icons.upload_file_outlined,
-                            size: 36,
-                            color: _selectedFile != null ? Colors.orangeAccent : fg.withValues(alpha: 0.4),
+                      );
+                    }),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '${_selectedFiles.length}/$_maxFilesPerShare files · ${_formatSize(_totalBytes)} / 25.0 MB',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: _overLimit ? Colors.redAccent : fg.withValues(alpha: 0.45),
                           ),
-                          const SizedBox(height: 12),
-                          Text(
-                            _selectedFile?.name ?? 'TAP TO CHOOSE A FILE',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: fg.withValues(alpha: 0.85)),
+                        ),
+                        if (_selectedFiles.length < _maxFilesPerShare && !_isProcessing)
+                          TextButton.icon(
+                            onPressed: _pickFiles,
+                            icon: const Icon(Icons.add, size: 14),
+                            label: const Text('ADD MORE', style: TextStyle(fontSize: 11)),
                           ),
-                          if (_selectedFile?.size != null) ...[
-                            const SizedBox(height: 4),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                  ] else
+                    Semantics(
+                      button: true,
+                      enabled: !_isProcessing,
+                      label: 'Choose files',
+                      child: InkWell(
+                      onTap: _isProcessing ? null : _pickFiles,
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF161616) : Colors.black.withValues(alpha: 0.03),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: fg.withValues(alpha: 0.12)),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(Icons.upload_file_outlined, size: 36, color: fg.withValues(alpha: 0.4)),
+                            const SizedBox(height: 12),
                             Text(
-                              _formatSize(_selectedFile!.size),
-                              style: TextStyle(fontSize: 11, color: fg.withValues(alpha: 0.4)),
+                              'TAP TO CHOOSE FILES',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: fg.withValues(alpha: 0.85)),
                             ),
                           ],
-                        ],
+                        ),
+                      ),
                       ),
                     ),
-                  ),
                   const SizedBox(height: 20),
                   Text(
                     'LINK EXPIRES AFTER',
@@ -305,12 +431,14 @@ class _BurnFileCreatorScreenState extends ConsumerState<BurnFileCreatorScreen> {
                         foregroundColor: Colors.black,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
-                      onPressed: _isProcessing ? null : _burnAndUpload,
+                      onPressed: (_isProcessing || _selectedFiles.isEmpty || _overLimit) ? null : _burnAndUpload,
                       icon: _isProcessing
                           ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
                           : const Icon(Icons.local_fire_department_outlined, size: 16),
                       label: Text(
-                        _isProcessing ? (_statusLabel ?? 'WORKING...') : 'ENCRYPT & GENERATE LINK',
+                        _isProcessing
+                            ? '${_statusLabel ?? 'WORKING...'} ${_selectedFiles.length > 1 ? '($_filesDoneCount/${_selectedFiles.length})' : ''}'
+                            : (_selectedFiles.length > 1 ? 'ENCRYPT & GENERATE LINK (${_selectedFiles.length} FILES)' : 'ENCRYPT & GENERATE LINK'),
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -320,21 +448,23 @@ class _BurnFileCreatorScreenState extends ConsumerState<BurnFileCreatorScreen> {
                     child: Column(
                       children: [
                         const SizedBox(height: 20),
-                        MascotView(
+                        const MascotView(
                           character: MascotCharacter.nox,
                           size: 48,
-                          fallback: const Icon(Icons.verified_user_outlined, size: 48, color: Colors.green),
+                          fallback: Icon(Icons.verified_user_outlined, size: 48, color: Colors.green),
                         ),
                         const SizedBox(height: 16),
-                        const Text(
-                          'FILE SEALED',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1.0),
+                        Text(
+                          _selectedFiles.length > 1 ? '${_selectedFiles.length} FILES SEALED' : 'FILE SEALED',
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1.0),
                         ),
                         const SizedBox(height: 12),
-                        const Text(
-                          'Your file is encrypted. The key lives only in this link — the server cannot read it, and it\'s deleted permanently the moment it\'s downloaded.',
+                        Text(
+                          _selectedFiles.length > 1
+                              ? 'Your files are encrypted. The keys live only in this link — the server cannot read them, and each is deleted permanently the moment it\'s downloaded.'
+                              : 'Your file is encrypted. The key lives only in this link — the server cannot read it, and it\'s deleted permanently the moment it\'s downloaded.',
                           textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 12, color: Colors.white70),
+                          style: const TextStyle(fontSize: 12, color: Colors.white70),
                         ),
                         const SizedBox(height: 32),
                         Container(
@@ -372,13 +502,10 @@ class _BurnFileCreatorScreenState extends ConsumerState<BurnFileCreatorScreen> {
                                   style: const TextStyle(fontSize: 20, letterSpacing: 4, fontWeight: FontWeight.bold, color: Colors.lightBlueAccent),
                                 ),
                                 const SizedBox(width: 12),
-                                InkWell(
-                                  onTap: _copyCodeToClipboard,
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: const Padding(
-                                    padding: EdgeInsets.all(4),
-                                    child: Icon(Icons.copy_rounded, size: 16, color: Colors.lightBlueAccent),
-                                  ),
+                                IconButton(
+                                  onPressed: _copyCodeToClipboard,
+                                  tooltip: 'Copy code',
+                                  icon: const Icon(Icons.copy_rounded, size: 16, color: Colors.lightBlueAccent),
                                 ),
                               ],
                             ),
@@ -420,10 +547,10 @@ class _BurnFileCreatorScreenState extends ConsumerState<BurnFileCreatorScreen> {
                             setState(() {
                               _generatedLink = null;
                               _generatedCode = null;
-                              _selectedFile = null;
+                              _selectedFiles.clear();
                             });
                           },
-                          child: const Text('BURN ANOTHER FILE', style: TextStyle(color: Colors.grey, fontSize: 11)),
+                          child: const Text('BURN MORE FILES', style: TextStyle(color: Colors.grey, fontSize: 11)),
                         ),
                       ],
                     ),

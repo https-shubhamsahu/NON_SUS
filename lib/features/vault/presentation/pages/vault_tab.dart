@@ -206,7 +206,10 @@ class _VaultTabState extends ConsumerState<VaultTab>
               ),
               const SizedBox(width: NoSusTheme.s24),
               // Action button to open in Spyglass
-              GestureDetector(
+              Semantics(
+                button: true,
+                label: 'Reveal ${file.name}',
+                child: GestureDetector(
                 onTap: () {
                   setState(() {
                     _selectedFileId = file.id;
@@ -246,6 +249,7 @@ class _VaultTabState extends ConsumerState<VaultTab>
                       ),
                     ],
                   ),
+                ),
                 ),
               ),
             ],

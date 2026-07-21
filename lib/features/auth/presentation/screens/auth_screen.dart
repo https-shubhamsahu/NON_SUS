@@ -280,7 +280,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                             ),
                             const SizedBox(height: NoSusTheme.s32),
                             // Send OTP Button
-                            GestureDetector(
+                            Semantics(
+                              button: true,
+                              enabled: !authState.isLoading,
+                              label: 'Send OTP',
+                              child: GestureDetector(
                               onTap: authState.isLoading ? null : _submit,
                               child: Container(
                                 width: double.infinity,
@@ -309,6 +313,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                           ),
                                         ),
                                 ),
+                              ),
                               ),
                             ),
                           ] else ...[
@@ -356,34 +361,39 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                             ),
                             const SizedBox(height: NoSusTheme.s32),
                             // Verify OTP Button
-                            GestureDetector(
-                              onTap: authState.isLoading ? null : _submit,
-                              child: Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.symmetric(vertical: 15),
-                                decoration: BoxDecoration(
-                                  color: fg,
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                child: Center(
-                                  child: authState.isLoading
-                                      ? SizedBox(
-                                          width: 18,
-                                          height: 18,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: isDark ? Colors.black : Colors.white,
+                            Semantics(
+                              button: true,
+                              enabled: !authState.isLoading,
+                              label: 'Verify OTP',
+                              child: GestureDetector(
+                                onTap: authState.isLoading ? null : _submit,
+                                child: Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(vertical: 15),
+                                  decoration: BoxDecoration(
+                                    color: fg,
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: Center(
+                                    child: authState.isLoading
+                                        ? SizedBox(
+                                            width: 18,
+                                            height: 18,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: isDark ? Colors.black : Colors.white,
+                                            ),
+                                          )
+                                        : Text(
+                                            'VERIFY OTP',
+                                            style: TextStyle(
+                                              color: isDark ? Colors.black : Colors.white,
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w700,
+                                              letterSpacing: 1.5,
+                                            ),
                                           ),
-                                        )
-                                      : Text(
-                                          'VERIFY OTP',
-                                          style: TextStyle(
-                                            color: isDark ? Colors.black : Colors.white,
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w700,
-                                            letterSpacing: 1.5,
-                                          ),
-                                        ),
+                                  ),
                                 ),
                               ),
                             ),
@@ -551,34 +561,39 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           const SizedBox(height: NoSusTheme.s32),
 
                           // Action Button
-                          GestureDetector(
-                            onTap: authState.isLoading ? null : _submit,
-                            child: Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.symmetric(vertical: 15),
-                              decoration: BoxDecoration(
-                                color: fg,
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Center(
-                                child: authState.isLoading
-                                    ? SizedBox(
-                                        width: 18,
-                                        height: 18,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: isDark ? Colors.black : Colors.white,
+                          Semantics(
+                            button: true,
+                            enabled: !authState.isLoading,
+                            label: _isSignUp ? 'Register' : 'Enter workspace',
+                            child: GestureDetector(
+                              onTap: authState.isLoading ? null : _submit,
+                              child: Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(vertical: 15),
+                                decoration: BoxDecoration(
+                                  color: fg,
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: Center(
+                                  child: authState.isLoading
+                                      ? SizedBox(
+                                          width: 18,
+                                          height: 18,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: isDark ? Colors.black : Colors.white,
+                                          ),
+                                        )
+                                      : Text(
+                                          _isSignUp ? 'REGISTER' : 'ENTER WORKSPACE',
+                                          style: TextStyle(
+                                            color: isDark ? Colors.black : Colors.white,
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w700,
+                                            letterSpacing: 1.5,
+                                          ),
                                         ),
-                                      )
-                                    : Text(
-                                        _isSignUp ? 'REGISTER' : 'ENTER WORKSPACE',
-                                        style: TextStyle(
-                                          color: isDark ? Colors.black : Colors.white,
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w700,
-                                          letterSpacing: 1.5,
-                                        ),
-                                      ),
+                                ),
                               ),
                             ),
                           ),
@@ -755,33 +770,38 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     bool enabled = true,
   }) {
     final displayFg = enabled ? fg : fg.withValues(alpha: 0.35);
-    return GestureDetector(
-      onTap: enabled ? onPressed : null,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          border: Border.all(color: displayFg.withValues(alpha: 0.15), width: 0.75),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 20, color: displayFg),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.0,
-                  color: displayFg,
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      label: label,
+      child: GestureDetector(
+        onTap: enabled ? onPressed : null,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(
+            border: Border.all(color: displayFg.withValues(alpha: 0.15), width: 0.75),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 20, color: displayFg),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.0,
+                    color: displayFg,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

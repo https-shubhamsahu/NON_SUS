@@ -95,6 +95,7 @@ jobs:
         with:
           channel: 'stable'
           flutter-version: '3.44.4'
+          cache: true
 
       - name: Get Dependencies
         run: flutter pub get
@@ -103,9 +104,13 @@ jobs:
         run: |
           echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env
           echo "SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}" >> .env
+          echo "SENTRY_DSN=${{ secrets.SENTRY_DSN }}" >> .env
 
       - name: Analyze
         run: flutter analyze
+
+      - name: Test
+        run: flutter test
 
       - name: Build Web
         run: flutter build web --base-href "/" --dart-define-from-file=.env

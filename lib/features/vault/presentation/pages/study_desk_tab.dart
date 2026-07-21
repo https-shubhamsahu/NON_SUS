@@ -215,7 +215,10 @@ class _StudyDeskTabState extends ConsumerState<StudyDeskTab>
 
         // Secure viewer entry card — tapping opens full-screen SpyglassViewer
         Expanded(
-          child: GestureDetector(
+          child: Semantics(
+            button: true,
+            label: 'Open secure viewer for ${selectedFile.name}${selectedFile.type.extension}',
+            child: GestureDetector(
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
@@ -289,6 +292,7 @@ class _StudyDeskTabState extends ConsumerState<StudyDeskTab>
                   ),
                 ],
               ),
+            ),
             ),
           ).animate().fadeIn(duration: 350.ms),
         ),

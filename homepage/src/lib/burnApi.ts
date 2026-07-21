@@ -21,7 +21,13 @@ import {
 } from "./burnCrypto";
 
 export const NOTE_MAX_CHARS = 10000;
-export const FILE_MAX_BYTES = 50 * 1024 * 1024; // enforced again server-side
+// Kept in sync with remote_configs.burn_files_max_size_bytes (server is the
+// authoritative enforcement point — this is only the client-side pre-flight
+// check, so the browser fails fast instead of encrypting/uploading a file
+// the server will reject anyway). The Flutter app additionally supports
+// sharing multiple files under one 25MB combined link — this landing-page
+// tool is still single-file only.
+export const FILE_MAX_BYTES = 25 * 1024 * 1024;
 
 export type BurnResult = { link: string; codePromise: Promise<string | null> };
 
@@ -100,7 +106,7 @@ export async function createBurnFile(
 ): Promise<BurnResult> {
   if (file.size <= 0) throw new Error("That file looks empty.");
   if (file.size > FILE_MAX_BYTES) {
-    throw new Error("Too large — Burn Files are capped at 50MB.");
+    throw new Error("Too large — Burn Files are capped at 25MB.");
   }
 
   onProgress({ phase: "encrypting" });

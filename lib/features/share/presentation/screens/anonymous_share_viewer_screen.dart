@@ -108,13 +108,13 @@ class _AnonymousShareViewerScreenState
     
     if (defaultTargetPlatform == TargetPlatform.android) {
       final intentUrl = 'intent://v/$token#Intent;'
-          'scheme=io.nosus.app;'
-          'package=io.nosus.app;'
+          'scheme=foo.nosus.app;'
+          'package=foo.nosus.app;'
           'S.browser_fallback_url=${Uri.encodeComponent(fallbackUrl)};'
           'end';
       html.window.location.href = intentUrl;
     } else if (defaultTargetPlatform == TargetPlatform.iOS) {
-      final appUrl = 'io.nosus.app://v/$token';
+      final appUrl = 'foo.nosus.app://v/$token';
       html.window.location.href = appUrl;
       
       Timer(const Duration(seconds: 2), () {
@@ -318,10 +318,10 @@ class _AnonymousShareViewerScreenState
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              MascotView(
+              const MascotView(
                 character: MascotCharacter.nox,
                 size: 36,
-                fallback: const Icon(Icons.lock_outline, size: 36, color: Colors.white70),
+                fallback: Icon(Icons.lock_outline, size: 36, color: Colors.white70),
               ),
               const SizedBox(height: 16),
               Text(
@@ -424,10 +424,10 @@ class _AnonymousShareViewerScreenState
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            MascotView(
+            const MascotView(
               character: MascotCharacter.nox,
               size: 40,
-              fallback: const Icon(Icons.error_outline, size: 40, color: Colors.redAccent),
+              fallback: Icon(Icons.error_outline, size: 40, color: Colors.redAccent),
             ),
             const SizedBox(height: 16),
             Text(
@@ -488,10 +488,10 @@ class _AnonymousShareViewerScreenState
         child = InteractiveViewer(child: Center(child: Image.memory(bytes)));
         break;
       default:
-        child = Center(
+        child = const Center(
           child: Text(
             'This file type cannot be previewed in the browser.',
-            style: const TextStyle(fontSize: 13),
+            style: TextStyle(fontSize: 13),
           ),
         );
     }

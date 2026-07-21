@@ -232,13 +232,13 @@ class _BurnNoteViewerScreenState extends ConsumerState<BurnNoteViewerScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
+            const Row(
               children: [
-                const Icon(Icons.local_fire_department, size: 16, color: Colors.orangeAccent),
-                const SizedBox(width: 6),
-                const MascotView(character: MascotCharacter.nox, size: 18),
-                const SizedBox(width: 6),
-                const Text(
+                Icon(Icons.local_fire_department, size: 16, color: Colors.orangeAccent),
+                SizedBox(width: 6),
+                MascotView(character: MascotCharacter.nox, size: 18),
+                SizedBox(width: 6),
+                Text(
                   'BURN-ON-READ ACTIVE',
                   style: TextStyle(fontSize: 10, color: Colors.orangeAccent, fontWeight: FontWeight.bold),
                 ),
@@ -301,10 +301,10 @@ class _BurnNoteViewerScreenState extends ConsumerState<BurnNoteViewerScreen> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        MascotView(
+        const MascotView(
           character: MascotCharacter.duo,
           size: 56,
-          fallback: const Icon(Icons.whatshot, size: 56, color: Colors.grey),
+          fallback: Icon(Icons.whatshot, size: 56, color: Colors.grey),
         ).animate().shake(duration: 400.ms).fadeOut(duration: 800.ms),
         const SizedBox(height: 24),
         const Text(
@@ -325,10 +325,10 @@ class _BurnNoteViewerScreenState extends ConsumerState<BurnNoteViewerScreen> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        MascotView(
+        const MascotView(
           character: MascotCharacter.nox,
           size: 48,
-          fallback: const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
+          fallback: Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
         ),
         const SizedBox(height: 20),
         Text(

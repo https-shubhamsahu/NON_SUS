@@ -1,8 +1,15 @@
 # NO SUS — Production Release Report
 
 **Prepared:** 10 July 2026
-**App version:** 1.1.0+7 · **Package:** `io.nosus.app` · **Target/Compile SDK:** 36 (Android 16)
+**App version at time of audit:** 1.1.0+7 · **Package at time of audit:** `io.nosus.app` · **Target/Compile SDK:** 36 (Android 16)
 **Scope:** Full production/Play Store readiness audit and remediation ahead of first public release.
+
+> **Update (19 July 2026):** the app id has since been renamed to `foo.nosus.app`
+> (reverse-DNS of `app.nosus.foo`, where the Flutter web build now lives — see
+> root `CLAUDE.md`'s "App id / custom scheme" note) and the version bumped to
+> `1.2.0+9`. Everything below describes findings and fixes as of the original
+> audit date and package id; it's a historical record, not a live snapshot —
+> read `pubspec.yaml` and `android/app/build.gradle.kts` for current values.
 
 This report documents every issue found during the audit, every fix applied, what's still manual, and a submission checklist. All fixes below were verified with `flutter analyze` (clean), `flutter test` (44/44 passing, 1 skipped — requires live Supabase credentials), and **a real `flutter build appbundle --release`**, whose output AAB was decompiled and its signing certificate fingerprint checked against the new keystore to confirm it isn't debug-signed.
 
@@ -157,12 +164,12 @@ This is a plugin-ecosystem migration (Flutter's move to "Built-in Kotlin") that 
 - [x] Terms of Service — hosted, public URL
 - [x] Account deletion — in-app AND web-accessible path
 - [x] App icon + adaptive icon (background/foreground/monochrome) generated and wired up
-- [ ] **You must do**: back up the new upload keystore + `key.properties` outside this repo (§4)
-- [ ] **You must do**: add the four GitHub Actions secrets for CI signing (§4)
-- [ ] **You must do**: bump `pubspec.yaml`'s `version:` before your next real Play Console upload if 1.1.0+7 was ever previously submitted
-- [ ] **Manual, can't verify from here**: feature graphic (1024×500) for the Play Store listing — not found in this repo; needs to be designed and uploaded directly in Play Console
+- [ ] **You must do**: back up the new upload keystore + `key.properties` outside this repo (§4) — can't be verified from the repo either way; assume still outstanding unless you've done it
+- [x] Add the four GitHub Actions secrets for CI signing (§4) — confirmed present on the repo (`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`, plus `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`), set 11 July 2026
+- [x] `pubspec.yaml`'s `version:` has been bumped since this audit — now `1.2.0+9`
+- [x] Feature graphic (1024×500) — now present at `store_listing/feature_graphic_1024x500.png` (verified exactly 1024×500px); still needs uploading in Play Console
 - [ ] **Manual, can't verify from here**: screenshots for phone/tablet listing — capture from a real device or emulator per Play Console's current size requirements
-- [ ] **Manual, can't verify from here**: complete the Data Safety questionnaire in Play Console using §2/§7 above as source-of-truth for what's actually collected
+- [x] Data Safety questionnaire answers drafted — `store_listing/data_safety_answers.md` maps every Play data-safety row to source-of-truth in §2/§7 below; still needs to be manually entered into the Play Console questionnaire itself
 - [ ] **Manual, can't verify from here**: Internal Testing track — add tester emails in Play Console and confirm the CI-uploaded build installs and runs correctly on a real device before promoting further
 - [ ] **Recommended, not done**: accessibility Semantics/touch-target pass (§9)
 - [ ] **Recommended, not done**: bundle Inter/Outfit fonts as local assets instead of runtime-fetching (§11)

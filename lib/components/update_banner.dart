@@ -68,23 +68,25 @@ class _UpdateBannerState extends ConsumerState<UpdateBanner> {
               style: theme.textTheme.bodyMedium?.copyWith(fontSize: 12),
             ),
           ),
-          GestureDetector(
-            onTap: () => _openDownload(status.downloadUrl),
-            child: Padding(
+          TextButton(
+            onPressed: () => _openDownload(status.downloadUrl),
+            style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: NoSusTheme.s8),
-              child: Text(
-                'UPDATE',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.0,
-                ),
+              minimumSize: const Size(0, 44),
+            ),
+            child: Text(
+              'UPDATE',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.0,
               ),
             ),
           ),
-          GestureDetector(
-            onTap: () => setState(() => _dismissed = true),
-            child: Icon(
+          IconButton(
+            onPressed: () => setState(() => _dismissed = true),
+            tooltip: 'Dismiss update notice',
+            icon: Icon(
               Icons.close,
               size: 16,
               color: theme.colorScheme.onSurface.withValues(alpha: 0.4),

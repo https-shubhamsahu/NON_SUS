@@ -132,25 +132,29 @@ class AuthGate extends ConsumerWidget {
                           ),
                         ),
                         const SizedBox(height: 24),
-                        GestureDetector(
-                          onTap: () {
-                            ref.invalidate(authStateProvider);
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 12,
-                              horizontal: 24,
-                            ),
-                            decoration: BoxDecoration(
-                              color: fg,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              'RETRY',
-                              style: TextStyle(
-                                color: isDark ? Colors.black : Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
+                        Semantics(
+                          button: true,
+                          label: 'Retry',
+                          child: GestureDetector(
+                            onTap: () {
+                              ref.invalidate(authStateProvider);
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 12,
+                                horizontal: 24,
+                              ),
+                              decoration: BoxDecoration(
+                                color: fg,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                'RETRY',
+                                style: TextStyle(
+                                  color: isDark ? Colors.black : Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
                               ),
                             ),
                           ),
@@ -227,22 +231,26 @@ class AuthGate extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: NoSusTheme.s32),
-                    GestureDetector(
-                      onTap: () => ref.invalidate(authStateProvider),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        decoration: BoxDecoration(
-                          color: fg,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Center(
-                          child: Text(
-                            'RETRY',
-                            style: TextStyle(
-                              color: isDark ? Colors.black : Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 1.5,
+                    Semantics(
+                      button: true,
+                      label: 'Retry',
+                      child: GestureDetector(
+                        onTap: () => ref.invalidate(authStateProvider),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          decoration: BoxDecoration(
+                            color: fg,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Center(
+                            child: Text(
+                              'RETRY',
+                              style: TextStyle(
+                                color: isDark ? Colors.black : Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 1.5,
+                              ),
                             ),
                           ),
                         ),
@@ -328,33 +336,38 @@ class _OfflineGateScreenState extends State<_OfflineGateScreen> {
                     ),
                   ),
                   const SizedBox(height: NoSusTheme.s32),
-                  GestureDetector(
-                    onTap: _isRetrying ? null : _retry,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      decoration: BoxDecoration(
-                        color: fg,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Center(
-                        child: _isRetrying
-                            ? SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: isDark ? Colors.black : Colors.white,
+                  Semantics(
+                    button: true,
+                    enabled: !_isRetrying,
+                    label: 'Retry',
+                    child: GestureDetector(
+                      onTap: _isRetrying ? null : _retry,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        decoration: BoxDecoration(
+                          color: fg,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Center(
+                          child: _isRetrying
+                              ? SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: isDark ? Colors.black : Colors.white,
+                                  ),
+                                )
+                              : Text(
+                                  'RETRY',
+                                  style: TextStyle(
+                                    color: isDark ? Colors.black : Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 1.5,
+                                  ),
                                 ),
-                              )
-                            : Text(
-                                'RETRY',
-                                style: TextStyle(
-                                  color: isDark ? Colors.black : Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 1.5,
-                                ),
-                              ),
+                        ),
                       ),
                     ),
                   ),
@@ -427,22 +440,26 @@ class _SecurityGateScreen extends ConsumerWidget {
                 const SizedBox(height: 36),
                 SizedBox(
                   width: double.infinity,
-                  child: GestureDetector(
-                    onTap: () => Supabase.instance.client.auth.signOut(),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      decoration: BoxDecoration(
-                        color: fg,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Center(
-                        child: Text(
-                          'SIGN OUT & RE-VERIFY',
-                          style: TextStyle(
-                            color: isDark ? Colors.black : Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 1.2,
+                  child: Semantics(
+                    button: true,
+                    label: 'Sign out and re-verify',
+                    child: GestureDetector(
+                      onTap: () => Supabase.instance.client.auth.signOut(),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        decoration: BoxDecoration(
+                          color: fg,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'SIGN OUT & RE-VERIFY',
+                            style: TextStyle(
+                              color: isDark ? Colors.black : Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1.2,
+                            ),
                           ),
                         ),
                       ),
@@ -524,24 +541,28 @@ class _EmailConfirmationScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 40),
                 // Check status button
-                GestureDetector(
-                  onTap: () => ref.invalidate(authStateProvider),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 14,
-                      horizontal: 32,
-                    ),
-                    decoration: BoxDecoration(
-                      color: fg,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      "I'VE CONFIRMED — CONTINUE",
-                      style: TextStyle(
-                        color: isDark ? Colors.black : Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.2,
+                Semantics(
+                  button: true,
+                  label: "I've confirmed — continue",
+                  child: GestureDetector(
+                    onTap: () => ref.invalidate(authStateProvider),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 14,
+                        horizontal: 32,
+                      ),
+                      decoration: BoxDecoration(
+                        color: fg,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        "I'VE CONFIRMED — CONTINUE",
+                        style: TextStyle(
+                          color: isDark ? Colors.black : Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.2,
+                        ),
                       ),
                     ),
                   ),

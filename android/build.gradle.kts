@@ -43,6 +43,15 @@ subprojects {
     tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
         compilerOptions {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+            // Some third-party plugin modules (observed: sentry_flutter) ship
+            // without an explicit Kotlin languageVersion, which Gradle/AGP
+            // then defaults to something ancient (1.6) that this project's
+            // Kotlin 2.2.x compiler rejects outright ("Language version 1.6
+            // is no longer supported"). Same fix shape as the jvmTarget
+            // force above — apply a sane modern floor across every
+            // subproject rather than patching one plugin at a time.
+            languageVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_9)
+            apiVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_9)
         }
     }
 }

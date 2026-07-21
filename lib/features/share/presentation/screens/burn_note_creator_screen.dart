@@ -237,10 +237,10 @@ class _BurnNoteCreatorScreenState extends ConsumerState<BurnNoteCreatorScreen> {
                   child: Column(
                     children: [
                       const SizedBox(height: 20),
-                      MascotView(
+                      const MascotView(
                         character: MascotCharacter.nox,
                         size: 48,
-                        fallback: const Icon(Icons.verified_user_outlined, size: 48, color: Colors.green),
+                        fallback: Icon(Icons.verified_user_outlined, size: 48, color: Colors.green),
                       ),
                       const SizedBox(height: 16),
                       const Text(
@@ -289,13 +289,10 @@ class _BurnNoteCreatorScreenState extends ConsumerState<BurnNoteCreatorScreen> {
                                 style: const TextStyle(fontSize: 20, letterSpacing: 4, fontWeight: FontWeight.bold, color: Colors.lightBlueAccent),
                               ),
                               const SizedBox(width: 12),
-                              InkWell(
-                                onTap: _copyCodeToClipboard,
-                                borderRadius: BorderRadius.circular(8),
-                                child: const Padding(
-                                  padding: EdgeInsets.all(4),
-                                  child: Icon(Icons.copy_rounded, size: 16, color: Colors.lightBlueAccent),
-                                ),
+                              IconButton(
+                                onPressed: _copyCodeToClipboard,
+                                tooltip: 'Copy code',
+                                icon: const Icon(Icons.copy_rounded, size: 16, color: Colors.lightBlueAccent),
                               ),
                             ],
                           ),

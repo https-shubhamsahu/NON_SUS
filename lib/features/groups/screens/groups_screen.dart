@@ -260,7 +260,10 @@ class _GroupList extends StatelessWidget {
         Positioned(
           bottom: 16,
           right: 0,
-          child:
+          child: Semantics(
+            button: true,
+            label: 'Create group',
+            child:
               GestureDetector(
                     onTap: onCreateGroup,
                     child: Container(
@@ -291,6 +294,7 @@ class _GroupList extends StatelessWidget {
                     curve: Curves.elasticOut,
                   )
                   .fadeIn(duration: 200.ms),
+          ),
         ),
       ],
     );
@@ -462,32 +466,42 @@ class _CreateGroupModalState extends ConsumerState<_CreateGroupModal> {
                     style: TextStyle(fontSize: 13, color: fg),
                   ),
                 ),
-                GestureDetector(
-                  onTap: () =>
-                      setState(() => _enableInviteCode = !_enableInviteCode),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    width: 44,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      color: _enableInviteCode
-                          ? fg
-                          : fg.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Align(
-                      alignment: _enableInviteCode
-                          ? Alignment.centerRight
-                          : Alignment.centerLeft,
-                      child: Container(
-                        margin: const EdgeInsets.all(3),
-                        width: 18,
-                        height: 18,
+                Semantics(
+                  toggled: _enableInviteCode,
+                  label: 'Generate invite code',
+                  child: GestureDetector(
+                    onTap: () =>
+                        setState(() => _enableInviteCode = !_enableInviteCode),
+                    child: Container(
+                      // Invisible padding so the actual hit area reaches a
+                      // reasonable minimum, without inflating the switch's
+                      // small visual footprint.
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        width: 44,
+                        height: 24,
                         decoration: BoxDecoration(
                           color: _enableInviteCode
-                              ? (isDark ? Colors.black : Colors.white)
-                              : fg.withValues(alpha: 0.5),
-                          shape: BoxShape.circle,
+                              ? fg
+                              : fg.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Align(
+                          alignment: _enableInviteCode
+                              ? Alignment.centerRight
+                              : Alignment.centerLeft,
+                          child: Container(
+                            margin: const EdgeInsets.all(3),
+                            width: 18,
+                            height: 18,
+                            decoration: BoxDecoration(
+                              color: _enableInviteCode
+                                  ? (isDark ? Colors.black : Colors.white)
+                                  : fg.withValues(alpha: 0.5),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -498,34 +512,39 @@ class _CreateGroupModalState extends ConsumerState<_CreateGroupModal> {
             const SizedBox(height: 24),
 
             // Create button
-            GestureDetector(
-              onTap: _isCreating ? null : _create,
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 15),
-                decoration: BoxDecoration(
-                  color: fg,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Center(
-                  child: _isCreating
-                      ? SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: isDark ? Colors.black : Colors.white,
+            Semantics(
+              button: true,
+              enabled: !_isCreating,
+              label: 'Create group',
+              child: GestureDetector(
+                onTap: _isCreating ? null : _create,
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  decoration: BoxDecoration(
+                    color: fg,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Center(
+                    child: _isCreating
+                        ? SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: isDark ? Colors.black : Colors.white,
+                            ),
+                          )
+                        : Text(
+                            'CREATE GROUP',
+                            style: TextStyle(
+                              color: isDark ? Colors.black : Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1.5,
+                            ),
                           ),
-                        )
-                      : Text(
-                          'CREATE GROUP',
-                          style: TextStyle(
-                            color: isDark ? Colors.black : Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 1.5,
-                          ),
-                        ),
+                  ),
                 ),
               ),
             ),

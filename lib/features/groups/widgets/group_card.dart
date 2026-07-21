@@ -35,7 +35,11 @@ class _GroupCardState extends State<GroupCard> {
         ? NoSusTheme.dTextSecondary
         : NoSusTheme.lTextSecondary;
 
-    return GestureDetector(
+    return Semantics(
+      button: true,
+      label: 'Open group ${widget.group.name}',
+      onTap: widget.onTap,
+      child: GestureDetector(
           onTapDown: (_) => setState(() => _pressed = true),
           onTapUp: (_) {
             setState(() => _pressed = false);
@@ -128,9 +132,12 @@ class _GroupCardState extends State<GroupCard> {
             ),
           ),
         )
-        .animate(delay: (widget.animationIndex * 60).ms)
+        // Cap the delay so items far down a long list don't wait multiple
+        // seconds before fading in once scrolled into view.
+        .animate(delay: (widget.animationIndex.clamp(0, 10) * 60).ms)
         .fadeIn(duration: 300.ms)
-        .slideY(begin: 0.04, end: 0, duration: 300.ms, curve: Curves.easeOut);
+        .slideY(begin: 0.04, end: 0, duration: 300.ms, curve: Curves.easeOut),
+    );
   }
 }
 

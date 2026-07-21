@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-    namespace = "io.nosus.app"
+    namespace = "foo.nosus.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -17,7 +17,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "io.nosus.app"
+        applicationId = "foo.nosus.app"
         minSdk = flutter.minSdkVersion  // flutter_secure_storage requires API 23+
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
@@ -89,4 +89,12 @@ dependencies {
     // compat shim so pre-12 devices get equivalent behavior through the
     // same windowSplashScreen* theme attributes (see styles.xml).
     implementation("androidx.core:core-splashscreen:1.0.1")
+
+    // Play Integrity API (standard request) — server-verifiable device/app
+    // attestation, complementing the client-side heuristics in
+    // RootDetector.kt/InstrumentationDetector.kt (which a sufficiently
+    // capable attacker can spoof; Play Integrity's response is signed by
+    // Google and verified server-side in supabase/functions/verify-play-integrity).
+    // See PlayIntegrityManager.kt for why this is scaffolded, not enabled.
+    implementation("com.google.android.play:integrity:1.4.0")
 }

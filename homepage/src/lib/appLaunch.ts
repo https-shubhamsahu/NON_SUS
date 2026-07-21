@@ -1,6 +1,6 @@
 // Zoom-style "open in app" launch flow for Android visitors.
 //
-// A mobile browser cannot ask "is io.nosus.app installed?" — that's blocked
+// A mobile browser cannot ask "is foo.nosus.app installed?" — that's blocked
 // by design for privacy. What Zoom (and everyone else) actually does is
 // ATTEMPT the launch and handle the miss:
 //
@@ -12,11 +12,11 @@
 //     the visibility heuristic — if the tab is still visible ~1.6s later,
 //     nothing handled the scheme, so the app is almost certainly missing.
 //
-// The matching intent filter (io.nosus.app://open) lives in
+// The matching intent filter (foo.nosus.app://open) lives in
 // android/app/src/main/AndroidManifest.xml.
 import { RELEASES_URL } from "./links";
 
-export const ANDROID_PACKAGE_ID = "io.nosus.app";
+export const ANDROID_PACKAGE_ID = "foo.nosus.app";
 
 export function isAndroid(): boolean {
   return (

@@ -4,8 +4,8 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   app_links
-  passkeys_windows
   rive_common
+  sentry_flutter
   share_plus
   url_launcher_windows
 )

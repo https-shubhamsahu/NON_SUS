@@ -1,4 +1,4 @@
-package io.nosus.app.security
+package foo.nosus.app.security
 
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Context

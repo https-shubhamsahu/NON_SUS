@@ -79,5 +79,29 @@ void main() {
       expect(find.text('Email is required'), findsOneWidget);
       expect(find.text('Password is required'), findsOneWidget);
     });
+
+    testWidgets('main action button is announced as a labeled button to screen readers', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            authControllerProvider.overrideWith(() => MockAuthController()),
+          ],
+          child: const MaterialApp(
+            home: AuthScreen(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Checks the Semantics widget's own configuration directly — a
+      // regression guard against silently losing the button:true/label
+      // wrapping this widget relies on for screen-reader announcement.
+      final finder = find.byWidgetPredicate(
+        (w) => w is Semantics && w.properties.label == 'Enter workspace',
+      );
+      expect(finder, findsOneWidget);
+      final semanticsWidget = tester.widget<Semantics>(finder);
+      expect(semanticsWidget.properties.button, isTrue);
+    });
   });
 }

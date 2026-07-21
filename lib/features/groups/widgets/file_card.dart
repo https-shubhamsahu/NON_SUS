@@ -324,13 +324,13 @@ class _FileCardState extends State<FileCard> {
                                  ],
                                ),
                              ),
-                            PopupMenuItem(
+                            const PopupMenuItem(
                               value: 'delete',
                               child: Row(
                                 children: [
-                                  const Icon(Icons.delete_outline, size: 14, color: Colors.redAccent),
-                                  const SizedBox(width: 8),
-                                  const Text(
+                                  Icon(Icons.delete_outline, size: 14, color: Colors.redAccent),
+                                  SizedBox(width: 8),
+                                  Text(
                                     'Delete Document',
                                     style: TextStyle(fontSize: 12, color: Colors.redAccent),
                                   ),
@@ -347,7 +347,7 @@ class _FileCardState extends State<FileCard> {
             ),
           ),
         )
-        .animate(delay: (widget.animationIndex * 50).ms)
+        .animate(delay: (widget.animationIndex.clamp(0, 10) * 50).ms)
         .fadeIn(duration: 250.ms)
         .slideX(begin: 0.03, end: 0, duration: 250.ms, curve: Curves.easeOut);
   }

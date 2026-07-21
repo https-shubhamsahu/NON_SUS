@@ -27,7 +27,7 @@ class SupabaseAuthService {
       return _requireUser(response);
     } on AuthException catch (e) {
       if (e.message.contains('Invalid login credentials')) {
-        throw AuthException('You are not a registered user, try registration instead, or check your password.');
+        throw const AuthException('You are not a registered user, try registration instead, or check your password.');
       }
       rethrow;
     }

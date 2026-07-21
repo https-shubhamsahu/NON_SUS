@@ -1447,9 +1447,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
-                                GestureDetector(
-                                  onTap: () => _openEditProfileModal(profile),
-                                  child: Icon(
+                                IconButton(
+                                  onPressed: () => _openEditProfileModal(profile),
+                                  tooltip: 'Edit profile',
+                                  icon: Icon(
                                     Icons.edit_outlined,
                                     size: 14,
                                     color: fg.withValues(alpha: 0.5),

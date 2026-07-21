@@ -34,7 +34,7 @@ class _JoinGroupPageState extends ConsumerState<JoinGroupPage> {
       if (mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Successfully joined the group!'),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
@@ -144,7 +144,7 @@ class _JoinGroupPageState extends ConsumerState<JoinGroupPage> {
                             color: bg,
                           ),
                         )
-                      : Text(
+                      : const Text(
                           'JOIN GROUP',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
