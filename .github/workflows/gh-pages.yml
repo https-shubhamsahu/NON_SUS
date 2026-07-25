@@ -28,7 +28,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        # Pinned to v5 on purpose — do not bump without reading this.
+        # v5 is the release that moved to Node 24 (the reason for leaving v4).
+        # v6 changed credential persistence from `http.extraheader` in
+        # .git/config to a separate file, and JamesIves/github-pages-deploy-action
+        # clears the ambient runner credential by unsetting exactly that
+        # extraheader. On v6+ the unset silently no-ops, the github-actions[bot]
+        # credential survives, and it beats the PAT in the push URL — which
+        # breaks *only* the cross-repo deploy to nosus-app (403 "denied to
+        # github-actions[bot]"); the same-repo landing deploy still passes,
+        # so this fails asymmetrically and looks unrelated. To go past v5,
+        # add `persist-credentials: false` to the app job's checkout first.
+        uses: actions/checkout@v5
 
       - name: Setup Node
         uses: actions/setup-node@v7
@@ -91,7 +102,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        # Pinned to v5 on purpose — do not bump without reading this.
+        # v5 is the release that moved to Node 24 (the reason for leaving v4).
+        # v6 changed credential persistence from `http.extraheader` in
+        # .git/config to a separate file, and JamesIves/github-pages-deploy-action
+        # clears the ambient runner credential by unsetting exactly that
+        # extraheader. On v6+ the unset silently no-ops, the github-actions[bot]
+        # credential survives, and it beats the PAT in the push URL — which
+        # breaks *only* the cross-repo deploy to nosus-app (403 "denied to
+        # github-actions[bot]"); the same-repo landing deploy still passes,
+        # so this fails asymmetrically and looks unrelated. To go past v5,
+        # add `persist-credentials: false` to the app job's checkout first.
+        uses: actions/checkout@v5
 
       - name: Install Flutter
         uses: subosito/flutter-action@v2

@@ -377,6 +377,8 @@ codebase — assume still outstanding unless you know otherwise.
 
 <!-- CHANGELOG:INSERT -->
 
+- **2026-07-25** · `8718c08` · ci: bump actions/checkout and actions/setup-node to v7
+
 - **2026-07-19** · `bf48c97` · docs: add root README documenting product, architecture, and monorepo layout
 
 - **2026-07-25** · `b795cc4` · docs(agents): log 4905e42 in the change log
