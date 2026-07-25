@@ -28,11 +28,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
+          # v6 narrowed automatic caching to npm only — harmless here because
+          # this explicitly asks for npm, but don't drop `cache:` on a future
+          # bump assuming it still auto-detects other package managers.
           node-version: '22'
           cache: 'npm'
           cache-dependency-path: homepage/package-lock.json
@@ -88,7 +91,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Flutter
         uses: subosito/flutter-action@v2
