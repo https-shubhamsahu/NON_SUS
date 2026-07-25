@@ -38,7 +38,7 @@ the code wins — fix this file in the same commit.
 audit logging) built with Flutter on a Supabase backend. Ships to web (GitHub Pages) and Android
 (Play Store).
 
-Current version: **`1.2.0+9`** (`pubspec.yaml`). Latest migration: `20260721000000_security_hardening_and_burn_note_rate_limit.sql`.
+Current version: **`1.2.0+9`** (`pubspec.yaml`). Latest migration: `20260725000000_hardware_backed_device_id.sql`.
 
 Four sub-projects live in this repo:
 
@@ -361,7 +361,7 @@ codebase — assume still outstanding unless you know otherwise.
 
 ## 11. Change log
 
-> **Protocol.** Newest first. A `PostToolUse` hook (`.claude/hooks/log-commit.ps1`, wired in
+> **Protocol.** Newest first. A `PostToolUse` hook (`.claude/hooks/log-commit.sh`, wired in
 > `.claude/settings.json`) appends the mechanical row automatically after any successful `git commit`
 > — you do not need to write it by hand. **Your job is the "why".** After committing, edit the entry
 > the hook just added and append a `— why:` clause when the change:
@@ -376,6 +376,17 @@ codebase — assume still outstanding unless you know otherwise.
 > bottom rather than letting this section grow without bound.
 
 <!-- CHANGELOG:INSERT -->
+
+- **2026-07-25** · `cfab7c8` · feat(security): hardware-backed device identity on Android — why:
+  `DeviceIntegrityService.deviceId` was a `Uuid().v4()` in plaintext SharedPreferences, so the two
+  detectors built on it were defeatable by editing one file on a rooted device — the exact
+  population they target. It is now a digest of a non-extractable Android Keystore key (§8).
+  Contract note: `migrate_device_id()` must never be "improved" into also rewriting
+  `device_integrity_events.device_id` — that table's `entry_hash` is computed over `device_id` by a
+  **BEFORE INSERT** trigger, so an UPDATE would not recompute it and would silently break
+  `verify_device_integrity_chain()`. Trade-off: if the migration is needed and fails, the client
+  skips device registration for that session rather than risk writing a false
+  `multiple_device_access` into an append-only chain it could never retract.
 
 - **2026-07-25** · consolidated project documentation into this file — why: three root docs
   (`ANALYZE_RESULT.md`, `INTEGRATION_REPORT.md`, `PROJECT_HANDOVER.md`) each separately claimed to be
