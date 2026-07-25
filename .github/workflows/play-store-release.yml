@@ -77,7 +77,13 @@ jobs:
       # artifact to be uploaded manually through the Console UI before the
       # API is allowed to upload.
       - name: Create GitHub Release with APK
-        uses: softprops/action-gh-release@v2
+        # v3 is a pure runtime bump (Node 20 -> Node 24); every input used
+        # below exists unchanged in v3, and it creates the release over the
+        # GitHub API rather than `git push`, so it has none of the credential
+        # -persistence coupling that pins checkout to v5 in gh-pages.yml.
+        # Unverified by a real run: this workflow only fires on a v*.*.* tag,
+        # so the first release cut after this is its first live exercise.
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name || inputs.version }}
           name: Release ${{ github.ref_name || inputs.version }}
