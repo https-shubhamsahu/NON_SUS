@@ -32,18 +32,40 @@ class DeviceIntegrityService {
 
   static const _channel = MethodChannel('co.nosus.app/device_integrity');
   static const _deviceIdPrefsKey = 'nosus_device_id_v1';
+  static const _deviceIdMigratedPrefsKey = 'nosus_device_id_migrated_v2';
 
   String? _deviceId;
+  String? _deviceIdSecurityLevel;
   bool _startupScanDone = false;
   bool _deviceRegistered = false;
 
-  /// Stable per-install identifier, persisted locally. Deliberately *not*
-  /// a hardware ID (IMEI/serial/etc.) — this app doesn't collect those, in
-  /// keeping with the no-third-party-tracking privacy stance (see
-  /// web/privacy.html). It only needs to be stable enough to notice
-  /// "this same device flagged again" and "multiple devices for one user".
+  /// How the current [deviceId] is backed: 'strongbox', 'tee', 'software',
+  /// 'unknown', or null on the legacy/non-Android path. Null or 'software'
+  /// means the id is not hardware-protected and carries no more weight than
+  /// the old random UUID did — don't present it as if it does.
+  String? get deviceIdSecurityLevel => _deviceIdSecurityLevel;
+
+  /// Stable per-install identifier. Deliberately *not* a hardware ID
+  /// (IMEI/serial/etc.) — this app doesn't collect those, in keeping with the
+  /// no-third-party-tracking privacy stance (see web/privacy.html). It only
+  /// needs to be stable enough to notice "this same device flagged again" and
+  /// "multiple devices for one user".
+  ///
+  /// On Android this is the digest of a non-extractable Keystore key, so it
+  /// survives no better than the app's data but can't be edited into a
+  /// different value or copied to another device — which the previous
+  /// prefs-stored UUID could, defeating both of the detectors above on
+  /// exactly the rooted devices they target. Web, iOS, and any Android device
+  /// whose Keystore is unusable keep the original UUID behaviour.
   Future<String> get deviceId async {
     if (_deviceId != null) return _deviceId!;
+
+    final hardwareId = await _hardwareDeviceId();
+    if (hardwareId != null) {
+      _deviceId = hardwareId;
+      return hardwareId;
+    }
+
     final prefs = await SharedPreferences.getInstance();
     var id = prefs.getString(_deviceIdPrefsKey);
     if (id == null) {
@@ -52,6 +74,60 @@ class DeviceIntegrityService {
     }
     _deviceId = id;
     return id;
+  }
+
+  /// Null whenever a hardware-backed id can't be produced — non-Android, or
+  /// a Keystore that failed outright. Never throws: an unusable Keystore must
+  /// degrade to the legacy id, not break launch.
+  Future<String?> _hardwareDeviceId() async {
+    if (kIsWeb || !Platform.isAndroid) return null;
+    try {
+      final raw = await _channel.invokeMethod('getDeviceKeyId');
+      if (raw is! Map) return null;
+      final result = Map<String, dynamic>.from(raw);
+      final id = result['deviceId'];
+      if (id is! String || id.isEmpty) return null;
+      _deviceIdSecurityLevel = result['securityLevel'] as String?;
+      // Level only, never the id itself — the id is a stable per-device
+      // identifier and logcat is readable by any debug tooling on the box.
+      debugLog('DeviceIntegrityService: device id backing=$_deviceIdSecurityLevel');
+      return id;
+    } catch (e) {
+      debugLog('DeviceIntegrityService: hardware device id unavailable: $e');
+      return null;
+    }
+  }
+
+  /// One-time move of this device's server-side history from the legacy UUID
+  /// onto the hardware-backed id. Runs from [registerDeviceSeen] rather than
+  /// the [deviceId] getter because it needs an authenticated session, and
+  /// only sets the completion flag on success so a transient failure retries
+  /// on the next launch instead of silently orphaning the old row.
+  ///
+  /// Returns whether it's safe to register [currentId] now. False means a
+  /// migration was genuinely needed and failed — registering anyway would
+  /// make this already-known device look new and write a false
+  /// 'multiple_device_access' into an append-only hash chain that can't be
+  /// retracted. Skipping one session's `last_seen_at` refresh is the cheaper
+  /// error; the next launch retries.
+  Future<bool> _migrateLegacyDeviceId(String currentId) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool(_deviceIdMigratedPrefsKey) == true) return true;
+
+    final legacyId = prefs.getString(_deviceIdPrefsKey);
+    if (legacyId == null || legacyId == currentId) {
+      await prefs.setBool(_deviceIdMigratedPrefsKey, true);
+      return true;
+    }
+
+    final migrated = await SupabaseService.instance.migrateDeviceId(
+      oldDeviceId: legacyId,
+      newDeviceId: currentId,
+    );
+    if (migrated) {
+      await prefs.setBool(_deviceIdMigratedPrefsKey, true);
+    }
+    return migrated;
   }
 
   Future<Map<String, dynamic>?> _runNativeScan() async {
@@ -109,6 +185,15 @@ class DeviceIntegrityService {
     _deviceRegistered = true;
     try {
       final id = await deviceId;
+      // Must precede the register call: it renames the existing row, so
+      // running it after would leave register_device_seen() to see the new id
+      // as unknown and log a spurious 'multiple_device_access'. If it was
+      // needed and failed, don't register at all this session — see the
+      // method's doc comment.
+      if (!await _migrateLegacyDeviceId(id)) {
+        _deviceRegistered = false;
+        return;
+      }
       await SupabaseService.instance.registerDeviceSeen(id);
     } catch (e) {
       debugLog('DeviceIntegrityService: registerDeviceSeen failed: $e');

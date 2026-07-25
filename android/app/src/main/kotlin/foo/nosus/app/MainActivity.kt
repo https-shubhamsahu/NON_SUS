@@ -17,6 +17,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
 import foo.nosus.app.security.DeviceIntegrityManager
+import foo.nosus.app.security.KeyAttestationManager
 import foo.nosus.app.security.PlayIntegrityManager
 import java.io.File
 import java.io.FileOutputStream
@@ -161,6 +162,16 @@ class MainActivity : FlutterActivity() {
                             result.success(DeviceIntegrityManager.runAllChecks(applicationContext))
                         } catch (e: Exception) {
                             result.error("INTEGRITY_SCAN_FAILED", e.message, null)
+                        }
+                    }
+                    // Hardware-backed device identity. Shares this channel
+                    // rather than opening a new one — same subsystem, same
+                    // Dart-side service consumes both.
+                    "getDeviceKeyId" -> {
+                        try {
+                            result.success(KeyAttestationManager.getOrCreateDeviceKeyId())
+                        } catch (e: Exception) {
+                            result.error("DEVICE_KEY_FAILED", e.message, null)
                         }
                     }
                     else -> result.notImplemented()

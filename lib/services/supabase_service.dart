@@ -292,6 +292,32 @@ class SupabaseService {
     });
   }
 
+  /// Carries a device's history from its legacy random-UUID id onto the
+  /// hardware-backed one, so switching id formats doesn't make every
+  /// already-known device look new (which would fire a false
+  /// 'multiple_device_access' for every multi-device user on upgrade). See
+  /// migrate_device_id() in 20260725000000_hardware_backed_device_id.sql.
+  ///
+  /// Returns false on any failure so the caller can leave the migration flag
+  /// unset and retry on a later launch — never throws, since this runs on the
+  /// post-sign-in path and must not break it.
+  Future<bool> migrateDeviceId({
+    required String oldDeviceId,
+    required String newDeviceId,
+  }) async {
+    if (!isConfigured) return false;
+    try {
+      await Supabase.instance.client.rpc('migrate_device_id', params: {
+        'p_old_device_id': oldDeviceId,
+        'p_new_device_id': newDeviceId,
+      });
+      return true;
+    } catch (e) {
+      debugLog("SupabaseService: migrateDeviceId RPC failed: $e");
+      return false;
+    }
+  }
+
   /// Fetches private notes for a user.
   Future<String> fetchUserNote(String userId) async {
     if (!isConfigured) return '';
