@@ -38,7 +38,7 @@ the code wins — fix this file in the same commit.
 audit logging) built with Flutter on a Supabase backend. Ships to web (GitHub Pages) and Android
 (Play Store).
 
-Current version: **`1.2.0+9`** (`pubspec.yaml`). Latest migration: `20260725000000_hardware_backed_device_id.sql`.
+Current version: **`1.3.0+10`** (`pubspec.yaml`). Latest migration: `20260725000000_hardware_backed_device_id.sql`.
 
 Four sub-projects live in this repo:
 
@@ -376,6 +376,8 @@ codebase — assume still outstanding unless you know otherwise.
 > bottom rather than letting this section grow without bound.
 
 <!-- CHANGELOG:INSERT -->
+
+- **2026-07-25** · `96efcac` · ci: bump softprops/action-gh-release to v3
 
 - **2026-07-25** · `d6a1c1d` · fix(ci): pin actions/checkout to v5 — v6+ breaks the cross-repo deploy
 
