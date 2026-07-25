@@ -377,6 +377,8 @@ codebase — assume still outstanding unless you know otherwise.
 
 <!-- CHANGELOG:INSERT -->
 
+- **2026-07-25** · `4905e42` · docs(agents): add the "why" for cfab7c8, fix two stale references
+
 - **2026-07-25** · `cfab7c8` · feat(security): hardware-backed device identity on Android — why:
   `DeviceIntegrityService.deviceId` was a `Uuid().v4()` in plaintext SharedPreferences, so the two
   detectors built on it were defeatable by editing one file on a rooted device — the exact
