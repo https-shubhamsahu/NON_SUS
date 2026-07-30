@@ -210,13 +210,23 @@ class ProfileNotifier extends Notifier<AsyncValue<ProfileData>> {
     // to silently drop userType/goals/features from in-memory state.
     final previous = state.value;
 
+    // Signed out there is no row to write. This used to fall back to the
+    // literal string 'temp_user' for the uuid primary key, so the save always
+    // failed deep in Postgres with `invalid input syntax for type uuid`
+    // instead of reporting the actual problem.
+    if (user == null) {
+      state = AsyncValue.error(
+        StateError('Cannot save a profile while signed out.'),
+        StackTrace.current,
+      );
+      return;
+    }
+
     state = const AsyncValue.loading();
     try {
-      final userId = user?.id ?? 'temp_user';
-      final email = user?.email ?? '';
       await SupabaseService.instance.saveProfile(
-        userId: userId,
-        email: email,
+        userId: user.id,
+        email: user.email ?? '',
         displayName: displayName,
         avatarColorStart: avatarColorStart,
         avatarColorEnd: avatarColorEnd,

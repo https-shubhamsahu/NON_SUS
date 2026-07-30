@@ -81,7 +81,12 @@ class ShareNotificationNotifier extends Notifier<ShareNotificationState> {
   ShareNotificationState build() {
     ref.listen<AsyncValue<List<ShareViewEvent>>>(shareNotificationStreamProvider, (prev, next) {
       if (next.hasValue) {
-        checkNewEvents(next.value!);
+        // Deferred off Riverpod's callback stack. checkNewEvents reads a
+        // provider and runs synchronously up to its first await, so calling it
+        // straight from this listener trips the "cannot use Ref inside
+        // life-cycles" assert. The read stays lazy so it keeps degrading
+        // gracefully when Supabase is unreachable.
+        Future.microtask(() => checkNewEvents(next.value!));
       }
     });
     return const ShareNotificationState();

@@ -339,10 +339,31 @@ void main() async {
         return;
       }
 
+      // supabase_flutter runs its own app-link listener and consumes
+      // `login-callback` itself. The PKCE code is single-use, so calling
+      // getSessionFromUrl here unconditionally made both handlers race for it
+      // and whichever lost reported `flow_state_not_found` — non-deterministic,
+      // and it surfaced as an auth error on a login that had actually
+      // succeeded. Wait for the SDK, and only recover manually if it never
+      // establishes a session.
       Future<void> handleOAuthCallback(Uri uri) async {
+        final auth = Supabase.instance.client.auth;
+        if (auth.currentSession != null) return;
+
         try {
-          debugLog('NO SUS: Recovering session from deep link URI: $uri');
-          await Supabase.instance.client.auth.getSessionFromUrl(uri);
+          await auth.onAuthStateChange
+              .firstWhere((state) => state.session != null)
+              .timeout(const Duration(seconds: 8));
+          debugLog('NO SUS: OAuth callback completed by the Supabase SDK.');
+          return;
+        } catch (_) {
+          debugLog(
+            'NO SUS: SDK established no session for $uri — recovering manually.',
+          );
+        }
+
+        try {
+          await auth.getSessionFromUrl(uri);
           debugLog('NO SUS: Session recovered successfully!');
         } catch (e) {
           debugLog('NO SUS: Error recovering session from deep link: $e');
@@ -574,31 +595,49 @@ class _WorkspaceHomeState extends ConsumerState<WorkspaceHome> {
     ref.read(themeModeProvider.notifier).toggle();
   }
 
+  /// Runs [action] once the in-flight frame is done, skipping it if this state
+  /// is gone by then. Provider listeners registered in [build] can fire during
+  /// the build phase, where touching UI throws.
+  void _afterFrame(VoidCallback action) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) action();
+    });
+  }
+
   Widget _buildHeader(BuildContext context, bool isDark) {
     final theme = Theme.of(context);
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'NO SUS',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w900,
-                letterSpacing: 2.0,
+        // The wordmark is laid out against a fixed-width action row, so it has
+        // to yield the leftover space rather than claim its natural width —
+        // the tagline is wide enough to overflow narrow phones otherwise.
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'NO SUS',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 2.0,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              'SILENT SECURITY WORKSPACE',
-              style: theme.textTheme.labelLarge?.copyWith(
-                fontSize: 10,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                letterSpacing: 1.5,
+              const SizedBox(height: 2),
+              Text(
+                'SILENT SECURITY WORKSPACE',
+                style: theme.textTheme.labelLarge?.copyWith(
+                  fontSize: 10,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                  letterSpacing: 1.5,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         Row(
           children: [
@@ -724,23 +763,33 @@ class _WorkspaceHomeState extends ConsumerState<WorkspaceHome> {
 
   @override
   Widget build(BuildContext context) {
+    // These three listeners all perform work that is illegal mid-build —
+    // showing a snackbar or dialog, and jumping a PageController all call
+    // setState/markNeedsBuild. A provider that changes while this tree is
+    // building (a sign-out resetting the tab, for instance) delivered them
+    // synchronously and tripped "setState() called during build", so each is
+    // deferred to after the frame.
     ref.listen<ShareNotificationState>(shareNotificationProvider, (prev, next) {
       final event = next.latestEvent;
       if (event != null && next.fileName != null) {
-        _showNotificationBanner(event, next.fileName!);
-        ref.read(shareNotificationProvider.notifier).dismiss();
+        _afterFrame(() {
+          _showNotificationBanner(event, next.fileName!);
+          ref.read(shareNotificationProvider.notifier).dismiss();
+        });
       }
     });
 
     ref.listen<SharedContent?>(shareIntentProvider, (previous, next) {
       if (next != null) {
-        _showSaveToNoSusModal(next);
+        _afterFrame(() => _showSaveToNoSusModal(next));
       }
     });
 
     ref.listen<int>(activeTabProvider, (previous, next) {
       if (next != previous) {
-        _pageController.jumpToPage(next);
+        _afterFrame(() {
+          if (_pageController.hasClients) _pageController.jumpToPage(next);
+        });
       }
     });
 
