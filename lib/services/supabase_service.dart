@@ -156,6 +156,57 @@ class SupabaseService {
         });
   }
 
+  // Group ids the signed-in user actually belongs to. `log_group_event` rejects
+  // writes for any other group, and a locally persisted history entry (see
+  // RecentlySavedItem.destinationId) keeps pointing at a group long after the
+  // user has left it — which produced a stream of "Not a member of the study
+  // group" failures on every document open. Cached per user with a short TTL so
+  // a fresh join is picked up without a round-trip per event.
+  Set<String>? _memberGroupIds;
+  String? _memberGroupIdsUser;
+  DateTime? _memberGroupIdsAt;
+  static const _membershipTtl = Duration(minutes: 5);
+
+  /// Group ids [userId] belongs to, or null when that could not be determined.
+  /// Callers must fail *open* on null rather than drop the event — a transient
+  /// network failure must never silently swallow a security audit record.
+  Future<Set<String>?> _memberGroupIdsFor(String userId) async {
+    final cached = _memberGroupIds;
+    final cachedAt = _memberGroupIdsAt;
+    if (cached != null &&
+        _memberGroupIdsUser == userId &&
+        cachedAt != null &&
+        DateTime.now().difference(cachedAt) < _membershipTtl) {
+      return cached;
+    }
+
+    try {
+      final rows = await Supabase.instance.client
+          .from('study_group_members')
+          .select('group_id')
+          .eq('user_id', userId);
+      final ids = <String>{
+        for (final row in rows)
+          if (row['group_id'] != null) row['group_id'] as String,
+      };
+      _memberGroupIds = ids;
+      _memberGroupIdsUser = userId;
+      _memberGroupIdsAt = DateTime.now();
+      return ids;
+    } catch (e) {
+      debugLog("SupabaseService: group membership lookup failed: $e");
+      return null;
+    }
+  }
+
+  /// Drops the cached membership set. Call after joining or leaving a group so
+  /// the next audit event is evaluated against the new membership.
+  void invalidateGroupMembershipCache() {
+    _memberGroupIds = null;
+    _memberGroupIdsUser = null;
+    _memberGroupIdsAt = null;
+  }
+
   /// Inserts a new audit log record inside Supabase database via secure RPC.
   Future<void> logEvent(
     String eventType, {
@@ -164,6 +215,18 @@ class SupabaseService {
     Map<String, dynamic>? metadata,
   }) async {
     if (!isConfigured) return;
+
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return;
+
+    final memberOf = await _memberGroupIdsFor(userId);
+    if (memberOf != null && !memberOf.contains(groupId)) {
+      debugLog(
+        "SupabaseService: skipping '$eventType' for group $groupId — "
+        "not a member, the RPC would reject it.",
+      );
+      return;
+    }
 
     try {
       await Supabase.instance.client.rpc('log_group_event', params: {

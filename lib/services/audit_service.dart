@@ -104,12 +104,18 @@ class AuditService {
       });
       _auditLogsStream.add(_auditLogs);
 
-      SupabaseService.instance.logEvent(
-        eventType,
-        groupId: groupId ?? 'default_group',
-        fileId: fileId,
-        metadata: meta,
-      );
+      // Without a group there is nothing log_group_event would accept: the old
+      // 'default_group' placeholder was never a real group id, so every such
+      // call was rejected server-side. The entry above still reaches the local
+      // audit list, so the user-visible trail is unchanged.
+      if (groupId != null) {
+        SupabaseService.instance.logEvent(
+          eventType,
+          groupId: groupId,
+          fileId: fileId,
+          metadata: meta,
+        );
+      }
       return;
     }
 
