@@ -38,7 +38,7 @@ the code wins — fix this file in the same commit.
 audit logging) built with Flutter on a Supabase backend. Ships to web (GitHub Pages) and Android
 (Play Store).
 
-Current version: **`1.3.0+10`** (`pubspec.yaml`). Latest migration: `20260725000000_hardware_backed_device_id.sql`.
+Current version: **`1.4.0+11`** (`pubspec.yaml`). Latest migration: `20260801062256_revoke_internal_function_execute.sql`.
 
 Four sub-projects live in this repo:
 
@@ -415,7 +415,7 @@ codebase — assume still outstanding unless you know otherwise.
 | `app_latest_version` still `1.2.0` in `remote_configs` | **(manual)** — bumping it prompts every existing user |
 | Back up `android/app/upload-keystore.jks` + `key.properties` outside the repo | **(manual)** — losing these forfeits the signing identity |
 | Play Console: upload feature graphic, phone/tablet screenshots, enter Data Safety answers, add Internal Testing testers | **(manual)** — assets drafted in `store_listing/`; shipping analytics changes the Data Safety answers |
-| `google_fonts` fetches Inter/Outfit from Google's CDN at runtime | Open — re-verified 2026-07-29: no `allowRuntimeFetching = false`, no `.ttf` bundled. Fix = bundle real font binaries locally (~1–2 MB) |
+| `google_fonts` fetches Inter/Outfit from Google's CDN at runtime | ✅ Closed 2026-08-01 (`cd514aa`) — Inter/Outfit/VT323 `.ttf` bundled in `assets/google_fonts/` (~1.6 MB), `allowRuntimeFetching = false` in `main()`. Adding a weight without its `.ttf` now falls back silently |
 | ~~Accessibility sweep on lower-traffic screens~~ | **Done** 2026-07-29 — see §7 |
 | `BURN_FILES_IP_SALT` not set | Open — burn-file per-IP rate limiting degrades without it |
 | `migrate_device_id()` never exercised against a signed-in session | Open — needs a physical device; all `user_known_devices` rows are still legacy UUIDs |
@@ -457,8 +457,40 @@ codebase — assume still outstanding unless you know otherwise.
 
 <!-- CHANGELOG:INSERT -->
 
+- **2026-08-01** · `cd514aa` · feat: ship the 1.4.0 feature set and bundle fonts locally — why:
+  this was ~60 files of unshipped work in the working tree; tag `v1.3.0` points at `6015dc3`, which
+  contains none of it. Released as **1.4.0+11** rather than reusing 1.3.0 so one version string does
+  not describe two very different builds. Two contract notes. (1) Fonts now resolve **only** from
+  `assets/google_fonts/` — `GoogleFonts.config.allowRuntimeFetching = false` is set in `main()`
+  before the early-return `runApp()` paths for share/burn deep links, because google_fonts reads the
+  flag when a style is first resolved, not at package load. Adding a weight or family to
+  `theme.dart` without adding its `.ttf` makes that style fall back silently, with no error.
+  (2) Migration filenames now match the applied ledger exactly (`20260706223526`, `20260730115330`,
+  `20260801062256`); they must stay matched or `supabase db push` re-runs landed migrations and
+  writes duplicate ledger rows. **Data Safety changes with this release** — `analytics_events` is
+  the first thing here collecting data for the team rather than the user, so the Play questionnaire
+  must be resubmitted before it reaches testers.
+
 - **2026-08-01** · `f3f65e8` · docs: add MANUAL_TASKS.md operator checklist
-- **2026-08-01** · `6d972d1` · feat(links): serve assetlinks.json so app.nosus.foo App Links verify
+- **2026-08-01** · `6d972d1` · feat(links): serve assetlinks.json so app.nosus.foo App Links verify — why:
+  the `autoVerify` filter had been in the manifest while
+  `https://app.nosus.foo/.well-known/assetlinks.json` returned **404** — the file lived only in the
+  working tree, so Android had nothing to verify against and every app.nosus.foo link opened in the
+  browser. Committing it *is* the fix: `gh-pages.yml` deploys on push to `main`. The fingerprint is
+  the Play **app signing** key, not the upload key; rotating it in Play Console silently breaks
+  every App Link until this file is updated and redeployed.
+
+- **2026-08-01** · `a6700cf` · fix(security): require group membership for drive-proxy download and
+  delete — why: `drive-proxy` authenticated the caller and then served the file with the Google
+  **service account**, which can read every file in the parent folder — authentication without
+  authorization. Any signed-in user could download or **delete** any Drive-backed file by id,
+  bypassing `secure_files` RLS structurally, because those bytes never pass through Postgres. Not
+  an incident: 0 of 5 `secure_files` rows are Drive-backed today, so this closes a latent hole
+  before that path carries data. Contract note: the lookup matches **`secure_files.id`** first,
+  because `addGoogleDriveLink()` inserts the Drive id as the row's primary key and never populates
+  the nominal `gdrive_file_id` column — that column is empty in every row. Callers must also delete
+  the Drive blob **before** the `secure_files` row; reversing it makes the id unresolvable, the
+  check fails closed, and the blob is orphaned in Drive rather than deleted.
 
 - **2026-08-01** · `a6700cf` · fix(security): require group membership for drive-proxy download and delete
 
