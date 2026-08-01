@@ -309,6 +309,15 @@ class RecentlySavedNotifier extends Notifier<RecentlySavedState> {
     }
   }
 
+  /// Whether the signed-in user is still a member of [groupId], per the
+  /// server-backed group list rather than anything cached in this history
+  /// entry. Returns false while the list is still loading — deny-by-default is
+  /// the right side to err on, and the user can tap again.
+  bool _isStillMember(String groupId, WidgetRef ref) {
+    final groups = ref.read(groupsProvider).value ?? [];
+    return groups.any((g) => g.id == groupId);
+  }
+
   void navigateToItem(RecentlySavedItem item, BuildContext context, WidgetRef ref) async {
     if (item.status != 'completed') return;
 
@@ -317,6 +326,19 @@ class RecentlySavedNotifier extends Notifier<RecentlySavedState> {
       final isDrive = trimmed.contains('drive.google.com') || trimmed.contains('docs.google.com');
       
       if (isDrive && item.fileId != null && item.destinationId != null) {
+        // Same membership gate the non-Drive branch below applies. This entry
+        // is replayed from SharedPreferences, so it outlives leaving the group
+        // — without the check, a stale history row is a live door into a group
+        // the user is no longer in. The server refuses the fetch either way
+        // (drive-proxy resolves the file to its group and requires
+        // membership), so this is the fast, honest failure rather than the
+        // only barrier.
+        if (!_isStillMember(item.destinationId!, ref)) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Study Group not found or left.')),
+          );
+          return;
+        }
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => SpyglassViewer(

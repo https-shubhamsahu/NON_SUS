@@ -42,6 +42,79 @@ async function getGoogleAccessToken(email: string, privateKey: string): Promise<
   return data.access_token;
 }
 
+// ─── Authorization: may this caller touch this Drive file? ───────────────────
+// The bytes for a Drive-backed file never pass through Postgres, so RLS on
+// `secure_files` does not protect them — this function fetches with a service
+// account that can read every file in the parent folder. Authentication alone
+// (any signed-in user) is therefore not enough: without this check, one user's
+// session could download or delete another group's file by id. The id is not
+// guessable, but it is durable and it leaks the ordinary way — it is stored in
+// `secure_files`, cached client-side, and survives leaving the group.
+//
+// Resolves the Drive id back to its owning group and requires live membership.
+// Deny-by-default: an unregistered id, an ambiguous one, or any lookup error
+// all fail closed.
+async function callerMayAccessDriveFile(
+  supabaseUrl: string,
+  serviceRoleKey: string | undefined,
+  driveFileId: string,
+  userId: string,
+): Promise<boolean> {
+  if (!serviceRoleKey) return false;
+
+  const admin = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { persistSession: false },
+  });
+
+  // Where the Drive id actually lives: addGoogleDriveLink() inserts it as the
+  // row's primary key (`id`), and never writes the `gdrive_file_id` column —
+  // which is why that column is empty in every row. Match `id` first, then fall
+  // back to `gdrive_file_id` so this keeps working if the schema's nominal
+  // column is ever populated. Two `.eq()` queries rather than one `.or()`
+  // string, because `.or()` takes a filter expression and this id comes
+  // straight off the query string.
+  let groupId: string | null = null;
+
+  for (const column of ["id", "gdrive_file_id"]) {
+    const { data: files, error: fileError } = await admin
+      .from("secure_files")
+      .select("group_id")
+      .eq(column, driveFileId)
+      .limit(2);
+
+    if (fileError) return false;
+    if (files && files.length === 1) {
+      groupId = files[0].group_id;
+      break;
+    }
+    // More than one row for the same id is ambiguous — fail closed.
+    if (files && files.length > 1) return false;
+  }
+
+  if (!groupId) return false;
+
+  const { data: membership, error: memberError } = await admin
+    .from("study_group_members")
+    .select("user_id")
+    .eq("group_id", groupId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (memberError || !membership) return false;
+
+  // A ban is enforced separately from membership — the row may still exist
+  // while the user is banned, so check both rather than trusting either alone.
+  const { data: ban, error: banError } = await admin
+    .from("group_bans")
+    .select("user_id")
+    .eq("group_id", groupId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (banError) return false;
+  return !ban;
+}
+
 // ─── Main Deno Serve Handler ──────────────────────────────────────────────────
 Deno.serve(async (req: Request) => {
   // 1. Handle CORS Preflight
@@ -68,9 +141,15 @@ Deno.serve(async (req: Request) => {
 
     const token = authHeader.replace(/^Bearer\s+/i, "");
     let isAuthorized = false;
+    // Who the caller is, not merely that they are someone — the per-file
+    // authorization check below needs the id. Null for the service-role and
+    // anon-key paths, which are not user sessions.
+    let authedUserId: string | null = null;
+    let isServiceRole = false;
 
     if (serviceRoleKey && token === serviceRoleKey) {
       isAuthorized = true;
+      isServiceRole = true;
     } else if (path === "info" && token === supabaseAnonKey) {
       // Public info endpoint can be checked using the Anon Key
       isAuthorized = true;
@@ -82,6 +161,7 @@ Deno.serve(async (req: Request) => {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (!authError && user) {
         isAuthorized = true;
+        authedUserId = user.id;
       }
     }
 
@@ -184,6 +264,17 @@ Deno.serve(async (req: Request) => {
         });
       }
 
+      if (!isServiceRole) {
+        const allowed = authedUserId !== null &&
+          await callerMayAccessDriveFile(supabaseUrl, serviceRoleKey, fileId, authedUserId);
+        if (!allowed) {
+          return new Response(JSON.stringify({ error: "Forbidden" }), {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
       const token = await getGoogleAccessToken(serviceAccountEmail, serviceAccountKey);
       const driveResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
         headers: {
@@ -219,6 +310,21 @@ Deno.serve(async (req: Request) => {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
+      }
+
+      // Ordering note: this runs while the `secure_files` row still exists, so
+      // callers must delete the Drive blob first and the row second. Reversing
+      // it makes the id unresolvable and this check fails closed — the blob
+      // would be orphaned in Drive rather than deleted.
+      if (!isServiceRole) {
+        const allowed = authedUserId !== null &&
+          await callerMayAccessDriveFile(supabaseUrl, serviceRoleKey, fileId, authedUserId);
+        if (!allowed) {
+          return new Response(JSON.stringify({ error: "Forbidden" }), {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
       }
 
       const token = await getGoogleAccessToken(serviceAccountEmail, serviceAccountKey);
