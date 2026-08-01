@@ -512,6 +512,12 @@ codebase — assume still outstanding unless you know otherwise.
 
 <!-- CHANGELOG:INSERT -->
 
+- **2026-08-01** · `281a9a3` · fix(db): fold in the renumbering rationale comment
+
+- **2026-08-01** · `ee95653` · fix(db): renumber colliding 20260707000000 migration to 000001
+
+- **2026-08-01** · `19c6104` · docs(agents): log d8dd915 in the change log
+
 - **2026-08-01** · `d8dd915` · feat: wire Measure (measure.sh) crash/session monitoring, off by default
 
 - **2026-08-01** · `22ae883` · docs(agents): log ea81f20 in the change log
