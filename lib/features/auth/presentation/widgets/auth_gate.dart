@@ -10,7 +10,8 @@ import '../screens/reset_password_screen.dart';
 import '../../../../services/supabase_service.dart';
 import '../../../../services/risk_engine_service.dart';
 import '../../../../services/device_integrity_service.dart';
-import '../../../onboarding/presentation/screens/onboarding_screen.dart';
+import '../../../onboarding/presentation/screens/get_started_screen.dart';
+import '../../../onboarding/presentation/screens/welcome_screen.dart';
 import '../../../onboarding/presentation/providers/onboarding_providers.dart';
 
 class AuthGate extends ConsumerWidget {
@@ -32,9 +33,19 @@ class AuthGate extends ConsumerWidget {
           return const ResetPasswordScreen();
         }
 
-        // If not logged in, force AuthScreen first
+        // Signed out. This used to render AuthScreen unconditionally, which
+        // made an email field the first thing anyone ever saw — no explanation
+        // of the product, and no way to try any part of it. WelcomeScreen
+        // explains what this is and hands over the features that genuinely
+        // need no account (Burn Notes, Burn Files, code redemption); it pushes
+        // AuthScreen when the user asks for it.
+        //
+        // A returning user who has already seen the pitch and signed out goes
+        // straight back to the form.
         if (user == null) {
-          return const AuthScreen();
+          return ref.watch(welcomeSeenProvider)
+              ? const AuthScreen()
+              : const WelcomeScreen();
         }
 
         // ── 2a. Email confirmation gate ────────────────────────────────────────
@@ -168,10 +179,13 @@ class AuthGate extends ConsumerWidget {
 
             final profileData = snapshot.data ?? {};
             final hasCompletedRemoteOnboarding = profileData['onboarding_completed'] == true;
+            // Now genuinely durable on this device — see OnboardingNotifier.
+            // Previously in-memory only, so a user who finished setup while the
+            // backend was unreachable replayed it on every single launch.
             final localCompleted = ref.watch(onboardingCompletedProvider);
 
             if (!hasCompletedRemoteOnboarding && !localCompleted) {
-              return const OnboardingScreen();
+              return const GetStartedScreen();
             }
 
             return child;

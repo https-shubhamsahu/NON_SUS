@@ -19,10 +19,7 @@ import '../../../../core/utils/debug_logger.dart';
 class SaveToNoSusDialog extends ConsumerStatefulWidget {
   final SharedContent content;
 
-  const SaveToNoSusDialog({
-    super.key,
-    required this.content,
-  });
+  const SaveToNoSusDialog({super.key, required this.content});
 
   @override
   ConsumerState<SaveToNoSusDialog> createState() => _SaveToNoSusDialogState();
@@ -36,7 +33,7 @@ class _SaveToNoSusDialogState extends ConsumerState<SaveToNoSusDialog>
   bool _isVaultSelected = true;
   String? _selectedGroupId;
   String _textSaveType = 'private'; // 'private' or 'group'
-  
+
   List<String> _pinnedGroupIds = [];
   bool _isLoadingPrefs = true;
 
@@ -80,12 +77,12 @@ class _SaveToNoSusDialogState extends ConsumerState<SaveToNoSusDialog>
       final prefs = await SharedPreferences.getInstance();
       final pinned = prefs.getStringList('pinned_group_ids') ?? [];
       final lastDest = prefs.getString('last_save_destination');
-      
+
       if (mounted) {
         setState(() {
           _pinnedGroupIds = pinned;
           _isLoadingPrefs = false;
-          
+
           if (lastDest != null) {
             if (lastDest == 'vault') {
               _isVaultSelected = true;
@@ -135,7 +132,7 @@ class _SaveToNoSusDialogState extends ConsumerState<SaveToNoSusDialog>
   Future<String> _getOrCreatePrivateVaultGroup() async {
     final groupsAsync = ref.read(groupsProvider);
     final groups = groupsAsync.value ?? [];
-    
+
     // Check if "Study Vault (Private)" already exists
     final privateGroup = groups.firstWhere(
       (g) => g.name == 'Study Vault (Private)',
@@ -157,9 +154,16 @@ class _SaveToNoSusDialogState extends ConsumerState<SaveToNoSusDialog>
     final currentUser = ref.read(authRepositoryProvider).currentUser;
     final userId = currentUser?.id ?? 'me';
     final userEmail = currentUser?.email ?? 'You';
-    final cleanEmailPrefix = userEmail.contains('@') ? userEmail.split('@').first : '';
+    final cleanEmailPrefix = userEmail.contains('@')
+        ? userEmail.split('@').first
+        : '';
     final userInitials = cleanEmailPrefix.isNotEmpty
-        ? cleanEmailPrefix.substring(0, cleanEmailPrefix.length >= 2 ? 2 : cleanEmailPrefix.length).toUpperCase()
+        ? cleanEmailPrefix
+              .substring(
+                0,
+                cleanEmailPrefix.length >= 2 ? 2 : cleanEmailPrefix.length,
+              )
+              .toUpperCase()
         : 'ME';
 
     final groupId = 'g_private_${DateTime.now().millisecondsSinceEpoch}';
@@ -168,7 +172,12 @@ class _SaveToNoSusDialogState extends ConsumerState<SaveToNoSusDialog>
       name: 'Study Vault (Private)',
       description: 'Your private secure vault for personal documents.',
       members: [
-        GroupMember(id: userId, name: userEmail, initials: userInitials, isAdmin: true),
+        GroupMember(
+          id: userId,
+          name: userEmail,
+          initials: userInitials,
+          isAdmin: true,
+        ),
       ],
       fileCount: 0,
       lastActivity: DateTime.now(),
@@ -182,17 +191,21 @@ class _SaveToNoSusDialogState extends ConsumerState<SaveToNoSusDialog>
 
   Future<void> _handleSave() async {
     final uploadNotifier = ref.read(uploadProvider.notifier);
-    
+
     // Resolve Title
     final contentType = widget.content.type;
     String title = '';
     if (contentType == 'pdf' || contentType == 'image') {
-      title = widget.content.name ?? File(widget.content.data).uri.pathSegments.last;
+      title =
+          widget.content.name ??
+          File(widget.content.data).uri.pathSegments.last;
     } else if (contentType == 'text') {
       title = _textSaveType == 'private' ? 'Private Note' : 'Group Note';
     } else if (contentType == 'url') {
       final trimmed = widget.content.data.trim();
-      final isDrive = trimmed.contains('drive.google.com') || trimmed.contains('docs.google.com');
+      final isDrive =
+          trimmed.contains('drive.google.com') ||
+          trimmed.contains('docs.google.com');
       title = isDrive ? 'Linked Drive File' : 'Reference Link';
     }
 
@@ -219,11 +232,16 @@ class _SaveToNoSusDialogState extends ConsumerState<SaveToNoSusDialog>
         }
         targetGroupId = _selectedGroupId!;
         await _saveDestinationPreference('group_$_selectedGroupId');
-        
+
         final matchedGroup = groups.firstWhere(
           (g) => g.id == targetGroupId,
           orElse: () => StudyGroup(
-            id: '', name: 'Study Group', description: '', members: const [], fileCount: 0, lastActivity: DateTime.fromMillisecondsSinceEpoch(0)
+            id: '',
+            name: 'Study Group',
+            description: '',
+            members: const [],
+            fileCount: 0,
+            lastActivity: DateTime.fromMillisecondsSinceEpoch(0),
           ),
         );
         destName = matchedGroup.name;
@@ -241,7 +259,9 @@ class _SaveToNoSusDialogState extends ConsumerState<SaveToNoSusDialog>
         destinationId: destType == 'group' ? targetGroupId : null,
         timestamp: DateTime.now(),
         status: 'uploading',
-        localPath: (contentType == 'pdf' || contentType == 'image') ? widget.content.data : null,
+        localPath: (contentType == 'pdf' || contentType == 'image')
+            ? widget.content.data
+            : null,
         extraData: widget.content.data,
       );
       ref.read(recentlySavedProvider.notifier).addItem(newItem);
@@ -256,44 +276,74 @@ class _SaveToNoSusDialogState extends ConsumerState<SaveToNoSusDialog>
         final bytes = await file.readAsBytes();
         final name = widget.content.name ?? file.uri.pathSegments.last;
         final type = contentType == 'pdf' ? FileType.pdf : FileType.image;
-        
+
         await uploadNotifier.uploadDocument(name, type, targetGroupId, bytes);
       } else if (contentType == 'text') {
         if (_textSaveType == 'private') {
           final user = ref.read(authRepositoryProvider).currentUser;
           if (user == null) throw Exception("User not authenticated");
-          
-          final existing = await SupabaseService.instance.fetchUserNote(user.id);
-          final divider = '\n\n---\n### 📥 Shared Note (${DateTime.now().toLocal().toString().substring(0, 16)})\n${widget.content.data}\n';
-          final newContent = existing.isEmpty ? widget.content.data : '$existing$divider';
-          
-          await uploadNotifier.savePrivateNote(userId: user.id, content: newContent);
+
+          final existing = await SupabaseService.instance.fetchUserNote(
+            user.id,
+          );
+          final divider =
+              '\n\n---\n### 📥 Shared Note (${DateTime.now().toLocal().toString().substring(0, 16)})\n${widget.content.data}\n';
+          final newContent = existing.isEmpty
+              ? widget.content.data
+              : '$existing$divider';
+
+          await uploadNotifier.savePrivateNote(
+            userId: user.id,
+            content: newContent,
+          );
         } else {
-          final name = 'Shared Note ${DateTime.now().millisecondsSinceEpoch % 1000}';
+          final name =
+              'Shared Note ${DateTime.now().millisecondsSinceEpoch % 1000}';
           final bytes = Uint8List.fromList(utf8.encode(widget.content.data));
-          
-          await uploadNotifier.uploadDocument(name, FileType.markdown, targetGroupId, bytes);
+
+          await uploadNotifier.uploadDocument(
+            name,
+            FileType.markdown,
+            targetGroupId,
+            bytes,
+          );
         }
       } else if (contentType == 'url') {
         final trimmed = widget.content.data.trim();
-        final isDrive = trimmed.contains('drive.google.com') || trimmed.contains('docs.google.com');
-        
+        final isDrive =
+            trimmed.contains('drive.google.com') ||
+            trimmed.contains('docs.google.com');
+
         if (isDrive) {
-          final name = 'Linked Drive File ${DateTime.now().millisecondsSinceEpoch % 1000}';
-          await uploadNotifier.linkGoogleDriveDocument(name, targetGroupId, trimmed);
+          final name =
+              'Linked Drive File ${DateTime.now().millisecondsSinceEpoch % 1000}';
+          await uploadNotifier.linkGoogleDriveDocument(
+            name,
+            targetGroupId,
+            trimmed,
+          );
         } else {
-          final name = 'Reference Link ${DateTime.now().millisecondsSinceEpoch % 1000}';
-          final mdContent = '# Shared Reference Link\n\nURL: [${widget.content.data}](${widget.content.data})\n\nShared on: ${DateTime.now().toLocal()}\n';
+          final name =
+              'Reference Link ${DateTime.now().millisecondsSinceEpoch % 1000}';
+          final mdContent =
+              '# Shared Reference Link\n\nURL: [${widget.content.data}](${widget.content.data})\n\nShared on: ${DateTime.now().toLocal()}\n';
           final bytes = Uint8List.fromList(utf8.encode(mdContent));
-          
-          await uploadNotifier.uploadDocument(name, FileType.markdown, targetGroupId, bytes);
+
+          await uploadNotifier.uploadDocument(
+            name,
+            FileType.markdown,
+            targetGroupId,
+            bytes,
+          );
         }
       }
 
       // 3. Trigger checkmark success animation and dismiss on success
       final uploadState = ref.read(uploadProvider);
       if (uploadState.stage == UploadStage.complete) {
-        ref.read(recentlySavedProvider.notifier).updateStatus(itemId, 'completed');
+        ref
+            .read(recentlySavedProvider.notifier)
+            .updateStatus(itemId, 'completed');
         HapticFeedback.mediumImpact();
         _checkController.forward();
         await Future.delayed(const Duration(milliseconds: 1600));
@@ -306,12 +356,13 @@ class _SaveToNoSusDialogState extends ConsumerState<SaveToNoSusDialog>
       }
     } catch (e) {
       if (loggedItemId != null) {
-        ref.read(recentlySavedProvider.notifier).updateStatus(loggedItemId, 'failed');
+        ref
+            .read(recentlySavedProvider.notifier)
+            .updateStatus(loggedItemId, 'failed');
       }
       debugLog("Error in SaveToNoSusDialog _handleSave: $e");
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -320,32 +371,45 @@ class _SaveToNoSusDialogState extends ConsumerState<SaveToNoSusDialog>
     final fg = isDark ? NoSusTheme.dText : NoSusTheme.lText;
     final bg = isDark ? const Color(0xFF141414) : Colors.white;
     final cardBg = isDark ? const Color(0xFF1C1C1C) : Colors.grey[100];
-    final subtle = isDark ? NoSusTheme.dTextSecondary : NoSusTheme.lTextSecondary;
+    final subtle = isDark
+        ? NoSusTheme.dTextSecondary
+        : NoSusTheme.lTextSecondary;
 
     final groupsAsync = ref.watch(groupsProvider);
     final uploadState = ref.watch(uploadProvider);
 
     // Filter/Order Groups: Recent (sorted by lastActivity desc), Pinned (in _pinnedGroupIds), then All
     final groups = groupsAsync.value ?? [];
-    
+
     // Sort groups for destination list
-    final pinnedGroups = groups.where((g) => _pinnedGroupIds.contains(g.id) && g.name != 'Study Vault (Private)').toList();
+    final pinnedGroups = groups
+        .where(
+          (g) =>
+              _pinnedGroupIds.contains(g.id) &&
+              g.name != 'Study Vault (Private)',
+        )
+        .toList();
     final recentGroups = List<StudyGroup>.from(groups)
       ..where((g) => g.name != 'Study Vault (Private)')
       ..sort((a, b) => b.lastActivity.compareTo(a.lastActivity));
     final recent3 = recentGroups.take(3).toList();
-    
+
     final allGroupsSorted = List<StudyGroup>.from(groups)
       ..where((g) => g.name != 'Study Vault (Private)')
       ..sort((a, b) => a.name.compareTo(b.name));
 
     // Preselect group if only 1 group exists
-    final nonPrivateGroups = groups.where((g) => g.name != 'Study Vault (Private)').toList();
-    if (nonPrivateGroups.length == 1 && _selectedGroupId == null && !_isVaultSelected) {
+    final nonPrivateGroups = groups
+        .where((g) => g.name != 'Study Vault (Private)')
+        .toList();
+    if (nonPrivateGroups.length == 1 &&
+        _selectedGroupId == null &&
+        !_isVaultSelected) {
       _selectedGroupId = nonPrivateGroups.first.id;
     }
 
-    if (uploadState.stage == UploadStage.processing || uploadState.stage == UploadStage.complete) {
+    if (uploadState.stage == UploadStage.processing ||
+        uploadState.stage == UploadStage.complete) {
       return Dialog(
         backgroundColor: bg,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -373,7 +437,11 @@ class _SaveToNoSusDialogState extends ConsumerState<SaveToNoSusDialog>
                 const SizedBox(height: 8),
                 Text(
                   '${(uploadState.progress * 100).toInt()}%',
-                  style: TextStyle(fontSize: 14, color: subtle, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: subtle,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 OutlinedButton(
@@ -395,7 +463,11 @@ class _SaveToNoSusDialogState extends ConsumerState<SaveToNoSusDialog>
                       color: Colors.green,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.check, color: Colors.white, size: 48),
+                    child: const Icon(
+                      Icons.check,
+                      color: Colors.white,
+                      size: 48,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -436,10 +508,10 @@ class _SaveToNoSusDialogState extends ConsumerState<SaveToNoSusDialog>
                   widget.content.type == 'pdf'
                       ? Icons.picture_as_pdf_outlined
                       : widget.content.type == 'image'
-                          ? Icons.image_outlined
-                          : widget.content.type == 'url'
-                              ? Icons.link_outlined
-                              : Icons.text_snippet_outlined,
+                      ? Icons.image_outlined
+                      : widget.content.type == 'url'
+                      ? Icons.link_outlined
+                      : Icons.text_snippet_outlined,
                   color: fg,
                   size: 24,
                 ),
@@ -469,6 +541,7 @@ class _SaveToNoSusDialogState extends ConsumerState<SaveToNoSusDialog>
                 ),
                 IconButton(
                   icon: const Icon(Icons.close, size: 20),
+                  tooltip: 'Close',
                   onPressed: () {
                     ref.read(shareIntentProvider.notifier).clear();
                     Navigator.of(context).pop();
@@ -477,7 +550,7 @@ class _SaveToNoSusDialogState extends ConsumerState<SaveToNoSusDialog>
               ],
             ),
           ),
-          
+
           const Divider(height: 1, thickness: 0.5),
 
           // Content Scroll Area
@@ -490,7 +563,12 @@ class _SaveToNoSusDialogState extends ConsumerState<SaveToNoSusDialog>
                   // Shared Content Preview Card
                   Text(
                     'SHARED CONTENT PREVIEW',
-                    style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: subtle, letterSpacing: 1.0),
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                      color: subtle,
+                      letterSpacing: 1.0,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Container(
@@ -498,7 +576,10 @@ class _SaveToNoSusDialogState extends ConsumerState<SaveToNoSusDialog>
                     decoration: BoxDecoration(
                       color: cardBg,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: fg.withValues(alpha: 0.08), width: 1),
+                      border: Border.all(
+                        color: fg.withValues(alpha: 0.08),
+                        width: 1,
+                      ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -518,12 +599,16 @@ class _SaveToNoSusDialogState extends ConsumerState<SaveToNoSusDialog>
                         if (widget.content.name != null) ...[
                           Text(
                             widget.content.name!,
-                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           const SizedBox(height: 4),
                         ],
                         Text(
-                          widget.content.type == 'image' || widget.content.type == 'pdf'
+                          widget.content.type == 'image' ||
+                                  widget.content.type == 'pdf'
                               ? 'Local Temp File: ${widget.content.data}'
                               : widget.content.data,
                           maxLines: 4,
@@ -537,77 +622,130 @@ class _SaveToNoSusDialogState extends ConsumerState<SaveToNoSusDialog>
                       ],
                     ),
                   ),
-                  
+
                   const SizedBox(height: 20),
 
                   // If Text: Ask to save as Private Note or Group Note
                   if (widget.content.type == 'text') ...[
                     Text(
                       'SAVE TEXT AS',
-                      style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: subtle, letterSpacing: 1.0),
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                        color: subtle,
+                        letterSpacing: 1.0,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Row(
                       children: [
                         Expanded(
-                          child: InkWell(
-                            onTap: () => setState(() => _textSaveType = 'private'),
-                            borderRadius: BorderRadius.circular(12),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                              decoration: BoxDecoration(
-                                color: _textSaveType == 'private' ? fg.withValues(alpha: 0.05) : Colors.transparent,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: _textSaveType == 'private' ? fg : fg.withValues(alpha: 0.1),
-                                  width: _textSaveType == 'private' ? 1.5 : 1.0,
+                          child: Semantics(
+                            button: true,
+                            selected: _textSaveType == 'private',
+                            label: 'Save as private note',
+                            child: InkWell(
+                              onTap: () =>
+                                  setState(() => _textSaveType = 'private'),
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                  horizontal: 8,
                                 ),
-                              ),
-                              child: Column(
-                                children: [
-                                  Icon(Icons.lock_outline, color: _textSaveType == 'private' ? fg : subtle, size: 20),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    'Private Note',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: _textSaveType == 'private' ? FontWeight.bold : FontWeight.normal,
-                                      color: _textSaveType == 'private' ? fg : subtle,
-                                    ),
+                                decoration: BoxDecoration(
+                                  color: _textSaveType == 'private'
+                                      ? fg.withValues(alpha: 0.05)
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: _textSaveType == 'private'
+                                        ? fg
+                                        : fg.withValues(alpha: 0.1),
+                                    width: _textSaveType == 'private'
+                                        ? 1.5
+                                        : 1.0,
                                   ),
-                                ],
+                                ),
+                                child: Column(
+                                  children: [
+                                    Icon(
+                                      Icons.lock_outline,
+                                      color: _textSaveType == 'private'
+                                          ? fg
+                                          : subtle,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      'Private Note',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: _textSaveType == 'private'
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
+                                        color: _textSaveType == 'private'
+                                            ? fg
+                                            : subtle,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: InkWell(
-                            onTap: () => setState(() => _textSaveType = 'group'),
-                            borderRadius: BorderRadius.circular(12),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                              decoration: BoxDecoration(
-                                color: _textSaveType == 'group' ? fg.withValues(alpha: 0.05) : Colors.transparent,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: _textSaveType == 'group' ? fg : fg.withValues(alpha: 0.1),
-                                  width: _textSaveType == 'group' ? 1.5 : 1.0,
+                          child: Semantics(
+                            button: true,
+                            selected: _textSaveType == 'group',
+                            label: 'Save as group note',
+                            child: InkWell(
+                              onTap: () =>
+                                  setState(() => _textSaveType = 'group'),
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                  horizontal: 8,
                                 ),
-                              ),
-                              child: Column(
-                                children: [
-                                  Icon(Icons.people_outline, color: _textSaveType == 'group' ? fg : subtle, size: 20),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    'Group Note',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: _textSaveType == 'group' ? FontWeight.bold : FontWeight.normal,
-                                      color: _textSaveType == 'group' ? fg : subtle,
-                                    ),
+                                decoration: BoxDecoration(
+                                  color: _textSaveType == 'group'
+                                      ? fg.withValues(alpha: 0.05)
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: _textSaveType == 'group'
+                                        ? fg
+                                        : fg.withValues(alpha: 0.1),
+                                    width: _textSaveType == 'group' ? 1.5 : 1.0,
                                   ),
-                                ],
+                                ),
+                                child: Column(
+                                  children: [
+                                    Icon(
+                                      Icons.people_outline,
+                                      color: _textSaveType == 'group'
+                                          ? fg
+                                          : subtle,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      'Group Note',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: _textSaveType == 'group'
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
+                                        color: _textSaveType == 'group'
+                                            ? fg
+                                            : subtle,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
@@ -618,103 +756,149 @@ class _SaveToNoSusDialogState extends ConsumerState<SaveToNoSusDialog>
                   ],
 
                   // Choose Destination
-                  if (widget.content.type != 'text' || _textSaveType == 'group') ...[
+                  if (widget.content.type != 'text' ||
+                      _textSaveType == 'group') ...[
                     Text(
                       'CHOOSE DESTINATION',
-                      style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: subtle, letterSpacing: 1.0),
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                        color: subtle,
+                        letterSpacing: 1.0,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     // Destination Cards
-                    InkWell(
-                      onTap: () => setState(() => _isVaultSelected = true),
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: _isVaultSelected ? fg.withValues(alpha: 0.04) : Colors.transparent,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: _isVaultSelected ? fg : fg.withValues(alpha: 0.1),
-                            width: _isVaultSelected ? 1.5 : 1.0,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.folder_shared_outlined, color: _isVaultSelected ? fg : subtle, size: 20),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Study Vault (Private)',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: _isVaultSelected ? FontWeight.bold : FontWeight.normal,
-                                    ),
-                                  ),
-                                  Text(
-                                    'Secure, personal-only vault storage.',
-                                    style: TextStyle(fontSize: 11, color: subtle),
-                                  ),
-                                ],
-                              ),
+                    Semantics(
+                      button: true,
+                      selected: _isVaultSelected,
+                      label: 'Destination: Study Vault, private',
+                      child: InkWell(
+                        onTap: () => setState(() => _isVaultSelected = true),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: _isVaultSelected
+                                ? fg.withValues(alpha: 0.04)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: _isVaultSelected
+                                  ? fg
+                                  : fg.withValues(alpha: 0.1),
+                              width: _isVaultSelected ? 1.5 : 1.0,
                             ),
-                            if (_isVaultSelected) Icon(Icons.check_circle, color: fg, size: 18),
-                          ],
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.folder_shared_outlined,
+                                color: _isVaultSelected ? fg : subtle,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Study Vault (Private)',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: _isVaultSelected
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Secure, personal-only vault storage.',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: subtle,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (_isVaultSelected)
+                                Icon(Icons.check_circle, color: fg, size: 18),
+                            ],
+                          ),
                         ),
                       ),
                     ),
                     const SizedBox(height: 10),
-                    InkWell(
-                      onTap: () => setState(() => _isVaultSelected = false),
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: !_isVaultSelected ? fg.withValues(alpha: 0.04) : Colors.transparent,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: !_isVaultSelected ? fg : fg.withValues(alpha: 0.1),
-                            width: !_isVaultSelected ? 1.5 : 1.0,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.groups_outlined, color: !_isVaultSelected ? fg : subtle, size: 20),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Study Group',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: !_isVaultSelected ? FontWeight.bold : FontWeight.normal,
-                                    ),
-                                  ),
-                                  Text(
-                                    'Share securely with verified team members.',
-                                    style: TextStyle(fontSize: 11, color: subtle),
-                                  ),
-                                ],
-                              ),
+                    Semantics(
+                      button: true,
+                      selected: !_isVaultSelected,
+                      label: 'Destination: Study Group',
+                      child: InkWell(
+                        onTap: () => setState(() => _isVaultSelected = false),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: !_isVaultSelected
+                                ? fg.withValues(alpha: 0.04)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: !_isVaultSelected
+                                  ? fg
+                                  : fg.withValues(alpha: 0.1),
+                              width: !_isVaultSelected ? 1.5 : 1.0,
                             ),
-                            if (!_isVaultSelected) Icon(Icons.check_circle, color: fg, size: 18),
-                          ],
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.groups_outlined,
+                                color: !_isVaultSelected ? fg : subtle,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Study Group',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: !_isVaultSelected
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Share securely with verified team members.',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: subtle,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (!_isVaultSelected)
+                                Icon(Icons.check_circle, color: fg, size: 18),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                    
+
                     // Group List Sub-section
                     if (!_isVaultSelected) ...[
                       const SizedBox(height: 16),
                       if (groupsAsync.isLoading || _isLoadingPrefs)
-                        const Center(child: Padding(
-                          padding: EdgeInsets.all(16.0),
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ))
+                        const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(16.0),
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
                       else if (nonPrivateGroups.isEmpty)
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 12),
@@ -727,13 +911,20 @@ class _SaveToNoSusDialogState extends ConsumerState<SaveToNoSusDialog>
                       else ...[
                         Text(
                           'SELECT STUDY GROUP',
-                          style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.bold, color: subtle, letterSpacing: 0.8),
+                          style: TextStyle(
+                            fontSize: 8.5,
+                            fontWeight: FontWeight.bold,
+                            color: subtle,
+                            letterSpacing: 0.8,
+                          ),
                         ),
                         const SizedBox(height: 8),
                         Container(
                           constraints: const BoxConstraints(maxHeight: 180),
                           decoration: BoxDecoration(
-                            border: Border.all(color: fg.withValues(alpha: 0.08)),
+                            border: Border.all(
+                              color: fg.withValues(alpha: 0.08),
+                            ),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: ListView(
@@ -742,28 +933,41 @@ class _SaveToNoSusDialogState extends ConsumerState<SaveToNoSusDialog>
                             children: [
                               // 1. Recent Groups
                               if (recent3.isNotEmpty) ...[
-                                _buildGroupSectionHeader('RECENT GROUPS', subtle),
-                                ...recent3.map((g) => _buildGroupRow(g, fg, subtle)),
+                                _buildGroupSectionHeader(
+                                  'RECENT GROUPS',
+                                  subtle,
+                                ),
+                                ...recent3.map(
+                                  (g) => _buildGroupRow(g, fg, subtle),
+                                ),
                               ],
-                              
+
                               // 2. Pinned Groups
                               if (pinnedGroups.isNotEmpty) ...[
-                                _buildGroupSectionHeader('PINNED GROUPS', subtle),
-                                ...pinnedGroups.map((g) => _buildGroupRow(g, fg, subtle)),
+                                _buildGroupSectionHeader(
+                                  'PINNED GROUPS',
+                                  subtle,
+                                ),
+                                ...pinnedGroups.map(
+                                  (g) => _buildGroupRow(g, fg, subtle),
+                                ),
                               ],
-                              
+
                               // 3. All Groups
                               _buildGroupSectionHeader('ALL GROUPS', subtle),
-                              ...allGroupsSorted.map((g) => _buildGroupRow(g, fg, subtle)),
+                              ...allGroupsSorted.map(
+                                (g) => _buildGroupRow(g, fg, subtle),
+                              ),
                             ],
                           ),
                         ),
                       ],
                     ],
                   ],
-                  
+
                   // Text Save Type Note
-                  if (widget.content.type == 'text' && _textSaveType == 'private') ...[
+                  if (widget.content.type == 'text' &&
+                      _textSaveType == 'private') ...[
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
                       child: Row(
@@ -784,7 +988,7 @@ class _SaveToNoSusDialogState extends ConsumerState<SaveToNoSusDialog>
               ),
             ),
           ),
-          
+
           const Divider(height: 1, thickness: 0.5),
 
           // Action Buttons
@@ -810,13 +1014,20 @@ class _SaveToNoSusDialogState extends ConsumerState<SaveToNoSusDialog>
                 ),
                 const SizedBox(width: 16),
                 ElevatedButton(
-                  onPressed: (uploadState.stage == UploadStage.processing) ? null : _handleSave,
+                  onPressed: (uploadState.stage == UploadStage.processing)
+                      ? null
+                      : _handleSave,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: fg,
                     foregroundColor: bg,
                     elevation: 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                   child: const Text(
                     'IMPORT CONTENT',
@@ -840,7 +1051,12 @@ class _SaveToNoSusDialogState extends ConsumerState<SaveToNoSusDialog>
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
       child: Text(
         title,
-        style: TextStyle(fontSize: 8, fontWeight: FontWeight.w800, color: color, letterSpacing: 0.5),
+        style: TextStyle(
+          fontSize: 8,
+          fontWeight: FontWeight.w800,
+          color: color,
+          letterSpacing: 0.5,
+        ),
       ),
     );
   }
@@ -849,53 +1065,63 @@ class _SaveToNoSusDialogState extends ConsumerState<SaveToNoSusDialog>
     final isSelected = _selectedGroupId == group.id;
     final isPinned = _pinnedGroupIds.contains(group.id);
 
-    return InkWell(
-      onTap: () {
-        setState(() {
-          _selectedGroupId = group.id;
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        color: isSelected ? fg.withValues(alpha: 0.04) : Colors.transparent,
-        child: Row(
-          children: [
-            Icon(
-              isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
-              color: isSelected ? fg : subtle,
-              size: 16,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    group.name,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                      color: isSelected ? fg : fg.withValues(alpha: 0.8),
+    return Semantics(
+      button: true,
+      selected: isSelected,
+      label: 'Save to ${group.name}',
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            _selectedGroupId = group.id;
+          });
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          color: isSelected ? fg.withValues(alpha: 0.04) : Colors.transparent,
+          child: Row(
+            children: [
+              Icon(
+                isSelected
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_off,
+                color: isSelected ? fg : subtle,
+                size: 16,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      group.name,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                        color: isSelected ? fg : fg.withValues(alpha: 0.8),
+                      ),
                     ),
-                  ),
-                  Text(
-                    '${group.memberCount} members · ${group.fileCount} files',
-                    style: TextStyle(fontSize: 10, color: subtle),
-                  ),
-                ],
+                    Text(
+                      '${group.memberCount} members · ${group.fileCount} files',
+                      style: TextStyle(fontSize: 10, color: subtle),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            IconButton(
-              icon: Icon(
-                isPinned ? Icons.push_pin : Icons.push_pin_outlined,
-                color: isPinned ? Colors.amber : subtle,
-                size: 14,
+              IconButton(
+                icon: Icon(
+                  isPinned ? Icons.push_pin : Icons.push_pin_outlined,
+                  color: isPinned ? Colors.amber : subtle,
+                  size: 14,
+                ),
+                tooltip: isPinned ? 'Unpin ${group.name}' : 'Pin ${group.name}',
+                onPressed: () => _togglePin(group.id),
+                constraints: const BoxConstraints(),
+                padding: EdgeInsets.zero,
               ),
-              onPressed: () => _togglePin(group.id),
-              constraints: const BoxConstraints(),
-              padding: EdgeInsets.zero,
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

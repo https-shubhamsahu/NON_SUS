@@ -70,7 +70,9 @@ class _UploadModalState extends ConsumerState<UploadModal>
   Future<void> _loadServiceAccountEmail() async {
     if (!mounted) return;
     try {
-      final email = await ref.read(secureFileRepositoryProvider).getServiceAccountEmail();
+      final email = await ref
+          .read(secureFileRepositoryProvider)
+          .getServiceAccountEmail();
       if (mounted) {
         setState(() {
           _serviceAccountEmail = email;
@@ -101,25 +103,32 @@ class _UploadModalState extends ConsumerState<UploadModal>
 
       final currentUser = ref.read(authRepositoryProvider).currentUser;
       final profileVal = ref.read(profileProvider).value;
-      final uploaderName = profileVal?.displayName ?? currentUser?.email ?? 'Anonymous';
+      final uploaderName =
+          profileVal?.displayName ?? currentUser?.email ?? 'Anonymous';
       String uploaderInitials = 'AN';
       if (uploaderName.isNotEmpty) {
         if (uploaderName.contains('@')) {
           final prefix = uploaderName.split('@').first;
-          uploaderInitials = prefix.substring(0, prefix.length >= 2 ? 2 : prefix.length).toUpperCase();
+          uploaderInitials = prefix
+              .substring(0, prefix.length >= 2 ? 2 : prefix.length)
+              .toUpperCase();
         } else {
-          uploaderInitials = uploaderName.substring(0, uploaderName.length >= 2 ? 2 : uploaderName.length).toUpperCase();
+          uploaderInitials = uploaderName
+              .substring(0, uploaderName.length >= 2 ? 2 : uploaderName.length)
+              .toUpperCase();
         }
       }
 
-      await ref.read(secureFileRepositoryProvider).addGoogleDriveLink(
-        groupId: widget.groupId,
-        name: name,
-        type: domainType,
-        driveUrl: url,
-        uploaderName: uploaderName,
-        uploaderInitials: uploaderInitials,
-      );
+      await ref
+          .read(secureFileRepositoryProvider)
+          .addGoogleDriveLink(
+            groupId: widget.groupId,
+            name: name,
+            type: domainType,
+            driveUrl: url,
+            uploaderName: uploaderName,
+            uploaderInitials: uploaderInitials,
+          );
 
       if (mounted) {
         // Trigger completion animation!
@@ -176,10 +185,12 @@ class _UploadModalState extends ConsumerState<UploadModal>
       }
 
       final file = result.files.first;
-      
+
       // Enforce 10MB limit per file
       if (file.size > 10 * 1024 * 1024) {
-        _showErrorSnackBar("File exceeds 10MB limit. Please select a smaller file.");
+        _showErrorSnackBar(
+          "File exceeds 10MB limit. Please select a smaller file.",
+        );
         return;
       }
 
@@ -301,7 +312,8 @@ class _UploadModalState extends ConsumerState<UploadModal>
                   progress: upload.progress,
                   fg: fg,
                   subtle: subtle,
-                  onCancel: () => ref.read(uploadProvider.notifier).cancelUpload(),
+                  onCancel: () =>
+                      ref.read(uploadProvider.notifier).cancelUpload(),
                 );
               }
               if (isError) {
@@ -325,30 +337,37 @@ class _UploadModalState extends ConsumerState<UploadModal>
                     child: Row(
                       children: [
                         Expanded(
-                          child: GestureDetector(
-                            onTap: () => setState(() => _activeTab = 0),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              decoration: BoxDecoration(
-                                border: Border(
-                                  bottom: BorderSide(
-                                    color: _activeTab == 0
-                                        ? fg
-                                        : Colors.transparent,
-                                    width: 2.0,
+                          child: Semantics(
+                            button: true,
+                            selected: _activeTab == 0,
+                            label: 'Upload local file',
+                            child: GestureDetector(
+                              onTap: () => setState(() => _activeTab = 0),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                                decoration: BoxDecoration(
+                                  border: Border(
+                                    bottom: BorderSide(
+                                      color: _activeTab == 0
+                                          ? fg
+                                          : Colors.transparent,
+                                      width: 2.0,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  "UPLOAD LOCAL",
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 1.2,
-                                    color: _activeTab == 0
-                                        ? fg
-                                        : fg.withValues(alpha: 0.4),
+                                child: Center(
+                                  child: Text(
+                                    "UPLOAD LOCAL",
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1.2,
+                                      color: _activeTab == 0
+                                          ? fg
+                                          : fg.withValues(alpha: 0.4),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -356,30 +375,37 @@ class _UploadModalState extends ConsumerState<UploadModal>
                           ),
                         ),
                         Expanded(
-                          child: GestureDetector(
-                            onTap: () => setState(() => _activeTab = 1),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              decoration: BoxDecoration(
-                                border: Border(
-                                  bottom: BorderSide(
-                                    color: _activeTab == 1
-                                        ? fg
-                                        : Colors.transparent,
-                                    width: 2.0,
+                          child: Semantics(
+                            button: true,
+                            selected: _activeTab == 1,
+                            label: 'Link a Google Drive URL',
+                            child: GestureDetector(
+                              onTap: () => setState(() => _activeTab = 1),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                                decoration: BoxDecoration(
+                                  border: Border(
+                                    bottom: BorderSide(
+                                      color: _activeTab == 1
+                                          ? fg
+                                          : Colors.transparent,
+                                      width: 2.0,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  "LINK DRIVE URL",
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 1.2,
-                                    color: _activeTab == 1
-                                        ? fg
-                                        : fg.withValues(alpha: 0.4),
+                                child: Center(
+                                  child: Text(
+                                    "LINK DRIVE URL",
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1.2,
+                                      color: _activeTab == 1
+                                          ? fg
+                                          : fg.withValues(alpha: 0.4),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -559,28 +585,32 @@ class _TypeButton extends StatelessWidget {
       FileType.scan => Icons.document_scanner_outlined,
     };
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          border: Border.all(color: fg.withValues(alpha: 0.12), width: 0.75),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, size: 20, color: fg),
-            const SizedBox(height: 5),
-            Text(
-              type.label,
-              style: TextStyle(
-                fontSize: 9,
-                color: subtle,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.8,
+    return Semantics(
+      button: true,
+      label: 'Upload ${type.label}',
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(
+            border: Border.all(color: fg.withValues(alpha: 0.12), width: 0.75),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            children: [
+              Icon(icon, size: 20, color: fg),
+              const SizedBox(height: 5),
+              Text(
+                type.label,
+                style: TextStyle(
+                  fontSize: 9,
+                  color: subtle,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.8,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -634,7 +664,9 @@ class _ProcessingState extends StatelessWidget {
           ),
           const SizedBox(height: 24),
 
-          const Center(child: MascotView(character: MascotCharacter.lux, size: 32)),
+          const Center(
+            child: MascotView(character: MascotCharacter.lux, size: 32),
+          ),
           const SizedBox(height: 12),
 
           // Progress track
@@ -680,7 +712,10 @@ class _ProcessingState extends StatelessWidget {
                 ),
               ),
               style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
               ),
             ),
           ),
@@ -769,14 +804,18 @@ class _ErrorState extends StatelessWidget {
           const SizedBox(height: 12),
           Text(message, style: TextStyle(color: fg, fontSize: 16)),
           const SizedBox(height: 16),
-          GestureDetector(
-            onTap: onRetry,
-            child: Text(
-              'TRY AGAIN',
-              style: TextStyle(
-                fontSize: 11,
-                color: fg.withValues(alpha: 0.5),
-                letterSpacing: 1.5,
+          Semantics(
+            button: true,
+            label: 'Try again',
+            child: GestureDetector(
+              onTap: onRetry,
+              child: Text(
+                'TRY AGAIN',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: fg.withValues(alpha: 0.5),
+                  letterSpacing: 1.5,
+                ),
               ),
             ),
           ),
@@ -1018,29 +1057,34 @@ class _LinkState extends StatelessWidget {
                       padding: EdgeInsets.only(
                         right: type == FileType.scan ? 0 : 8,
                       ),
-                      child: GestureDetector(
-                        onTap: () => onTypeSelected(type),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          decoration: BoxDecoration(
-                            color: selectedType == type
-                                ? fg.withValues(alpha: 0.05)
-                                : Colors.transparent,
-                            border: Border.all(
+                      child: Semantics(
+                        button: true,
+                        selected: selectedType == type,
+                        label: 'Document type ${type.label}',
+                        child: GestureDetector(
+                          onTap: () => onTypeSelected(type),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            decoration: BoxDecoration(
                               color: selectedType == type
-                                  ? fg
-                                  : fg.withValues(alpha: 0.12),
-                              width: 0.75,
+                                  ? fg.withValues(alpha: 0.05)
+                                  : Colors.transparent,
+                              border: Border.all(
+                                color: selectedType == type
+                                    ? fg
+                                    : fg.withValues(alpha: 0.12),
+                                width: 0.75,
+                              ),
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Center(
-                            child: Text(
-                              type.label,
-                              style: TextStyle(
-                                fontSize: 9,
-                                color: selectedType == type ? fg : subtle,
-                                fontWeight: FontWeight.bold,
+                            child: Center(
+                              child: Text(
+                                type.label,
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  color: selectedType == type ? fg : subtle,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ),
@@ -1156,38 +1200,44 @@ class _CopyButtonState extends State<_CopyButton> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        Clipboard.setData(ClipboardData(text: widget.email));
-        HapticFeedback.lightImpact();
-        setState(() => _copied = true);
-        Future.delayed(const Duration(seconds: 2), () {
-          if (mounted) {
-            setState(() => _copied = false);
-          }
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Service account email copied to clipboard."),
-            duration: Duration(seconds: 2),
+    return Semantics(
+      button: true,
+      label: _copied
+          ? 'Service account email copied'
+          : 'Copy service account email',
+      child: GestureDetector(
+        onTap: () {
+          Clipboard.setData(ClipboardData(text: widget.email));
+          HapticFeedback.lightImpact();
+          setState(() => _copied = true);
+          Future.delayed(const Duration(seconds: 2), () {
+            if (mounted) {
+              setState(() => _copied = false);
+            }
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Service account email copied to clipboard."),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        },
+        child: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: widget.fg.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: widget.fg.withValues(alpha: 0.1),
+              width: 0.5,
+            ),
           ),
-        );
-      },
-      child: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: widget.fg.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: widget.fg.withValues(alpha: 0.1),
-            width: 0.5,
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            child: _copied
+                ? const Icon(Icons.check, size: 14, color: Colors.green)
+                : Icon(Icons.copy_all_outlined, size: 14, color: widget.fg),
           ),
-        ),
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 200),
-          child: _copied
-              ? const Icon(Icons.check, size: 14, color: Colors.green)
-              : Icon(Icons.copy_all_outlined, size: 14, color: widget.fg),
         ),
       ),
     );

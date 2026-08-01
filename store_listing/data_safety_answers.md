@@ -11,7 +11,7 @@ against the app's observed behavior.
 |---|---|
 | Does your app collect or share any of the required user data types? | **Yes** (collects; does not share) |
 | Is all of the user data collected by your app encrypted in transit? | **Yes** (all traffic is HTTPS/TLS to Supabase; cleartext is blocked by network security config) |
-| Do you provide a way for users to request that their data is deleted? | **Yes** — in-app (Profile → Danger Zone → Delete User Account) and web (`https://nosus.foo/account-deletion.html`) |
+| Do you provide a way for users to request that their data is deleted? | **Yes** — in-app (Profile → Settings → Danger Zone → Delete account) and web (`https://nosus.foo/account-deletion.html`) |
 
 "Sharing" per Play's definition means transfer to a third party. Supabase is a
 service provider processing data on your behalf → that is **not** "sharing".
@@ -25,8 +25,43 @@ Answer **No** to sharing for every data type.
 | Personal info → **Name** (display name) | Yes | No | No | Required | App functionality, Account management |
 | Photos and videos → **Photos** (optional avatar upload) | Yes | No | No | Optional | App functionality |
 | Files and docs (documents users upload to groups) | Yes | No | No | Optional | App functionality |
-| App activity → **App interactions** (audit ledger: file opens, shares, membership changes, screenshot attempts) | Yes | No | No | Required | App functionality, Fraud prevention, security and compliance |
-| Device or other IDs (device identifier in the device-integrity ledger) | Yes | No | No | Required | Fraud prevention, security and compliance |
+| App activity → **App interactions** (audit ledger: file opens, shares, membership changes, screenshot attempts; plus the activation-funnel analytics described below) | Yes | No | No | Required | App functionality, Analytics, Fraud prevention, security and compliance |
+| Device or other IDs (device identifier in the device-integrity ledger; FCM push token when the user enables notifications) | Yes | No | No | Required | App functionality, Fraud prevention, security and compliance |
+
+### Product analytics — added 2026-07-27, **this is a change to the declaration**
+
+`public.analytics_events` (migration `20260727010000_analytics_events.sql`) plus
+`lib/features/analytics/data/analytics_service.dart` record a fixed set of
+activation-funnel events: app opened, welcome surface viewed, guest tool opened,
+auth wall hit, signup/sign-in started and completed, onboarding
+started/skipped/completed, group create/join started and completed, first
+document uploaded and first document viewed, notification permission
+prompted/granted/denied, tour steps, help topics opened.
+
+This is why **Analytics** is now ticked as a purpose under App interactions.
+Points a reviewer may ask about, all enforced by the schema rather than by
+client discipline:
+
+- The event name is CHECK-constrained against an allowlist in the migration. A
+  new event requires a migration, not a client change.
+- `properties` is constrained to a JSON object of at most 2KB and is sanitised
+  client-side to primitives only. **No document names, group names, file
+  contents, invite codes or share tokens are recorded** — there is no code path
+  that could put one there.
+- Rows are attributable to a user only when signed in; pre-auth funnel events
+  are written with a null `user_id` (enforced by separate RLS policies for the
+  `authenticated` and `anon` roles, so an anonymous caller cannot forge
+  attribution to someone else).
+- Clients are write-only. There is no SELECT policy for ordinary users; reads
+  are admin-only. Deleting an account sets `user_id` to null rather than
+  blocking the delete.
+- No advertising or cross-app identifiers are involved, and nothing is shared
+  with a third party.
+
+Device push tokens (`public.device_tokens`, migration
+`20260727030000_notifications.sql`) are declared under **Device or other IDs**
+below — they exist solely to deliver notifications to the user's own device and
+are deleted on sign-out.
 
 ## Data types to declare as NOT collected
 

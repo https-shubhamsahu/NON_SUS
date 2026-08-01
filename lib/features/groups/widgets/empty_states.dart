@@ -28,7 +28,11 @@ class GroupsEmptyState extends StatelessWidget {
               MascotView(
                 character: MascotCharacter.lux,
                 size: 48,
-                fallback: Icon(Icons.group_work_outlined, size: 48, color: subtle),
+                fallback: Icon(
+                  Icons.group_work_outlined,
+                  size: 48,
+                  color: subtle,
+                ),
               ),
               const SizedBox(height: 20),
               Text(
@@ -44,21 +48,28 @@ class GroupsEmptyState extends StatelessWidget {
                 style: TextStyle(fontSize: 13, color: subtle, height: 1.6),
               ),
               const SizedBox(height: 28),
-              GestureDetector(
-                onTap: onCreateGroup,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: fg,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    'CREATE GROUP',
-                    style: TextStyle(
-                      color: theme.colorScheme.surface,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.5,
+              Semantics(
+                button: true,
+                label: 'Create group',
+                child: GestureDetector(
+                  onTap: onCreateGroup,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: fg,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      'CREATE GROUP',
+                      style: TextStyle(
+                        color: theme.colorScheme.surface,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.5,
+                      ),
                     ),
                   ),
                 ),
@@ -95,7 +106,11 @@ class FilesEmptyState extends StatelessWidget {
               MascotView(
                 character: MascotCharacter.lux,
                 size: 40,
-                fallback: Icon(Icons.upload_file_outlined, size: 40, color: subtle),
+                fallback: Icon(
+                  Icons.upload_file_outlined,
+                  size: 40,
+                  color: subtle,
+                ),
               ),
               const SizedBox(height: 16),
               Text('No Files Shared', style: theme.textTheme.titleMedium),
@@ -106,15 +121,19 @@ class FilesEmptyState extends StatelessWidget {
                 style: TextStyle(fontSize: 13, color: subtle, height: 1.6),
               ),
               const SizedBox(height: 24),
-              GestureDetector(
-                onTap: onUpload,
-                child: Text(
-                  'UPLOAD FILE',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: fg.withValues(alpha: 0.5),
-                    letterSpacing: 2.0,
-                    fontWeight: FontWeight.w600,
+              Semantics(
+                button: true,
+                label: 'Upload file',
+                child: GestureDetector(
+                  onTap: onUpload,
+                  child: Text(
+                    'UPLOAD FILE',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: fg.withValues(alpha: 0.5),
+                      letterSpacing: 2.0,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),

@@ -3,19 +3,27 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
-    <!-- No storage/media/notification permissions are declared: file_picker's
-         pickFiles() calls (upload_modal.dart, profile_screen.dart,
+    <!-- Notifications. POST_NOTIFICATIONS was previously absent and documented
+         as dead weight, correctly: the only "notification" in the app was a
+         ScaffoldMessenger SnackBar. That is no longer true — there is now a
+         real FCM path (lib/features/notifications/, supabase/functions/send-push)
+         that this permission gates on Android 13+.
+
+         It is requested contextually, not at launch: see
+         NotificationPermissionPrompt, which asks only after the user has done
+         something that produces notifications worth receiving. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Still no storage/media permissions, and the original reasoning stands:
+         file_picker's pickFiles() calls (upload_modal.dart, profile_screen.dart,
          burn_file_creator_screen.dart) all use `withData: true`, which reads
          bytes through Android's Storage Access Framework picker UI via a
          content:// URI — this never touches READ_EXTERNAL_STORAGE/
          READ_MEDIA_* on any API level. There is no permission_handler
-         dependency and no code path that would ever request them. Likewise,
-         every in-app notification (e.g. _showNotificationBanner in
-         main.dart) is a ScaffoldMessenger SnackBar, not a system
-         notification, so POST_NOTIFICATIONS was dead weight. Do not add any
-         of these back without an actual code path that needs them —
-         Play Store's Data Safety review and least-privilege expectations
-         both flag unused dangerous-permission declarations. -->
+         dependency and no code path that would ever request them. Do not add
+         them back without an actual code path that needs them — Play Store's
+         Data Safety review and least-privilege expectations both flag unused
+         dangerous-permission declarations. -->
 
     <application
         android:label="NO SUS"
@@ -68,6 +76,25 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="foo.nosus.app" android:host="open" />
             </intent-filter>
+            <!-- Android App Links for the web app's own origin.
+                 Verified against https://app.nosus.foo/.well-known/assetlinks.json,
+                 which ships from web/.well-known/ in this repo (Flutter copies
+                 web/ verbatim into build/web, and web/.nojekyll stops GitHub
+                 Pages from dropping the dot-directory).
+
+                 Necessarily host-wide, not path-scoped: every link the app
+                 mints is fragment-shaped at path "/" (/#/burn/…, /#/join/…,
+                 /?cb=…#/v/…) and an intent filter cannot match a fragment. So
+                 this intercepts EVERY app.nosus.foo link once installed —
+                 lib/main.dart's _routeIncomingWebLink must therefore handle
+                 every shape, or a single-use link dead-ends on the home screen
+                 with no browser fallback. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="app.nosus.foo" />
+            </intent-filter>
             <!-- Android Share Intent Filter -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
@@ -82,6 +109,18 @@
                 android:name="flutter_deeplinking_enabled"
                 android:value="false" />
         </activity>
+
+        <!-- Fallback channel for FCM messages that arrive without a channel id.
+             send-push targets per-category channels (nosus_invites /
+             nosus_membership / nosus_documents / nosus_security), all of which
+             are created by NotificationChannels.kt from MainActivity.onCreate —
+             Android drops a notification addressed to a channel that does not
+             exist, silently, so that registration is required for push to work
+             at all. This is the backstop for anything that arrives unaddressed.
+             Harmless when no Firebase project is configured. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="nosus_general" />
 
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

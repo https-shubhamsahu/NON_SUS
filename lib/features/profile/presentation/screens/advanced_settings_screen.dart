@@ -11,10 +11,12 @@ class AdvancedSettingsScreen extends ConsumerStatefulWidget {
   const AdvancedSettingsScreen({super.key});
 
   @override
-  ConsumerState<AdvancedSettingsScreen> createState() => _AdvancedSettingsScreenState();
+  ConsumerState<AdvancedSettingsScreen> createState() =>
+      _AdvancedSettingsScreenState();
 }
 
-class _AdvancedSettingsScreenState extends ConsumerState<AdvancedSettingsScreen> {
+class _AdvancedSettingsScreenState
+    extends ConsumerState<AdvancedSettingsScreen> {
   bool _isTestingLatency = false;
   int _latencyMs = -1;
 
@@ -28,10 +30,9 @@ class _AdvancedSettingsScreenState extends ConsumerState<AdvancedSettingsScreen>
     final stopwatch = Stopwatch()..start();
     try {
       final uri = Uri.parse('${SupabaseCredentials.url}/rest/v1/');
-      final response = await http.get(
-        uri,
-        headers: {'apikey': SupabaseCredentials.anonKey},
-      ).timeout(const Duration(seconds: 4));
+      final response = await http
+          .get(uri, headers: {'apikey': SupabaseCredentials.anonKey})
+          .timeout(const Duration(seconds: 4));
       stopwatch.stop();
       if (response.statusCode == 200) {
         setState(() {
@@ -52,8 +53,6 @@ class _AdvancedSettingsScreenState extends ConsumerState<AdvancedSettingsScreen>
       });
     }
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -106,7 +105,11 @@ class _AdvancedSettingsScreenState extends ConsumerState<AdvancedSettingsScreen>
               decoration: NoSusTheme.cardDecoration(context),
               child: Column(
                 children: [
-                  _buildDiagRow(context, 'System Endpoint', SupabaseCredentials.url.replaceFirst('https://', '')),
+                  _buildDiagRow(
+                    context,
+                    'System Endpoint',
+                    SupabaseCredentials.url.replaceFirst('https://', ''),
+                  ),
                   const SizedBox(height: 12),
                   _buildDiagRow(
                     context,
@@ -114,38 +117,49 @@ class _AdvancedSettingsScreenState extends ConsumerState<AdvancedSettingsScreen>
                     _latencyMs == -1
                         ? 'Not Pinged'
                         : _latencyMs == -2
-                            ? 'Gateway Timeout'
-                            : _latencyMs == -3
-                                ? 'Offline Mode'
-                                : '${_latencyMs}ms',
+                        ? 'Gateway Timeout'
+                        : _latencyMs == -3
+                        ? 'Offline Mode'
+                        : '${_latencyMs}ms',
                   ),
                   const SizedBox(height: 20),
-                  GestureDetector(
-                    onTap: _testLatency,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: fg.withValues(alpha: 0.2)),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Center(
-                        child: _isTestingLatency
-                            ? const SizedBox(
-                                width: 14,
-                                height: 14,
-                                child: CircularProgressIndicator(strokeWidth: 1.5, color: Colors.grey),
-                              )
-                            : Text(
-                                'TEST LATENCY',
-                                style: theme.textTheme.labelLarge?.copyWith(fontSize: 10, letterSpacing: 1.0),
-                              ),
+                  Semantics(
+                    button: true,
+                    label: _isTestingLatency
+                        ? 'Testing connection latency'
+                        : 'Test connection latency',
+                    child: GestureDetector(
+                      onTap: _testLatency,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: fg.withValues(alpha: 0.2)),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Center(
+                          child: _isTestingLatency
+                              ? const SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 1.5,
+                                    color: Colors.grey,
+                                  ),
+                                )
+                              : Text(
+                                  'TEST LATENCY',
+                                  style: theme.textTheme.labelLarge?.copyWith(
+                                    fontSize: 10,
+                                    letterSpacing: 1.0,
+                                  ),
+                                ),
+                        ),
                       ),
                     ),
                   ),
                 ],
               ),
             ),
-
           ],
         ),
       ),
@@ -153,7 +167,9 @@ class _AdvancedSettingsScreenState extends ConsumerState<AdvancedSettingsScreen>
   }
 
   Widget _buildDiagRow(BuildContext context, String label, String value) {
-    final fg = Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black;
+    final fg = Theme.of(context).brightness == Brightness.dark
+        ? Colors.white
+        : Colors.black;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [

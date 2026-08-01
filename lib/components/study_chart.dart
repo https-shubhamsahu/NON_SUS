@@ -26,7 +26,9 @@ class _StudyChartState extends ConsumerState<StudyChart> {
         }
 
         // Find max hours to scale bars
-        double maxHours = data.map((d) => d.hours).fold(1.0, (max, val) => val > max ? val : max);
+        double maxHours = data
+            .map((d) => d.hours)
+            .fold(1.0, (max, val) => val > max ? val : max);
         if (maxHours < 1.0) maxHours = 1.0;
 
         // Ensure selected index is within bounds
@@ -51,7 +53,9 @@ class _StudyChartState extends ConsumerState<StudyChart> {
                       Text(
                         'FOCUS TIMELINE',
                         style: theme.textTheme.labelLarge?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.5,
+                          ),
                         ),
                       ),
                       const SizedBox(height: NoSusTheme.s4),
@@ -68,7 +72,10 @@ class _StudyChartState extends ConsumerState<StudyChart> {
                       horizontal: NoSusTheme.s12,
                       vertical: NoSusTheme.s8,
                     ),
-                    decoration: NoSusTheme.buttonDecoration(context, radius: 10),
+                    decoration: NoSusTheme.buttonDecoration(
+                      context,
+                      radius: 10,
+                    ),
                     child: Row(
                       children: [
                         Icon(
@@ -102,73 +109,98 @@ class _StudyChartState extends ConsumerState<StudyChart> {
                     final percentage = dayData.hours / maxHours;
 
                     return Expanded(
-                      child: GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _selectedDayIndex = index;
-                          });
-                        },
-                        child: MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              Expanded(
-                                child: LayoutBuilder(
-                                  builder: (context, constraints) {
-                                    final barHeight = constraints.maxHeight * percentage;
-                                    return Stack(
-                                      alignment: Alignment.bottomCenter,
-                                      children: [
-                                        // Base track guide line
-                                        Positioned(
-                                          top: 0,
-                                          bottom: 0,
-                                          child: Container(
-                                            width: 1,
-                                            color: theme.colorScheme.outline.withValues(alpha: 0.1),
-                                          ),
-                                        ),
-                                        // Animated Bar
-                                        AnimatedContainer(
-                                          duration: const Duration(milliseconds: 300),
-                                          curve: Curves.fastOutSlowIn,
-                                          width: 28,
-                                          height: barHeight.clamp(4.0, double.infinity),
-                                          decoration: BoxDecoration(
-                                            color: isSelected
-                                                ? theme.colorScheme.onSurface
-                                                : (isDark
-                                                    ? Colors.white.withValues(alpha: 0.08)
-                                                    : Colors.black.withValues(alpha: 0.04)),
-                                            borderRadius: const BorderRadius.vertical(
-                                              top: Radius.circular(6),
+                      child: Semantics(
+                        button: true,
+                        selected: isSelected,
+                        label:
+                            '${dayData.day}: ${dayData.hours.toStringAsFixed(1)} hours',
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _selectedDayIndex = index;
+                            });
+                          },
+                          child: MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                Expanded(
+                                  child: LayoutBuilder(
+                                    builder: (context, constraints) {
+                                      final barHeight =
+                                          constraints.maxHeight * percentage;
+                                      return Stack(
+                                        alignment: Alignment.bottomCenter,
+                                        children: [
+                                          // Base track guide line
+                                          Positioned(
+                                            top: 0,
+                                            bottom: 0,
+                                            child: Container(
+                                              width: 1,
+                                              color: theme.colorScheme.outline
+                                                  .withValues(alpha: 0.1),
                                             ),
-                                            border: Border.all(
+                                          ),
+                                          // Animated Bar
+                                          AnimatedContainer(
+                                            duration: const Duration(
+                                              milliseconds: 300,
+                                            ),
+                                            curve: Curves.fastOutSlowIn,
+                                            width: 28,
+                                            height: barHeight.clamp(
+                                              4.0,
+                                              double.infinity,
+                                            ),
+                                            decoration: BoxDecoration(
                                               color: isSelected
                                                   ? theme.colorScheme.onSurface
-                                                  : theme.colorScheme.outline,
-                                              width: 1.2,
+                                                  : (isDark
+                                                        ? Colors.white
+                                                              .withValues(
+                                                                alpha: 0.08,
+                                                              )
+                                                        : Colors.black
+                                                              .withValues(
+                                                                alpha: 0.04,
+                                                              )),
+                                              borderRadius:
+                                                  const BorderRadius.vertical(
+                                                    top: Radius.circular(6),
+                                                  ),
+                                              border: Border.all(
+                                                color: isSelected
+                                                    ? theme
+                                                          .colorScheme
+                                                          .onSurface
+                                                    : theme.colorScheme.outline,
+                                                width: 1.2,
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                      ],
-                                    );
-                                  },
+                                        ],
+                                      );
+                                    },
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: NoSusTheme.s12),
-                              Text(
-                                dayData.day,
-                                style: theme.textTheme.labelLarge?.copyWith(
-                                  fontSize: 11,
-                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                  color: isSelected
-                                      ? theme.colorScheme.onSurface
-                                      : theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                                const SizedBox(height: NoSusTheme.s12),
+                                Text(
+                                  dayData.day,
+                                  style: theme.textTheme.labelLarge?.copyWith(
+                                    fontSize: 11,
+                                    fontWeight: isSelected
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                    color: isSelected
+                                        ? theme.colorScheme.onSurface
+                                        : theme.colorScheme.onSurface
+                                              .withValues(alpha: 0.4),
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -206,9 +238,5 @@ class StudyDayData {
   final double hours;
   final int scans;
 
-  StudyDayData({
-    required this.day,
-    required this.hours,
-    required this.scans,
-  });
+  StudyDayData({required this.day, required this.hours, required this.scans});
 }

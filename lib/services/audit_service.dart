@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../features/analytics/data/analytics_service.dart';
 import 'supabase_service.dart';
 import '../core/utils/debug_logger.dart';
 
@@ -53,6 +54,24 @@ class AuditService {
     final now = DateTime.now();
     final timeStr = '${_pad(now.hour)}:${_pad(now.minute)}:${_pad(now.second)}';
 
+    // Activation milestones. Hooked here rather than at each call site because
+    // this method is the one funnel every upload and every document open
+    // already passes through — instrumenting the callers individually would
+    // guarantee one gets missed. logOnce() is backed by SharedPreferences, so
+    // "first" means the user's first, not this session's.
+    switch (eventTypeOrDescription) {
+      case 'file_uploaded':
+        unawaited(
+          AnalyticsService.instance.logOnce(
+            AnalyticsEvent.firstDocumentUploaded,
+          ),
+        );
+      case 'file_viewed':
+        unawaited(
+          AnalyticsService.instance.logOnce(AnalyticsEvent.firstDocumentViewed),
+        );
+    }
+
     if (SupabaseService.instance.isReachable) {
       final allowedEventTypes = [
         'file_uploaded',
@@ -63,6 +82,9 @@ class AuditService {
         'file_pinned',
         'member_joined',
         'member_left',
+        'member_removed',
+        'member_banned',
+        'member_unbanned',
         'member_promoted',
         'member_demoted',
         'group_created',
@@ -128,6 +150,9 @@ class AuditService {
       'file_pinned',
       'member_joined',
       'member_left',
+      'member_removed',
+      'member_banned',
+      'member_unbanned',
       'member_promoted',
       'member_demoted',
       'group_created',
@@ -194,6 +219,15 @@ class AuditService {
       case 'member_left':
         final name = metadata['member_name'] ?? 'User';
         return '$name left the study group';
+      case 'member_removed':
+        final name = metadata['member_name'] ?? 'A member';
+        return '$name was removed from the group';
+      case 'member_banned':
+        final name = metadata['member_name'] ?? 'A member';
+        return '$name was banned from the group';
+      case 'member_unbanned':
+        final name = metadata['member_name'] ?? 'A member';
+        return "$name's ban was lifted";
       case 'member_promoted':
         final name = metadata['member_name'] ?? 'User';
         return '$name was promoted to admin';

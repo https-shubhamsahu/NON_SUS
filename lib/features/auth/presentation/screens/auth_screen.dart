@@ -3,16 +3,28 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../theme.dart';
+import '../../../onboarding/presentation/screens/welcome_screen.dart';
 import '../controllers/auth_controller.dart';
 import '../providers/auth_providers.dart';
+import '../providers/pending_intent_provider.dart';
 
 
 class AuthScreen extends ConsumerStatefulWidget {
   final String? pendingInviteCode;
 
-  const AuthScreen({super.key, this.pendingInviteCode});
+  /// Open on the sign-up form rather than sign-in.
+  ///
+  /// Someone arriving from "Create a free account" has already said which one
+  /// they want; making them find the toggle is a needless tap on the single
+  /// highest-drop-off screen in the product.
+  final bool startOnSignUp;
+
+  const AuthScreen({
+    super.key,
+    this.pendingInviteCode,
+    this.startOnSignUp = false,
+  });
 
   @override
   ConsumerState<AuthScreen> createState() => _AuthScreenState();
@@ -29,7 +41,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   final _phoneFocus = FocusNode();
   final _otpFocus = FocusNode();
 
-  bool _isSignUp = false;
+  late bool _isSignUp = widget.startOnSignUp;
   bool _obscurePassword = true;
   bool _isPhoneAuth = false;
   bool _otpSent = false;
@@ -60,11 +72,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     });
   }
 
-  Future<void> _savePendingInvite(String code) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('pending_invite_code', code);
-    } catch (_) {}
+  /// Park the invite so it survives the round trip through email confirmation
+  /// or an OAuth browser hand-off — either of which can take the process down —
+  /// and gets replayed once there is a session. See [PendingIntentNotifier].
+  void _savePendingInvite(String code) {
+    ref
+        .read(pendingIntentProvider.notifier)
+        .set(PendingIntent(PendingIntentKind.joinGroup, payload: code));
   }
 
   @override
@@ -170,6 +184,19 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               _passwordController.clear();
             });
           }
+        } else if (ref.read(authRepositoryProvider).currentUser != null &&
+            Navigator.of(context).canPop()) {
+          // This screen is only swapped out automatically when AuthGate is the
+          // one rendering it. When it was *pushed* — from the group-invite
+          // landing page, or from the signed-out welcome surface — a successful
+          // sign-in left the user staring at the form they just completed, with
+          // no way forward but the system back button. Pop so the route
+          // underneath (which is what they were trying to reach) comes back.
+          //
+          // Gated on a real session because AsyncData also lands after
+          // signInWithPhone merely *sends* an OTP — popping there would abandon
+          // the half-finished flow.
+          Navigator.of(context).pop();
         }
       }
       next.whenOrNull(
@@ -689,6 +716,35 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       ),
                     ),
                   ).animate().fadeIn(delay: 350.ms, duration: 300.ms),
+
+                  // Escape hatch back to the guest surface. Only when this is
+                  // the root route — if it was pushed, the thing underneath is
+                  // already where "back" goes, and a second exit would be
+                  // confusing. Without this, signing out strands a returning
+                  // user on a form with no route to Burn Notes, Burn Files,
+                  // code redemption or Help, all of which need no account.
+                  if (!Navigator.of(context).canPop())
+                    Center(
+                      child: TextButton.icon(
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const WelcomeScreen(),
+                          ),
+                        ),
+                        icon: Icon(
+                          Icons.explore_outlined,
+                          size: 14,
+                          color: fg.withValues(alpha: 0.5),
+                        ),
+                        label: Text(
+                          'Explore without an account',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: fg.withValues(alpha: 0.5),
+                          ),
+                        ),
+                      ),
+                    ).animate().fadeIn(delay: 400.ms, duration: 300.ms),
                 ],
               ),
             ),

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../domain/models/study_group.dart';
+import '../domain/repositories/study_group_repository.dart';
 import '../models/group_file.dart';
 import '../../../services/supabase_service.dart';
 import '../presentation/providers/group_dependencies.dart';
@@ -152,9 +153,36 @@ class GroupsNotifier extends AsyncNotifier<List<StudyGroup>> {
     await repo.deleteGroup(groupId);
   }
 
+  // Moderation. These deliberately do not set `state` to loading/error: the
+  // groups list is not what changed, and blanking the whole screen because one
+  // member row is being updated would be a worse experience than the operation
+  // it is reporting. Failures propagate to the caller, which shows them in
+  // context. `groupMembersProvider` is invalidated so the member list reflects
+  // the change immediately rather than waiting on the realtime round trip.
+
   Future<void> removeMember(String groupId, String memberId) async {
-    final repo = ref.read(studyGroupRepositoryProvider);
-    await repo.removeMember(groupId, memberId);
+    await ref.read(studyGroupRepositoryProvider).removeMember(groupId, memberId);
+    ref.invalidate(groupMembersProvider(groupId));
+  }
+
+  Future<void> setMemberRole(String groupId, String memberId, bool isAdmin) async {
+    await ref
+        .read(studyGroupRepositoryProvider)
+        .setMemberRole(groupId, memberId, isAdmin);
+    ref.invalidate(groupMembersProvider(groupId));
+  }
+
+  Future<void> banMember(String groupId, String memberId, {String? reason}) async {
+    await ref
+        .read(studyGroupRepositoryProvider)
+        .banMember(groupId, memberId, reason: reason);
+    ref.invalidate(groupMembersProvider(groupId));
+    ref.invalidate(groupBansProvider(groupId));
+  }
+
+  Future<void> unbanMember(String groupId, String memberId) async {
+    await ref.read(studyGroupRepositoryProvider).unbanMember(groupId, memberId);
+    ref.invalidate(groupBansProvider(groupId));
   }
 
   Future<void> refresh() async {
@@ -320,38 +348,6 @@ final groupFilesForGroupProvider =
   );
 });
 
-final allProfilesProvider = FutureProvider<List<GroupMember>>((ref) async {
-  if (SupabaseService.instance.isReachable) {
-    try {
-      final response = await Supabase.instance.client
-          .from('profiles')
-          .select('id, display_name, email')
-          .order('display_name', ascending: true);
-
-      final list = <GroupMember>[];
-      for (var r in response as List) {
-        final id = r['id'] as String;
-        final name = r['display_name'] as String? ?? (r['email'] as String? ?? 'User').split('@').first;
-        final initials = name.isNotEmpty
-            ? name.substring(0, name.length >= 2 ? 2 : name.length).toUpperCase()
-            : 'SC';
-        list.add(GroupMember(
-          id: id,
-          name: name,
-          initials: initials,
-          isAdmin: false,
-        ));
-      }
-
-      if (list.isNotEmpty) {
-        return list;
-      }
-    } catch (_) {}
-  }
-  // Fallback to empty list if offline or query fails
-  return const [];
-});
-
 final groupMembersProvider = StreamProvider.family<List<GroupMember>, String>((ref, groupId) {
   if (SupabaseService.instance.isConfigured && SupabaseService.instance.isReachable) {
     final client = Supabase.instance.client;
@@ -411,4 +407,19 @@ final groupMembersProvider = StreamProvider.family<List<GroupMember>, String>((r
   } else {
     return Stream.value(<GroupMember>[]);
   }
+});
+
+/// People barred from rejoining [groupId].
+///
+/// Visible to every member, not just admins — moderation that only moderators
+/// can see is not accountable, which is the same reasoning that makes the audit
+/// log group-visible. The RLS policy on `group_bans` matches: members read,
+/// only the RPCs write.
+final groupBansProvider =
+    FutureProvider.family<List<GroupBan>, String>((ref, groupId) async {
+  if (!SupabaseService.instance.isConfigured ||
+      !SupabaseService.instance.isReachable) {
+    return const [];
+  }
+  return ref.read(studyGroupRepositoryProvider).getBans(groupId);
 });

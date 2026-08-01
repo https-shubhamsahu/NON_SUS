@@ -131,8 +131,24 @@ this keystore means losing the ability to update the app under this signing iden
 Supabase init, deep-link handling (`app_links`), and a `PageView` tab shell — in order: **Workspace,
 Vault, Study Desk, Audit Log, Groups** (`lib/components/floating_nav.dart` defines the labels/icons;
 `activeTabProvider` drives the index). Profile is **not** a tab — it's pushed as a route from the
-avatar button in the header. `SharedPreferences` is awaited once in `main()` and injected via
+avatar button in the header, and Settings is pushed from Profile. The header also carries the
+notification bell (`_NotificationBell` in `main.dart`, badge driven by
+`unreadNotificationCountProvider`). `SharedPreferences` is awaited once in `main()` and injected via
 `sharedPreferencesProvider.overrideWithValue(prefs)` so theme resolves synchronously on first build.
+
+**The app is no longer auth-walled at the front door.** `AuthGate` renders `WelcomeScreen` for a
+signed-out visitor (not `AuthScreen`), which explains the product and hands over the three features
+that are genuinely anonymous on both ends — Burn Notes, Burn Files, code redemption. It pushes
+`AuthScreen` when the user asks for it, or when they reach for something that needs identity. A
+returning user who has already seen it (`welcomeSeenProvider`) goes straight to the form, which
+keeps an "Explore without an account" link back.
+
+**Auth walls must preserve intent.** `pendingIntentProvider`
+(`features/auth/presentation/providers/pending_intent_provider.dart`) parks what the user was trying
+to do in SharedPreferences — durable, because signup can round-trip through an email link or an
+OAuth browser hand-off that takes the process down — and `_WorkspaceHomeState._resumePendingIntent`
+replays it after the shell's first frame. It reads the legacy `pending_invite_code` key too, so an
+app updated mid-flow doesn't drop the invite. Don't add a new auth wall without setting an intent.
 
 **Feature-first layout:** `lib/features/<feature>/` with `data/` (clients, repositories), `domain/`
 (entities), `presentation/` (screens, widgets, providers). Older features (e.g. `groups`) are
@@ -140,8 +156,17 @@ flatter (`screens/`, `widgets/`, `providers/` at feature root) — match whichev
 you're editing already uses. Access data only through repositories from presentation code; don't
 call Supabase clients directly from widgets in Clean-Architecture features.
 
-Features: `admin`, `audit`, `auth`, `config`, `fhe`, `files`, `focus`, `groups`, `notes`,
-`onboarding`, `profile`, `sealed`, `share`, `vault`, `workspace`.
+Features: `admin`, `analytics`, `audit`, `auth`, `config`, `fhe`, `files`, `focus`, `groups`,
+`help`, `notes`, `notifications`, `onboarding`, `profile`, `sealed`, `settings`, `share`, `vault`,
+`workspace`.
+
+**Onboarding is two surfaces, not a slideshow.** `WelcomeScreen` (pre-auth, explained above) and
+`GetStartedScreen` (post-signup, one screen, both fields optional and a real Skip). The six-act
+narrative that used to run *after* signup is gone. Completion is recorded per-account in
+SharedPreferences by `OnboardingNotifier` — it stores the completing user's id, not a boolean, so a
+second account on the same device still gets setup while the first doesn't repeat it. Contextual
+tips are separate again: `CoachMarks.showSequence` (`lib/components/coach_mark.dart`) with per-tip
+state in `tourProgressProvider`, replayable from Help and Settings.
 
 **Cross-cutting layers:**
 
@@ -186,6 +211,19 @@ in `lib/main.dart` are public and covered by `test/unit/deep_link_parsing_test.d
 already shared into the wild — silently changing what parses is a production outage. **Keep legacy
 formats parsing.**
 
+**Android App Links are host-wide, and `_routeIncomingWebLink()` is what stops that being a bug.**
+`AndroidManifest.xml` carries an `android:autoVerify="true"` filter for `https://app.nosus.foo`,
+verified against `web/.well-known/assetlinks.json`. It **cannot** be path-scoped: an intent filter
+has no way to match a URL fragment, and every link the app mints is fragment-shaped at path `/`
+(`/#/burn/…`, `/#/burnfile/…`, `/#/burnfiles/…`, `/?cb=…#/v/…`, `/#/join/…`). So an installed app
+intercepts *every* link to that host. `_routeIncomingWebLink()` in `lib/main.dart` must therefore
+handle every shape the app can mint — **add a new link shape without adding it there and the link
+dead-ends on the home screen**, silently, with no browser fallback, because the system already chose
+the app over the web page. It is the native mirror of the `Uri.base` branches that run in `main()`
+on web. `web/.nojekyll` is load-bearing for the same feature: without it GitHub Pages drops the
+`.well-known` dot-directory and verification fails. The fingerprint in `assetlinks.json` is the Play
+**app signing** key — pressing "Change key" in Play Console invalidates it.
+
 **Burn Files: single vs. multi-file share.** `#/burnfile/<id>?k=&v=` (singular) is the original
 one-file link, untouched. `#/burnfiles/<id1,id2,...>?k=<key1,key2,...>&v=<iv1,iv2,...>` (plural) is
 an additive multi-file link — same per-file AES-CBC crypto as always (each file keeps its own
@@ -205,12 +243,24 @@ own burn-file tool (`homepage/src/components/BurnTool.tsx`) is deliberately stil
 only its size-cap constant (`FILE_MAX_BYTES` in `burnApi.ts`) was kept in sync at 25MB.
 
 **App id / custom scheme.** `foo.nosus.app` (reverse-DNS of `app.nosus.foo`) is both the Android
-applicationId and the custom URL scheme (`foo.nosus.app://v/…`, `://open`, `://join/…`). It must stay
-identical everywhere it appears: `android/app/build.gradle.kts`, `AndroidManifest.xml`,
-`ios/Runner/Info.plist`, `lib/main.dart`,
-`lib/features/share/.../anonymous_share_viewer_screen.dart`, `homepage/src/lib/appLaunch.ts`, and the
-`packageName` in `play-store-release.yml`. The OAuth callback scheme `io.supabase.nosus` is
-**intentionally different** (it's registered with Supabase auth) — do not "fix" it to match.
+applicationId and the custom URL scheme. Only **two** hosts are actually registered in
+`AndroidManifest.xml` — `foo.nosus.app://v/…` (share view) and `://open` (the website's plain "open
+in app"). `extractInviteToken` *parses* `foo.nosus.app://join/…` and a test pins that, but no intent
+filter claims that host, so Android never delivers it; invite links ship as `…/#/join/<code>` https
+URLs instead. Don't rely on the custom-scheme join form without adding the filter first.
+
+The id must stay identical everywhere it appears: `android/app/build.gradle.kts` (`applicationId`
+*and* `namespace`), `AndroidManifest.xml`, `ios/Runner/Info.plist`, `lib/main.dart`,
+`lib/features/share/.../anonymous_share_viewer_screen.dart`, `homepage/src/lib/appLaunch.ts`,
+`PACKAGE_NAME` in `supabase/functions/verify-play-integrity/index.ts`, the Kotlin package under
+`android/app/src/main/kotlin/foo/nosus/app/`, and the `packageName` in `play-store-release.yml`. It
+is also the id a future `google-services.json` must be issued for. The OAuth callback scheme
+`io.supabase.nosus` is **intentionally different** (it's registered with Supabase auth) — do not
+"fix" it to match.
+
+The non-shipped desktop/iOS targets are still on Flutter's template defaults (`com.example.noSus`,
+`com.example.no_sus`). That is deliberate neglect, not drift — rename them only if those platforms
+ever ship.
 
 **Web↔Dart crypto compatibility.** `homepage/src/lib/burnCrypto.ts` and the Dart burn crypto must
 stay byte-compatible; `test/unit/burn_crypto_web_compat_test.dart` is the guard. Never change one
@@ -252,18 +302,37 @@ creator/viewer, groups) already follow this; `test/widget/auth_screen_test.dart`
 Icon-only tap targets should generally just be `IconButton` (48dp minimum + tooltip-as-label for
 free) rather than a hand-wrapped `GestureDetector`+`Icon`.
 
-**Still outstanding:** onboarding, `upload_modal.dart`, `save_to_no_sus_dialog.dart`,
-`profile_screen.dart` secondary actions, `empty_states.dart`.
+The sweep is **done** as of 2026-07-29 — every `GestureDetector`/`InkWell` in `lib/` that acts as a
+button now carries a label. Two deliberate exceptions, both correct as-is:
+
+- **`profile_screen.dart`'s email tap** is a hidden easter egg (5 taps → advanced settings). It is
+  left as plain text on purpose; announcing it as a button would leak a deliberately-hidden route.
+- **`workspace_tab.dart`'s recently-saved row** is left unwrapped because its own children already
+  read out (title + destination) and it contains an independently-focusable RETRY button. A parent
+  label would either duplicate the row text or swallow the button.
+
+Note the repo is **not** kept `dart format`-clean (108 of 157 files under `lib/` differ), so don't
+run `dart format` across a file you are only editing a few lines of — it buries the real change.
 
 ---
 
 ## 8. Subsystems that are scaffolded, shelved, or off
 
-**FHE / Sealed — long-term vision, not V1.** FHE (`lib/features/fhe/`, `services/fhe-compute/`,
-`supabase/functions/fhe-proxy/`) is long-term-vision infrastructure per `PROJECT_CONSTITUTION.md` §4
-— not V1 scope, not the active product. `lib/features/sealed/` and the `sealed-api`/`pact-matcher`
-edge functions specifically are **shelved** (kept in the repo, not shipped — `SHIELD.md` documents
-the architecture). Detailed guardrails live in `.claude/rules/no-sus-fhe.md` (mirrors
+**FHE / Sealed — long-term vision, not V1, and now absent from the UI.** FHE
+(`lib/features/fhe/`, `services/fhe-compute/`, `supabase/functions/fhe-proxy/`) is long-term-vision
+infrastructure per `PROJECT_CONSTITUTION.md` §4 — not V1 scope, not the active product.
+`lib/features/sealed/` and the `sealed-api`/`pact-matcher` edge functions specifically are
+**shelved** (kept in the repo, not shipped — `SHIELD.md` documents the architecture).
+
+As of 2026-07-29 Sealed is also gone from the **product surface**, pending a separate redesign.
+`_SealedTeaserCard` used to occupy the first slot on the Workspace tab: a scripted ASCII
+"simulation" followed by a star rating, checkboxes and free-text feedback that were **discarded on
+`Navigator.pop`** while the app said "Verification submitted to the secure ledger." Both the dead
+control and the false confirmation are removed. `SealedHomeScreen` and `FheDemoScreen` remain
+unrouted — `test/unit/sealed_removed_test.dart` fails if anything outside `lib/features/{sealed,fhe}/`
+references them, so the code can stay without the surface coming back by accident.
+
+Detailed guardrails live in `.claude/rules/no-sus-fhe.md` (mirrors
 `.cursor/rules/no-sus-fhe.mdc`), which loads automatically when touching FHE files. Summary:
 additive only, off by default behind granular flags in `lib/config/fhe_config.dart` (never a single
 global switch), Flutter never talks to TFHE directly (app → `FheTransport` → `fhe-proxy` → Rust),
@@ -333,13 +402,23 @@ anything.
 Verified against the repo on 2026-07-25. Items marked **(manual)** cannot be verified from the
 codebase — assume still outstanding unless you know otherwise.
 
+**Every `(manual)` item now has step-by-step instructions in [`MANUAL_TASKS.md`](./MANUAL_TASKS.md)**
+— written for the repo owner, verified against the live project on 2026-07-29. Keep the two in sync.
+
 | Item | Status |
 |---|---|
+| **A whole feature set is uncommitted** — notifications, settings, help, analytics, onboarding rewrite, group moderation | Open — analyze/test clean, but `v1.3.0` does **not** contain it. See `MANUAL_TASKS.md` §0 |
+| **Four migrations not applied** (`20260727*`) | Open — newest applied is `20260725025159`. One of them rewrites `study_groups`/`profiles` RLS |
+| `send-push` edge function not deployed | Open — verified against the live project; push needs Firebase + FCM secrets. The inbox works without it |
+| Google Play Android Developer API disabled on Cloud project `694624182770` | **(manual)** — fails the last CI step; re-run needs no new tag |
+| Android App Links wired but unverified | Code + `assetlinks.json` shipped 2026-07-30 (see §5). Verification needs a **Play-signed** build on a device — a debug APK always reports `verified: false`. Blocked behind the row above |
+| `app_latest_version` still `1.2.0` in `remote_configs` | **(manual)** — bumping it prompts every existing user |
 | Back up `android/app/upload-keystore.jks` + `key.properties` outside the repo | **(manual)** — losing these forfeits the signing identity |
-| Play Console: upload feature graphic, phone/tablet screenshots, enter Data Safety answers, add Internal Testing testers | **(manual)** — assets drafted in `store_listing/` |
-| `google_fonts` fetches Inter/Outfit from Google's CDN at runtime | Open — verified: no `allowRuntimeFetching = false`, no `.ttf` bundled in `pubspec.yaml` assets. Fix = bundle real font binaries locally |
-| Accessibility sweep on lower-traffic screens | Open — see §7 |
+| Play Console: upload feature graphic, phone/tablet screenshots, enter Data Safety answers, add Internal Testing testers | **(manual)** — assets drafted in `store_listing/`; shipping analytics changes the Data Safety answers |
+| `google_fonts` fetches Inter/Outfit from Google's CDN at runtime | Open — re-verified 2026-07-29: no `allowRuntimeFetching = false`, no `.ttf` bundled. Fix = bundle real font binaries locally (~1–2 MB) |
+| ~~Accessibility sweep on lower-traffic screens~~ | **Done** 2026-07-29 — see §7 |
 | `BURN_FILES_IP_SALT` not set | Open — burn-file per-IP rate limiting degrades without it |
+| `migrate_device_id()` never exercised against a signed-in session | Open — needs a physical device; all `user_known_devices` rows are still legacy UUIDs |
 | Orphaned keystore `android/app/release_orphaned_2026-06-21.keystore` | On disk, git-ignored — delete once confirmed unneeded |
 
 ---
@@ -349,6 +428,7 @@ codebase — assume still outstanding unless you know otherwise.
 | Doc | Trust |
 |---|---|
 | **This file** | ✅ Kept current every session |
+| `MANUAL_TASKS.md` | ✅ Operator checklist — console logins, credentials, device tests, product calls. Deliberately *not* guidance; mirrors §9 |
 | `PROJECT_CONSTITUTION.md` | ✅ Authoritative for product vision, honesty rules, non-negotiables |
 | `RELEASE_REPORT.md` | ✅ Release-readiness audit (10–11 July 2026); §12 checklist still useful |
 | `SHIELD.md` | ✅ Architecture of the shelved Sealed/FHE subsystem |
@@ -376,6 +456,36 @@ codebase — assume still outstanding unless you know otherwise.
 > bottom rather than letting this section grow without bound.
 
 <!-- CHANGELOG:INSERT -->
+
+- **2026-08-01** · `f3f65e8` · docs: add MANUAL_TASKS.md operator checklist
+- **2026-08-01** · `6d972d1` · feat(links): serve assetlinks.json so app.nosus.foo App Links verify
+
+- **2026-08-01** · `a6700cf` · fix(security): require group membership for drive-proxy download and delete
+
+- **2026-07-30** · `7cda72f` · fix(audit): stop logging group events for groups the user has left
+  — why: two things worth knowing before you touch audit logging or chase this error again.
+  First, `20260707030000_restore_community_rpcs.sql` in this repo is **stale**: its header claims the
+  community RPCs were never applied to the live project, but both functions exist there (recorded as
+  `20260706223526`) and auto-join works. Do not re-apply it expecting to fix "Not a member of the
+  study group" — the real cause is `RecentlySavedItem.destinationId`, persisted in SharedPreferences,
+  naming a group the user has since left. Second, `logEvent` now fails **open**: if the membership
+  lookup fails it still attempts the write. Keep it that way — the RPC is the enforcement point, and
+  a client-side gate that fails closed would silently drop security audit records on a flaky network.
+  Adds `20260730162359_enable_realtime_user_risk_state` (applied live): any table `watch*` subscribes
+  to must be in the `supabase_realtime` publication, and needs `REPLICA IDENTITY FULL` if a column
+  filter must survive DELETE.
+
+- **2026-07-30** · `6f61e02` · fix: four runtime errors caught via logcat/VM-service monitoring
+  — why: all four were invisible to `flutter logs`/logcat. Android Studio launches this app with
+  `--dart-define=flutter.inspector.structuredErrors=true`, which routes framework exceptions to the
+  Dart VM service `Extension` stream *instead of* stdout, so nothing reached the Android log at all.
+  If you are hunting a runtime bug here, attach to the VM service (or `flutter run` without that
+  flag) — a clean logcat does not mean a clean app. The deep-link fix also establishes that
+  `supabase_flutter` owns the `login-callback` deep link; do not call `getSessionFromUrl` alongside
+  it, the PKCE code is single-use and whichever handler loses the race reports a spurious auth
+  failure on a login that succeeded.
+
+- **2026-07-25** · `6015dc3` · chore(release): bump to 1.3.0+10
 
 - **2026-07-25** · `96efcac` · ci: bump softprops/action-gh-release to v3
 

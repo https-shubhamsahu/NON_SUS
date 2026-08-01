@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/auth_providers.dart';
-import '../../../onboarding/presentation/providers/onboarding_providers.dart';
+import '../../../analytics/data/analytics_service.dart';
+import '../../../notifications/data/push_service.dart';
 
 class AuthController extends Notifier<AsyncValue<void>> {
   @override
@@ -11,7 +12,10 @@ class AuthController extends Notifier<AsyncValue<void>> {
   Future<void> signIn(String email, String password) async {
     state = const AsyncValue.loading();
     try {
-      await ref.read(authRepositoryProvider).signIn(email: email, password: password);
+      await ref
+          .read(authRepositoryProvider)
+          .signIn(email: email, password: password);
+      AnalyticsService.instance.log(AnalyticsEvent.signinCompleted);
       state = const AsyncValue.data(null);
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
@@ -20,8 +24,15 @@ class AuthController extends Notifier<AsyncValue<void>> {
 
   Future<void> signUp(String email, String password) async {
     state = const AsyncValue.loading();
+    // Logged before the call, not after: the gap between "started" and
+    // "completed" is exactly the drop-off this funnel exists to measure, and a
+    // signup that fails would otherwise be invisible.
+    AnalyticsService.instance.log(AnalyticsEvent.signupStarted);
     try {
-      await ref.read(authRepositoryProvider).signUp(email: email, password: password);
+      await ref
+          .read(authRepositoryProvider)
+          .signUp(email: email, password: password);
+      AnalyticsService.instance.log(AnalyticsEvent.signupCompleted);
       state = const AsyncValue.data(null);
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
@@ -32,6 +43,7 @@ class AuthController extends Notifier<AsyncValue<void>> {
     state = const AsyncValue.loading();
     try {
       await ref.read(authRepositoryProvider).signInWithGoogle();
+      AnalyticsService.instance.log(AnalyticsEvent.signinCompleted);
       state = const AsyncValue.data(null);
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
@@ -42,6 +54,7 @@ class AuthController extends Notifier<AsyncValue<void>> {
     state = const AsyncValue.loading();
     try {
       await ref.read(authRepositoryProvider).signInWithGitHub();
+      AnalyticsService.instance.log(AnalyticsEvent.signinCompleted);
       state = const AsyncValue.data(null);
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
@@ -62,6 +75,7 @@ class AuthController extends Notifier<AsyncValue<void>> {
     state = const AsyncValue.loading();
     try {
       await ref.read(authRepositoryProvider).verifyPhoneOtp(phone, otp);
+      AnalyticsService.instance.log(AnalyticsEvent.signinCompleted);
       state = const AsyncValue.data(null);
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
@@ -71,8 +85,18 @@ class AuthController extends Notifier<AsyncValue<void>> {
   Future<void> signOut() async {
     state = const AsyncValue.loading();
     try {
+      // Before the session is torn down, not after: unregister_device_token is
+      // scoped by auth.uid(), so once signed out the delete matches nothing and
+      // this handset would keep receiving the previous account's notifications
+      // until someone else's registration happened to overwrite the row.
+      await PushService.instance.releaseCurrentDevice();
+
       await ref.read(authRepositoryProvider).signOut();
-      ref.read(onboardingCompletedProvider.notifier).reset();
+      // Onboarding completion is no longer reset here. It is now recorded
+      // against the account that completed it (see OnboardingNotifier), so a
+      // different account signing in on this device still gets first-run setup,
+      // and this one does not repeat it — which is what the old unconditional
+      // reset() got wrong once the flag became durable.
       state = const AsyncValue.data(null);
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);

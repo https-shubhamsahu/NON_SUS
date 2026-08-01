@@ -51,6 +51,10 @@ class MainActivity : FlutterActivity() {
             handleIntent(intent)
         }
         registerModernScreenshotCallback()
+        // Must exist before the first push arrives — Android drops a
+        // notification addressed to an unknown channel without any error.
+        // Idempotent and permission-free, so it runs unconditionally.
+        NotificationChannels.register(applicationContext)
     }
 
     /**

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../domain/models/study_group.dart';
 import '../models/group_file.dart';
+import '../domain/repositories/study_group_repository.dart';
 import '../providers/groups_provider.dart';
 import '../widgets/file_card.dart';
 import '../widgets/member_avatar_stack.dart';
@@ -1020,7 +1021,14 @@ class _FileCardSkeleton extends StatelessWidget {
 
 // ─── Members tab ──────────────────────────────────────────────────────────────
 
-class _MembersTab extends ConsumerWidget {
+/// Member roster and moderation.
+///
+/// Every destructive control here is a convenience over a server-side rule, not
+/// the rule itself: `set_group_member_role`, `remove_group_member` and
+/// `ban_group_member` re-check admin rights in the database and refuse to strip
+/// a group of its last admin. A member who patches the client into showing
+/// these buttons gets a rejection, not a promotion.
+class _MembersTab extends ConsumerStatefulWidget {
   final String groupId;
   final Color fg;
   final Color subtle;
@@ -1032,8 +1040,240 @@ class _MembersTab extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final membersAsync = ref.watch(groupMembersProvider(groupId));
+  ConsumerState<_MembersTab> createState() => _MembersTabState();
+}
+
+class _MembersTabState extends ConsumerState<_MembersTab> {
+  final _searchController = TextEditingController();
+  String _query = '';
+
+  Color get _fg => widget.fg;
+  Color get _subtle => widget.subtle;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  /// The RPCs raise readable messages on purpose ("This is the last admin.
+  /// Promote someone else first.") so the reason for a refusal reaches the
+  /// person who tried, instead of being replaced by a generic failure toast
+  /// that makes a deliberate rule look like a bug.
+  String _cleanError(Object e) => e
+      .toString()
+      .replaceAll('Exception: ', '')
+      .replaceAll(RegExp(r'^PostgrestException\(message: '), '')
+      .replaceAll(RegExp(r', code: .*\)$'), '');
+
+  Future<void> _run(Future<void> Function() action, String successMessage) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await action();
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(successMessage),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(_cleanError(e)),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  Future<bool> _confirm({
+    required String title,
+    required String body,
+    required String confirmLabel,
+    bool destructive = true,
+  }) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
+        return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF141414) : Colors.white,
+          title: Text(
+            title,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: destructive ? Colors.redAccent : null,
+            ),
+          ),
+          content: Text(body, style: const TextStyle(fontSize: 12, height: 1.5)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text(
+                'CANCEL',
+                style: TextStyle(color: Colors.grey, fontSize: 11),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: Text(
+                confirmLabel,
+                style: TextStyle(
+                  color: destructive ? Colors.redAccent : null,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+    return result ?? false;
+  }
+
+  Future<void> _confirmRemoveMember(GroupMember member) async {
+    final ok = await _confirm(
+      title: 'REMOVE MEMBER?',
+      body:
+          '${member.name} loses access to this group\'s files immediately. They can '
+          'rejoin with a valid invite — ban them instead if that is not what you want.',
+      confirmLabel: 'REMOVE',
+    );
+    if (!ok) return;
+    HapticFeedback.heavyImpact();
+    await _run(
+      () => ref
+          .read(groupsProvider.notifier)
+          .removeMember(widget.groupId, member.id),
+      'Removed ${member.name} from the group',
+    );
+  }
+
+  Future<void> _confirmBanMember(GroupMember member) async {
+    final reasonController = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
+        return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF141414) : Colors.white,
+          title: const Text(
+            'BAN MEMBER?',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.redAccent,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${member.name} is removed from the group and cannot rejoin with any '
+                'invite until you unban them.',
+                style: const TextStyle(fontSize: 12, height: 1.5),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: reasonController,
+                maxLength: 280,
+                style: const TextStyle(fontSize: 12),
+                decoration: const InputDecoration(
+                  labelText: 'Reason (optional)',
+                  labelStyle: TextStyle(fontSize: 11),
+                  helperText: 'Visible to every member of this group.',
+                  helperStyle: TextStyle(fontSize: 10),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text(
+                'CANCEL',
+                style: TextStyle(color: Colors.grey, fontSize: 11),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text(
+                'BAN',
+                style: TextStyle(
+                  color: Colors.redAccent,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    final reason = reasonController.text.trim();
+    reasonController.dispose();
+    if (ok != true) return;
+    HapticFeedback.heavyImpact();
+    await _run(
+      () => ref.read(groupsProvider.notifier).banMember(
+            widget.groupId,
+            member.id,
+            reason: reason.isEmpty ? null : reason,
+          ),
+      'Banned ${member.name}',
+    );
+  }
+
+  Future<void> _confirmSetRole(GroupMember member, bool makeAdmin) async {
+    final ok = await _confirm(
+      title: makeAdmin ? 'MAKE ADMIN?' : 'REMOVE ADMIN?',
+      body: makeAdmin
+          ? '${member.name} will be able to manage members, delete anyone\'s files, '
+              'and delete the group itself.'
+          : '${member.name} keeps access to the group but loses every admin power.',
+      confirmLabel: makeAdmin ? 'MAKE ADMIN' : 'REMOVE ADMIN',
+      destructive: !makeAdmin,
+    );
+    if (!ok) return;
+    HapticFeedback.mediumImpact();
+    await _run(
+      () => ref
+          .read(groupsProvider.notifier)
+          .setMemberRole(widget.groupId, member.id, makeAdmin),
+      makeAdmin
+          ? '${member.name} is now an admin'
+          : '${member.name} is no longer an admin',
+    );
+  }
+
+  Future<void> _confirmUnban(GroupBan ban) async {
+    final ok = await _confirm(
+      title: 'LIFT BAN?',
+      body:
+          '${ban.displayName} will be able to accept an invite again. They are not '
+          'added back to the group automatically.',
+      confirmLabel: 'LIFT BAN',
+      destructive: false,
+    );
+    if (!ok) return;
+    await _run(
+      () => ref
+          .read(groupsProvider.notifier)
+          .unbanMember(widget.groupId, ban.userId),
+      'Ban lifted for ${ban.displayName}',
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final membersAsync = ref.watch(groupMembersProvider(widget.groupId));
 
     return membersAsync.when(
       loading: () => Padding(
@@ -1046,14 +1286,15 @@ class _MembersTab extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              'Failed to load members',
-              style: TextStyle(color: subtle),
-            ),
+            Text('Failed to load members', style: TextStyle(color: _subtle)),
             const SizedBox(height: 12),
             TextButton(
-              onPressed: () => ref.invalidate(groupMembersProvider(groupId)),
-              child: const Text('RETRY', style: TextStyle(fontSize: 11, letterSpacing: 1.5)),
+              onPressed: () =>
+                  ref.invalidate(groupMembersProvider(widget.groupId)),
+              child: const Text(
+                'RETRY',
+                style: TextStyle(fontSize: 11, letterSpacing: 1.5),
+              ),
             ),
           ],
         ),
@@ -1064,12 +1305,12 @@ class _MembersTab extends ConsumerWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.group_outlined, size: 48, color: subtle),
+                Icon(Icons.group_outlined, size: 48, color: _subtle),
                 const SizedBox(height: 16),
                 Text(
                   'NO MEMBERS YET',
                   style: TextStyle(
-                    color: fg,
+                    color: _fg,
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 1.5,
@@ -1079,156 +1320,378 @@ class _MembersTab extends ConsumerWidget {
             ),
           );
         }
-        return _buildList(context, ref, list);
+        return _buildList(context, list);
       },
     );
   }
 
-  void _confirmRemoveMember(BuildContext context, WidgetRef ref, GroupMember member) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        final isDark = Theme.of(context).brightness == Brightness.dark;
-        return AlertDialog(
-          backgroundColor: isDark ? const Color(0xFF141414) : Colors.white,
-          title: const Text('REMOVE MEMBER?', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.redAccent)),
-          content: Text('Are you sure you want to remove "${member.name}" from the group?', style: const TextStyle(fontSize: 12)),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('CANCEL', style: TextStyle(color: Colors.grey, fontSize: 11)),
-            ),
-            TextButton(
-              onPressed: () async {
-                HapticFeedback.heavyImpact();
-                final scaffoldMessenger = ScaffoldMessenger.of(context);
-                Navigator.pop(context);
-                await ref.read(groupsProvider.notifier).removeMember(groupId, member.id);
-                scaffoldMessenger.showSnackBar(
-                  SnackBar(content: Text('Removed ${member.name} from group'), behavior: SnackBarBehavior.floating),
-                );
-              },
-              child: const Text('REMOVE', style: TextStyle(color: Colors.redAccent, fontSize: 11, fontWeight: FontWeight.bold)),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildList(BuildContext context, WidgetRef ref, List<GroupMember> list) {
+  Widget _buildList(BuildContext context, List<GroupMember> all) {
     final currentUserId = ref.watch(authStateProvider).value?.id;
-    final isCurrentUserAdmin = list.any((m) => m.id == currentUserId && m.isAdmin);
+    final isCurrentUserAdmin =
+        all.any((m) => m.id == currentUserId && m.isAdmin);
+    final adminCount = all.where((m) => m.isAdmin).length;
 
-    return ListView.separated(
+    // Admins first, then alphabetical — the roster's job is to answer "who runs
+    // this group" before "who is in it".
+    final sorted = [...all]..sort((a, b) {
+        if (a.isAdmin != b.isAdmin) return a.isAdmin ? -1 : 1;
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      });
+    final q = _query.trim().toLowerCase();
+    final visible = q.isEmpty
+        ? sorted
+        : sorted.where((m) => m.name.toLowerCase().contains(q)).toList();
+
+    final bansAsync = ref.watch(groupBansProvider(widget.groupId));
+    final bans = bansAsync.value ?? const <GroupBan>[];
+
+    return ListView(
       padding: const EdgeInsets.all(NoSusTheme.s24),
       physics: AlwaysScrollableScrollPhysics(
         parent: NoSusTheme.getScrollPhysics(context),
       ),
-      itemCount: list.length,
-      separatorBuilder: (context, index) =>
-          const SizedBox(height: NoSusTheme.s12),
-      itemBuilder: (context, i) {
-        final member = list[i];
-        final canKick = isCurrentUserAdmin && member.id != currentUserId;
+      children: [
+        // Search appears once the roster is big enough to need it — a filter
+        // over four people is clutter.
+        if (all.length >= 8) ...[
+          TextField(
+            controller: _searchController,
+            onChanged: (v) => setState(() => _query = v),
+            style: TextStyle(fontSize: 14, color: _fg),
+            cursorColor: _fg,
+            decoration: InputDecoration(
+              hintText: 'Search members',
+              hintStyle: TextStyle(fontSize: 14, color: _subtle),
+              prefixIcon: Icon(Icons.search, size: 18, color: _subtle),
+              isDense: true,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(NoSusTheme.r12),
+                borderSide: BorderSide(color: _fg.withValues(alpha: 0.12)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(NoSusTheme.r12),
+                borderSide: BorderSide(color: _fg.withValues(alpha: 0.12)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(NoSusTheme.r12),
+                borderSide: BorderSide(color: _fg),
+              ),
+            ),
+          ),
+          const SizedBox(height: NoSusTheme.s16),
+        ],
 
-        return Container(
-              padding: const EdgeInsets.all(NoSusTheme.s16),
-              decoration: NoSusTheme.cardDecoration(context),
-              child: Row(
-                children: [
-                  // Avatar
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: fg.withValues(alpha: 0.15),
-                        width: 0.75,
-                      ),
-                    ),
-                    child: Center(
-                      child: Text(
-                        member.initials,
-                        style: TextStyle(
-                          color: fg,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+        _RosterLabel(
+          text: '${all.length} MEMBER${all.length == 1 ? '' : 'S'}'
+              ' · $adminCount ADMIN${adminCount == 1 ? '' : 'S'}',
+          color: _subtle,
+        ),
+        const SizedBox(height: NoSusTheme.s8),
+
+        if (visible.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: NoSusTheme.s32),
+            child: Text(
+              'No member matches "$_query".',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: _subtle),
+            ),
+          )
+        else
+          for (var i = 0; i < visible.length; i++) ...[
+            _MemberRow(
+              member: visible[i],
+              fg: _fg,
+              subtle: _subtle,
+              isSelf: visible[i].id == currentUserId,
+              canModerate:
+                  isCurrentUserAdmin && visible[i].id != currentUserId,
+              index: i,
+              onSetRole: (makeAdmin) =>
+                  _confirmSetRole(visible[i], makeAdmin),
+              onRemove: () => _confirmRemoveMember(visible[i]),
+              onBan: () => _confirmBanMember(visible[i]),
+            ),
+            const SizedBox(height: NoSusTheme.s12),
+          ],
+
+        // Bans are shown to every member, not just admins — the same
+        // reasoning that makes the audit log group-visible. Moderation that
+        // only moderators can see is not accountable.
+        if (bans.isNotEmpty) ...[
+          const SizedBox(height: NoSusTheme.s16),
+          _RosterLabel(text: 'BANNED (${bans.length})', color: _subtle),
+          const SizedBox(height: NoSusTheme.s8),
+          for (final ban in bans) ...[
+            _BanRow(
+              ban: ban,
+              fg: _fg,
+              subtle: _subtle,
+              onUnban:
+                  isCurrentUserAdmin ? () => _confirmUnban(ban) : null,
+            ),
+            const SizedBox(height: NoSusTheme.s12),
+          ],
+        ],
+        const SizedBox(height: NoSusTheme.s32),
+      ],
+    );
+  }
+}
+
+class _RosterLabel extends StatelessWidget {
+  final String text;
+  final Color color;
+  const _RosterLabel({required this.text, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: TextStyle(
+        color: color,
+        fontSize: 10,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 1.5,
+      ),
+    );
+  }
+}
+
+class _MemberRow extends StatelessWidget {
+  final GroupMember member;
+  final Color fg;
+  final Color subtle;
+  final bool isSelf;
+  final bool canModerate;
+  final int index;
+  final ValueChanged<bool> onSetRole;
+  final VoidCallback onRemove;
+  final VoidCallback onBan;
+
+  const _MemberRow({
+    required this.member,
+    required this.fg,
+    required this.subtle,
+    required this.isSelf,
+    required this.canModerate,
+    required this.index,
+    required this.onSetRole,
+    required this.onRemove,
+    required this.onBan,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+          padding: const EdgeInsets.all(NoSusTheme.s16),
+          decoration: NoSusTheme.cardDecoration(context),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: fg.withValues(alpha: 0.15),
+                    width: 0.75,
+                  ),
+                ),
+                child: Center(
+                  child: Text(
+                    member.initials,
+                    style: TextStyle(
+                      color: fg,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          member.name,
-                          style: TextStyle(
-                            color: fg,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        Text(
-                          member.isAdmin ? 'Admin' : 'Member',
-                          style: TextStyle(color: subtle, fontSize: 11),
-                        ),
-                      ],
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isSelf ? '${member.name} (you)' : member.name,
+                      style: TextStyle(
+                        color: fg,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Text(
+                      member.isAdmin ? 'Admin' : 'Member',
+                      style: TextStyle(color: subtle, fontSize: 11),
+                    ),
+                  ],
+                ),
+              ),
+              if (member.isAdmin)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: fg.withValues(alpha: 0.2),
+                      width: 0.75,
+                    ),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    'ADMIN',
+                    style: TextStyle(
+                      fontSize: 9,
+                      color: subtle,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.0,
                     ),
                   ),
-                  if (member.isAdmin)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: fg.withValues(alpha: 0.2),
-                          width: 0.75,
+                ),
+              if (canModerate)
+                PopupMenuButton<String>(
+                  // 48dp minimum touch target, and a real label for screen
+                  // readers — a bare icon announces nothing useful.
+                  tooltip: 'Manage ${member.name}',
+                  icon: Icon(
+                    Icons.more_vert,
+                    size: 20,
+                    color: subtle,
+                  ),
+                  onSelected: (value) {
+                    switch (value) {
+                      case 'promote':
+                        onSetRole(true);
+                      case 'demote':
+                        onSetRole(false);
+                      case 'remove':
+                        onRemove();
+                      case 'ban':
+                        onBan();
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    if (member.isAdmin)
+                      const PopupMenuItem(
+                        value: 'demote',
+                        child: ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          leading: Icon(Icons.remove_moderator_outlined, size: 18),
+                          title: Text('Remove admin', style: TextStyle(fontSize: 13)),
                         ),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        'ADMIN',
-                        style: TextStyle(
-                          fontSize: 9,
-                          color: subtle,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1.0,
+                      )
+                    else
+                      const PopupMenuItem(
+                        value: 'promote',
+                        child: ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          leading: Icon(Icons.add_moderator_outlined, size: 18),
+                          title: Text('Make admin', style: TextStyle(fontSize: 13)),
                         ),
+                      ),
+                    const PopupMenuItem(
+                      value: 'remove',
+                      child: ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                        leading: Icon(Icons.person_remove_outlined, size: 18),
+                        title: Text('Remove from group',
+                            style: TextStyle(fontSize: 13)),
                       ),
                     ),
-                  if (canKick) ...[
-                    const SizedBox(width: 12),
-                    Semantics(
-                      button: true,
-                      label: 'Remove ${member.name} from group',
-                      child: InkWell(
-                        onTap: () => _confirmRemoveMember(context, ref, member),
-                        borderRadius: BorderRadius.circular(20),
-                        child: Container(
-                          constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-                          alignment: Alignment.center,
-                          child: Icon(
-                            Icons.person_remove_outlined,
-                            size: 18,
-                            color: Colors.redAccent.withValues(alpha: 0.8),
-                          ),
+                    const PopupMenuItem(
+                      value: 'ban',
+                      child: ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                        leading: Icon(Icons.block, size: 18, color: Colors.redAccent),
+                        title: Text(
+                          'Ban from group',
+                          style: TextStyle(fontSize: 13, color: Colors.redAccent),
                         ),
                       ),
                     ),
                   ],
-                ],
+                ),
+            ],
+          ),
+        )
+        .animate(delay: (index.clamp(0, 10) * 60).ms)
+        .fadeIn(duration: 250.ms)
+        .slideY(begin: 0.03, end: 0);
+  }
+}
+
+class _BanRow extends StatelessWidget {
+  final GroupBan ban;
+  final Color fg;
+  final Color subtle;
+  final VoidCallback? onUnban;
+
+  const _BanRow({
+    required this.ban,
+    required this.fg,
+    required this.subtle,
+    required this.onUnban,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(NoSusTheme.s16),
+      decoration: BoxDecoration(
+        color: Colors.redAccent.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(NoSusTheme.r16),
+        border: Border.all(
+          color: Colors.redAccent.withValues(alpha: 0.15),
+          width: 0.75,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.block, size: 18, color: Colors.redAccent.withValues(alpha: 0.8)),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  ban.displayName,
+                  style: TextStyle(
+                    color: fg,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Text(
+                  ban.reason == null || ban.reason!.isEmpty
+                      ? 'No reason given'
+                      : ban.reason!,
+                  style: TextStyle(color: subtle, fontSize: 11, height: 1.4),
+                ),
+              ],
+            ),
+          ),
+          if (onUnban != null)
+            TextButton(
+              onPressed: onUnban,
+              child: const Text(
+                'UNBAN',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.0,
+                ),
               ),
-            )
-            .animate(delay: (i.clamp(0, 10) * 60).ms)
-            .fadeIn(duration: 250.ms)
-            .slideY(begin: 0.03, end: 0);
-      },
+            ),
+        ],
+      ),
     );
   }
 }

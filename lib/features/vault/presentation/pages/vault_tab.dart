@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:no_sus/main.dart' show activeTabProvider;
 import '../../../../theme.dart';
+import '../../../../components/coach_mark.dart';
 import '../../../../components/shimmer_box.dart';
 import '../../../../components/async_state_view.dart';
 import '../../../groups/models/group_file.dart';
 import '../../../groups/providers/groups_provider.dart';
+import '../../../onboarding/presentation/providers/tour_providers.dart';
 import '../../../../core/mascot/mascot_state.dart';
 import '../../../../core/mascot/mascot_view.dart';
 
@@ -28,6 +31,37 @@ class _VaultTabState extends ConsumerState<VaultTab>
 
   String? _selectedFileId;
 
+  static const _tabIndex = 1;
+
+  /// Anchors the first document row. Deliberately not a fixed header: the tip
+  /// explains what happens when you open a document, which only means anything
+  /// once there is one to open.
+  final _firstFileKey = GlobalKey();
+
+  /// See [_WorkspaceTabState._scheduleTips] — every tab is constructed with the
+  /// shell, so visibility has to be gated on the active tab rather than mount.
+  void _scheduleTips() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      CoachMarks.showSequence(context, ref, [
+        CoachMarkStep(
+          id: TourSteps.vaultReveal,
+          targetKey: _firstFileKey,
+          title: 'Documents open in a protected reader',
+          body:
+              'Tap REVEAL and the file opens in the Study Desk rather than downloading — '
+              'watermarked with your identity, and recorded in the group\'s audit log.',
+        ),
+      ]);
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (ref.read(activeTabProvider) == _tabIndex) _scheduleTips();
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
@@ -35,6 +69,10 @@ class _VaultTabState extends ConsumerState<VaultTab>
     final isDark = theme.brightness == Brightness.dark;
     final fg = isDark ? NoSusTheme.dText : NoSusTheme.lText;
     final subtle = isDark ? NoSusTheme.dTextSecondary : NoSusTheme.lTextSecondary;
+
+    ref.listen<int>(activeTabProvider, (previous, next) {
+      if (next == _tabIndex && previous != _tabIndex) _scheduleTips();
+    });
 
     final filesAsync = ref.watch(groupFilesProvider);
 
@@ -146,6 +184,7 @@ class _VaultTabState extends ConsumerState<VaultTab>
         final isSelected = _selectedFileId == file.id;
 
         return Container(
+          key: index == 0 ? _firstFileKey : null,
           padding: const EdgeInsets.all(NoSusTheme.s24),
           decoration: NoSusTheme.cardDecoration(context),
           child: Row(

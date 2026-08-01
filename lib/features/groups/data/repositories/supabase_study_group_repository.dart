@@ -282,12 +282,69 @@ class SupabaseStudyGroupRepository implements StudyGroupRepository {
     await _client.from('study_groups').delete().eq('id', groupId);
   }
 
+  // ── Moderation ─────────────────────────────────────────────────────────────
+  // All four go through RPCs rather than table writes. The old implementation
+  // of removeMember was a direct DELETE, which RLS permitted for admins but
+  // which wrote nothing to the audit ledger — so the one action an admin can
+  // take against another member was the one the group could not see. The RPC
+  // performs the check, the delete and the audit entry in one transaction.
+  //
+  // Postgres error messages are surfaced as-is: the RPCs raise human-readable
+  // text ("This is the last admin. Promote someone else first.") precisely so
+  // the UI does not have to duplicate the rules to explain them.
+
   @override
   Future<void> removeMember(String groupId, String memberId) async {
-    await _client
-        .from('study_group_members')
-        .delete()
+    await _client.rpc('remove_group_member', params: {
+      'p_group_id': groupId,
+      'p_user_id': memberId,
+    });
+  }
+
+  @override
+  Future<void> setMemberRole(String groupId, String memberId, bool isAdmin) async {
+    await _client.rpc('set_group_member_role', params: {
+      'p_group_id': groupId,
+      'p_user_id': memberId,
+      'p_is_admin': isAdmin,
+    });
+  }
+
+  @override
+  Future<void> banMember(String groupId, String memberId, {String? reason}) async {
+    await _client.rpc('ban_group_member', params: {
+      'p_group_id': groupId,
+      'p_user_id': memberId,
+      'p_reason': reason,
+    });
+  }
+
+  @override
+  Future<void> unbanMember(String groupId, String memberId) async {
+    await _client.rpc('unban_group_member', params: {
+      'p_group_id': groupId,
+      'p_user_id': memberId,
+    });
+  }
+
+  @override
+  Future<List<GroupBan>> getBans(String groupId) async {
+    final rows = await _client
+        .from('group_bans')
+        .select('user_id, reason, created_at, profiles!group_bans_user_id_fkey(display_name, email)')
         .eq('group_id', groupId)
-        .eq('user_id', memberId);
+        .order('created_at', ascending: false);
+
+    return (rows as List).map((r) {
+      final profile = r['profiles'] as Map<String, dynamic>? ?? const {};
+      final name = (profile['display_name'] as String?) ??
+          ((profile['email'] as String?) ?? 'User').split('@').first;
+      return GroupBan(
+        userId: r['user_id'] as String,
+        displayName: name,
+        reason: r['reason'] as String?,
+        bannedAt: _parseDate(r['created_at']),
+      );
+    }).toList(growable: false);
   }
 }

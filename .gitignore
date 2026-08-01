@@ -9,6 +9,14 @@
 *.key
 signing_keys.json
 
+# Firebase per-project config. This repo is public, so the file is injected in
+# CI from GOOGLE_SERVICES_JSON_BASE64 rather than checked in — same convention
+# as ANDROID_KEYSTORE_BASE64. android/app/build.gradle.kts applies the
+# google-services plugin only when the file exists, so a clone without it still
+# builds; it just ships without push.
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+
 # --- Supabase temp files ---
 supabase/.temp/
 supabase/.branches/

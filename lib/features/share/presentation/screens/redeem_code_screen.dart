@@ -51,16 +51,22 @@ class _RedeemCodeScreenState extends State<RedeemCodeScreen> {
       if (!mounted) return;
       final viewer = result.targetKind == 'file'
           ? BurnFileViewerScreen(
-              files: [(id: result.targetId, keyHex: result.keyHex, ivHex: result.ivHex)],
+              files: [
+                (
+                  id: result.targetId,
+                  keyHex: result.keyHex,
+                  ivHex: result.ivHex,
+                ),
+              ],
             )
           : BurnNoteViewerScreen(
               noteId: result.targetId,
               keyHex: result.keyHex,
               ivHex: result.ivHex,
             );
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => viewer),
-      );
+      Navigator.of(
+        context,
+      ).pushReplacement(MaterialPageRoute(builder: (_) => viewer));
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -75,7 +81,9 @@ class _RedeemCodeScreenState extends State<RedeemCodeScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final fg = isDark ? NoSusTheme.dText : NoSusTheme.lText;
-    final subtle = isDark ? NoSusTheme.dTextSecondary : NoSusTheme.lTextSecondary;
+    final subtle = isDark
+        ? NoSusTheme.dTextSecondary
+        : NoSusTheme.lTextSecondary;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Redeem a Code')),
@@ -88,7 +96,11 @@ class _RedeemCodeScreenState extends State<RedeemCodeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.key_outlined, size: 40, color: fg.withValues(alpha: 0.6)),
+              Icon(
+                Icons.key_outlined,
+                size: 40,
+                color: fg.withValues(alpha: 0.6),
+              ),
               const SizedBox(height: NoSusTheme.s16),
               Text(
                 'Got a code instead of a link?',
@@ -124,7 +136,8 @@ class _RedeemCodeScreenState extends State<RedeemCodeScreen> {
                 inputFormatters: [
                   FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9]')),
                   TextInputFormatter.withFunction(
-                    (oldValue, newValue) => newValue.copyWith(text: newValue.text.toUpperCase()),
+                    (oldValue, newValue) =>
+                        newValue.copyWith(text: newValue.text.toUpperCase()),
                   ),
                 ],
                 onSubmitted: (_) => _submit(),
@@ -135,33 +148,38 @@ class _RedeemCodeScreenState extends State<RedeemCodeScreen> {
               const SizedBox(height: NoSusTheme.s24),
               SizedBox(
                 width: double.infinity,
-                child: GestureDetector(
-                  onTap: _isLoading ? null : _submit,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 15),
-                    decoration: BoxDecoration(
-                      color: fg,
-                      borderRadius: BorderRadius.circular(NoSusTheme.r12),
-                    ),
-                    child: Center(
-                      child: _isLoading
-                          ? SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: isDark ? Colors.black : Colors.white,
+                child: Semantics(
+                  button: true,
+                  enabled: !_isLoading,
+                  label: _isLoading ? 'Opening' : 'Open code',
+                  child: GestureDetector(
+                    onTap: _isLoading ? null : _submit,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      decoration: BoxDecoration(
+                        color: fg,
+                        borderRadius: BorderRadius.circular(NoSusTheme.r12),
+                      ),
+                      child: Center(
+                        child: _isLoading
+                            ? SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: isDark ? Colors.black : Colors.white,
+                                ),
+                              )
+                            : Text(
+                                'OPEN',
+                                style: TextStyle(
+                                  color: isDark ? Colors.black : Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 1.5,
+                                ),
                               ),
-                            )
-                          : Text(
-                              'OPEN',
-                              style: TextStyle(
-                                color: isDark ? Colors.black : Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 1.5,
-                              ),
-                            ),
+                      ),
                     ),
                   ),
                 ),

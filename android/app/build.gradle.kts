@@ -6,6 +6,19 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Firebase Cloud Messaging, applied only when the project has actually been
+// provisioned. The google-services plugin fails the build with "File
+// google-services.json is missing" if it is applied without one, so putting it
+// in the plugins {} block above would break every build in CI and on every
+// fresh clone — the repo has no such file and must not (it is per-project
+// config, and checking one in would tie the open repo to one Firebase project).
+//
+// Drop the file in android/app/ and this wires itself up on the next build.
+// Nothing else needs to change. See AGENTS.md §8.
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 android {
     namespace = "foo.nosus.app"
     compileSdk = flutter.compileSdkVersion

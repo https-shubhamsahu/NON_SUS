@@ -61,6 +61,33 @@ jobs:
           storeFile=upload-keystore.jks
           EOF
 
+      - name: Set up Firebase Cloud Messaging
+        # google-services.json is git-ignored (public repo, per-project config),
+        # so without this step the release build ships with push permanently
+        # unavailable — PushService.initialize() would set _available = false on
+        # every device and nobody would ever see a push notification.
+        #
+        # The write is conditional on purpose. app/build.gradle.kts applies the
+        # google-services plugin only if the file exists, so no secret means a
+        # working build without push. Writing an *empty* file would be worse
+        # than writing none: the plugin would apply and then fail on malformed
+        # JSON, breaking the release outright.
+        #
+        # Secret value: base64 of android/app/google-services.json, downloaded
+        # from Firebase console → Project settings → Your apps → foo.nosus.app.
+        env:
+          GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON_BASE64" ]; then
+            echo "$GOOGLE_SERVICES_JSON_BASE64" | base64 -d > android/app/google-services.json
+            python3 -c "import json,sys; d=json.load(open('android/app/google-services.json')); \
+              pkgs=[c['client_info']['android_client_info']['package_name'] for c in d['client']]; \
+              sys.exit(0) if 'foo.nosus.app' in pkgs else sys.exit('package_name mismatch: %s' % pkgs)"
+            echo "FCM configured — push will be compiled in."
+          else
+            echo "::warning::GOOGLE_SERVICES_JSON_BASE64 not set — building without push."
+          fi
+
       - name: Build App Bundle
         run: flutter build appbundle --release --dart-define-from-file=.env
 

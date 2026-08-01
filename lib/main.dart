@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:universal_html/html.dart' as html;
@@ -37,11 +38,16 @@ import 'features/share/presentation/providers/share_providers.dart';
 import 'features/share/domain/entities/share_link.dart';
 
 import 'package:app_links/app_links.dart';
+import 'features/analytics/data/analytics_service.dart';
+import 'features/auth/presentation/providers/pending_intent_provider.dart';
+import 'features/notifications/data/push_service.dart';
+import 'features/notifications/presentation/notification_router.dart';
+import 'features/notifications/presentation/providers/notification_providers.dart';
+import 'features/notifications/presentation/screens/notification_inbox_screen.dart';
 import 'features/config/data/remote_config_service.dart';
 import 'features/config/presentation/providers/config_provider.dart';
 import 'core/mascot/mascot_state.dart';
 import 'core/mascot/mascot_view.dart';
-
 
 import 'features/share/presentation/screens/burn_note_viewer_screen.dart';
 import 'features/share/presentation/screens/burn_file_viewer_screen.dart';
@@ -69,16 +75,23 @@ BurnNoteToken? extractBurnNoteToken(Uri uri) {
     final fragment = fullUrl.substring(hashIdx + 1); // /burn/<uuid>?k=...&v=...
     final qIdx = fragment.indexOf('?');
     if (qIdx != -1) {
-      final path = fragment.substring(0, qIdx);       // /burn/<uuid>
-      final query = fragment.substring(qIdx + 1);     // k=...&v=...
+      final path = fragment.substring(0, qIdx); // /burn/<uuid>
+      final query = fragment.substring(qIdx + 1); // k=...&v=...
       final params = Uri.splitQueryString(query);
-      final burnMatch = RegExp(r'burn/([a-f0-9\-]{36})', caseSensitive: false)
-          .firstMatch(path);
+      final burnMatch = RegExp(
+        r'burn/([a-f0-9\-]{36})',
+        caseSensitive: false,
+      ).firstMatch(path);
       final k = params['k'];
       final v = params['v'];
-      if (burnMatch != null && k != null && v != null &&
-          k.length == 64 && v.length == 32) {
-        debugLog('NO SUS: Burn Note matched (new format) id=${burnMatch.group(1)}');
+      if (burnMatch != null &&
+          k != null &&
+          v != null &&
+          k.length == 64 &&
+          v.length == 32) {
+        debugLog(
+          'NO SUS: Burn Note matched (new format) id=${burnMatch.group(1)}',
+        );
         return BurnNoteToken(id: burnMatch.group(1)!, keyHex: k, ivHex: v);
       }
     }
@@ -121,17 +134,26 @@ BurnFileToken? extractBurnFileToken(Uri uri) {
   final hashIdx = fullUrl.indexOf('#');
   if (hashIdx == -1) return null;
 
-  final fragment = fullUrl.substring(hashIdx + 1); // /burnfile/<uuid>?k=...&v=...
+  final fragment = fullUrl.substring(
+    hashIdx + 1,
+  ); // /burnfile/<uuid>?k=...&v=...
   final qIdx = fragment.indexOf('?');
   if (qIdx == -1) return null;
 
   final path = fragment.substring(0, qIdx); // /burnfile/<uuid>
   final query = fragment.substring(qIdx + 1); // k=...&v=...
   final params = Uri.splitQueryString(query);
-  final match = RegExp(r'burnfile/([a-f0-9\-]{36})', caseSensitive: false).firstMatch(path);
+  final match = RegExp(
+    r'burnfile/([a-f0-9\-]{36})',
+    caseSensitive: false,
+  ).firstMatch(path);
   final k = params['k'];
   final v = params['v'];
-  if (match != null && k != null && v != null && k.length == 64 && v.length == 32) {
+  if (match != null &&
+      k != null &&
+      v != null &&
+      k.length == 64 &&
+      v.length == 32) {
     debugLog('NO SUS: Burn File matched id=${match.group(1)}');
     return BurnFileToken(id: match.group(1)!, keyHex: k, ivHex: v);
   }
@@ -153,7 +175,9 @@ List<BurnFileToken>? extractBurnFilesToken(Uri uri) {
   final hashIdx = fullUrl.indexOf('#');
   if (hashIdx == -1) return null;
 
-  final fragment = fullUrl.substring(hashIdx + 1); // /burnfiles/<id,id,...>?k=...&v=...
+  final fragment = fullUrl.substring(
+    hashIdx + 1,
+  ); // /burnfiles/<id,id,...>?k=...&v=...
   final qIdx = fragment.indexOf('?');
   if (qIdx == -1) return null;
 
@@ -161,7 +185,10 @@ List<BurnFileToken>? extractBurnFilesToken(Uri uri) {
   final query = fragment.substring(qIdx + 1);
   final params = Uri.splitQueryString(query);
 
-  final match = RegExp(r'burnfiles/([a-f0-9,\-]+)', caseSensitive: false).firstMatch(path);
+  final match = RegExp(
+    r'burnfiles/([a-f0-9,\-]+)',
+    caseSensitive: false,
+  ).firstMatch(path);
   final ids = match?.group(1)?.split(',') ?? const [];
   final keys = params['k']?.split(',') ?? const [];
   final ivs = params['v']?.split(',') ?? const [];
@@ -220,6 +247,19 @@ void main() async {
     () async {
       WidgetsFlutterBinding.ensureInitialized();
 
+      // Fonts resolve from assets/google_fonts/ only — never fonts.gstatic.com.
+      // Set before any runApp() below (there are several early-return ones for
+      // share/burn deep links) because google_fonts reads this flag at the
+      // moment a style is first resolved, not at package load.
+      //
+      // Two reasons this is off: a cold or network-blocked first launch used to
+      // silently fall back to a system font, and a zero-knowledge product
+      // reaching out to a Google CDN at startup undercuts the claim. The
+      // bundled weights are exactly the ones lib/theme.dart and
+      // anonymous_share_viewer_screen.dart render — adding a new weight or
+      // family means adding the .ttf too, or that style falls back silently.
+      GoogleFonts.config.allowRuntimeFetching = false;
+
       // Crash reporting — no-op unless SENTRY_DSN is supplied via
       // --dart-define (see lib/config/crash_reporting_config.dart). Used at
       // the low-level `SentryFlutter.init(configure)` form (no `appRunner`)
@@ -244,9 +284,16 @@ void main() async {
 
       // Pre-load SharedPreferences synchronously before routing and app run
       final prefs = await SharedPreferences.getInstance();
+      // Hand the warm instance to the analytics service so its "first ever"
+      // milestones can be deduped without awaiting a plugin channel per call.
+      AnalyticsService.instance.attachPreferences(prefs);
 
       // Initialize Supabase immediately so all early routing screens can access the client
       await SupabaseService.instance.initialize();
+
+      // Funnel entry point. Fire-and-forget by construction — see
+      // AnalyticsService; it no-ops entirely in mock fallback mode.
+      AnalyticsService.instance.log(AnalyticsEvent.appOpened);
 
       // Ghost-session guard: if the device has a cached JWT for a user that was
       // deleted from auth.users (e.g. after a dev DB wipe), every Supabase write
@@ -261,9 +308,13 @@ void main() async {
           final cachedSession = Supabase.instance.client.auth.currentSession;
           if (cachedSession != null) {
             try {
-              await Supabase.instance.client.auth.getUser(cachedSession.accessToken);
+              await Supabase.instance.client.auth.getUser(
+                cachedSession.accessToken,
+              );
             } catch (_) {
-              debugLog('NO SUS: Ghost session detected (user deleted). Signing out.');
+              debugLog(
+                'NO SUS: Ghost session detected (user deleted). Signing out.',
+              );
               await Supabase.instance.client.auth.signOut();
             }
           }
@@ -278,27 +329,27 @@ void main() async {
         // ProviderScope here is only so the mascot system (Riverpod) works on
         // this standalone entrypoint — it has no Supabase session and never
         // will; nothing mascot-related depends on one.
-        runApp(ProviderScope(
-          overrides: [
-            sharedPreferencesProvider.overrideWithValue(prefs),
-          ],
-          child: AnonymousShareViewerScreen(token: shareToken),
-        ));
+        runApp(
+          ProviderScope(
+            overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+            child: AnonymousShareViewerScreen(token: shareToken),
+          ),
+        );
         return;
       }
 
       final burnNoteToken = extractBurnNoteToken(Uri.base);
       if (burnNoteToken != null) {
-        runApp(ProviderScope(
-          overrides: [
-            sharedPreferencesProvider.overrideWithValue(prefs),
-          ],
-          child: BurnNoteViewerScreen(
-            noteId: burnNoteToken.id,
-            keyHex: burnNoteToken.keyHex,
-            ivHex: burnNoteToken.ivHex,
+        runApp(
+          ProviderScope(
+            overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+            child: BurnNoteViewerScreen(
+              noteId: burnNoteToken.id,
+              keyHex: burnNoteToken.keyHex,
+              ivHex: burnNoteToken.ivHex,
+            ),
           ),
-        ));
+        );
         return;
       }
 
@@ -308,16 +359,20 @@ void main() async {
       // supabase/migrations/20260710050000_burn_files.sql).
       final burnFileToken = extractBurnFileToken(Uri.base);
       if (burnFileToken != null) {
-        runApp(ProviderScope(
-          overrides: [
-            sharedPreferencesProvider.overrideWithValue(prefs),
-          ],
-          child: BurnFileViewerScreen(files: [(
-            id: burnFileToken.id,
-            keyHex: burnFileToken.keyHex,
-            ivHex: burnFileToken.ivHex,
-          )]),
-        ));
+        runApp(
+          ProviderScope(
+            overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+            child: BurnFileViewerScreen(
+              files: [
+                (
+                  id: burnFileToken.id,
+                  keyHex: burnFileToken.keyHex,
+                  ivHex: burnFileToken.ivHex,
+                ),
+              ],
+            ),
+          ),
+        );
         return;
       }
 
@@ -326,16 +381,16 @@ void main() async {
       // the two regexes are structurally disjoint (see extractBurnFilesToken).
       final burnFilesToken = extractBurnFilesToken(Uri.base);
       if (burnFilesToken != null) {
-        runApp(ProviderScope(
-          overrides: [
-            sharedPreferencesProvider.overrideWithValue(prefs),
-          ],
-          child: BurnFileViewerScreen(
-            files: burnFilesToken
-                .map((t) => (id: t.id, keyHex: t.keyHex, ivHex: t.ivHex))
-                .toList(),
+        runApp(
+          ProviderScope(
+            overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+            child: BurnFileViewerScreen(
+              files: burnFilesToken
+                  .map((t) => (id: t.id, keyHex: t.keyHex, ivHex: t.ivHex))
+                  .toList(),
+            ),
           ),
-        ));
+        );
         return;
       }
 
@@ -387,6 +442,10 @@ void main() async {
           if (token != null && token.isNotEmpty) {
             _handleInAppShareView(token);
           }
+        } else if (uri.scheme == 'https') {
+          // Android App Links hand us every https link to app.nosus.foo —
+          // see _routeIncomingWebLink for why this catch-all is mandatory.
+          _routeIncomingWebLink(uri);
         }
       });
 
@@ -401,13 +460,18 @@ void main() async {
             });
           } else if (initialUri.scheme == 'io.supabase.nosus') {
             await handleOAuthCallback(initialUri);
-          } else if (initialUri.scheme == 'foo.nosus.app' && initialUri.host == 'v') {
+          } else if (initialUri.scheme == 'foo.nosus.app' &&
+              initialUri.host == 'v') {
             final token = initialUri.pathSegments.firstOrNull;
             if (token != null && token.isNotEmpty) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 _handleInAppShareView(token);
               });
             }
+          } else if (initialUri.scheme == 'https') {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _routeIncomingWebLink(initialUri);
+            });
           }
         }
       } catch (e) {
@@ -434,7 +498,8 @@ void main() async {
       final remoteConfig = RemoteConfigService(
         SupabaseService.instance.isConfigured ? Supabase.instance.client : null,
       );
-      if (SupabaseService.instance.isConfigured && SupabaseService.instance.isReachable) {
+      if (SupabaseService.instance.isConfigured &&
+          SupabaseService.instance.isReachable) {
         unawaited(remoteConfig.ensureInitialized());
       }
 
@@ -447,7 +512,6 @@ void main() async {
           child: const MyApp(),
         ),
       );
-
     },
     (error, stack) {
       // Catch all unhandled async errors (e.g. Supabase realtime WebSocket failures)
@@ -481,9 +545,7 @@ class MyApp extends ConsumerWidget {
       home: inviteToken != null
           ? GroupInviteLandingScreen(inviteCode: inviteToken)
           : const VideoSplashScreen(
-              nextScreen: AuthGate(
-                child: WorkspaceHome(),
-              ),
+              nextScreen: AuthGate(child: WorkspaceHome()),
             ),
       onGenerateRoute: (settings) {
         // Web OAuth (Google/GitHub) redirects land on e.g. "/?code=..." — not
@@ -543,21 +605,93 @@ class _WorkspaceHomeState extends ConsumerState<WorkspaceHome> {
         _showSaveToNoSusModal(shared);
       }
 
-      // Check for pending invite code
-      try {
-        final prefs = await SharedPreferences.getInstance();
-        final pendingCode = prefs.getString('pending_invite_code');
-        if (pendingCode != null && mounted) {
-          await prefs.remove('pending_invite_code');
-          if (!mounted) return;
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => GroupInviteLandingScreen(inviteCode: pendingCode),
-            ),
-          );
-        }
-      } catch (_) {}
+      _resumePendingIntent();
+      _initPush();
     });
+  }
+
+  StreamSubscription? _pushTapSub;
+
+  /// Brings up the push transport and wires notification taps to navigation.
+  ///
+  /// Deliberately does **not** request the notification permission: that is a
+  /// contextual decision made after the user does something worth being
+  /// notified about (see maybePrimeNotifications). Registering a token for an
+  /// account that already granted permission on another install is separate
+  /// from asking, and only the former happens here.
+  ///
+  /// With no Firebase project configured — the current state — initialize()
+  /// returns false and everything below is a no-op. The in-app inbox still
+  /// works; it reads Postgres directly.
+  Future<void> _initPush() async {
+    final available = await PushService.instance.initialize();
+    if (!available || !mounted) return;
+
+    if (await PushService.instance.hasPermission()) {
+      await PushService.instance.registerCurrentDevice();
+    }
+
+    _pushTapSub = PushService.instance.onNotificationTap.listen((message) {
+      if (!mounted) return;
+      final navContext = ScreenshotGuard.instance.navigatorKey.currentContext;
+      if (navContext == null || !navContext.mounted) return;
+      NotificationRouter.open(
+        navContext,
+        ref,
+        message.data['deep_link'] as String?,
+      );
+    });
+
+    // A tap that launched the app from terminated does not arrive on the
+    // stream above — it has to be collected once, here.
+    final launchMessage = await PushService.instance.initialMessage();
+    if (launchMessage != null && mounted) {
+      NotificationRouter.open(
+        context,
+        ref,
+        launchMessage.data['deep_link'] as String?,
+      );
+    }
+  }
+
+  /// Replays whatever the user was trying to do before an auth wall stopped
+  /// them.
+  ///
+  /// This is the landing point of the "preserve intent" contract: tap Join
+  /// Community → sign up → arrive back at the join flow, rather than on Home
+  /// having to find it again. Runs after the shell's first frame because two of
+  /// the four intents are tab switches on this very widget.
+  void _resumePendingIntent() {
+    final intent = ref.read(pendingIntentProvider.notifier).take();
+    if (intent == null || !mounted) return;
+
+    AnalyticsService.instance.log(
+      AnalyticsEvent.intentResumed,
+      properties: {'kind': intent.kind.name},
+    );
+
+    switch (intent.kind) {
+      case PendingIntentKind.joinGroup:
+        final code = intent.payload;
+        if (code == null || code.isEmpty) return;
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => GroupInviteLandingScreen(inviteCode: code),
+          ),
+        );
+      case PendingIntentKind.openShare:
+        final token = intent.payload;
+        if (token == null || token.isEmpty) return;
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => InAppShareViewerScreen(token: token),
+          ),
+        );
+      case PendingIntentKind.browseGroups:
+        ref.read(activeTabProvider.notifier).changeTab(4);
+      case PendingIntentKind.shareDocument:
+        ref.read(activeTabProvider.notifier).changeTab(1);
+    }
   }
 
   bool _isShareModalOpen = false;
@@ -576,6 +710,7 @@ class _WorkspaceHomeState extends ConsumerState<WorkspaceHome> {
 
   @override
   void dispose() {
+    _pushTapSub?.cancel();
     _pageController.dispose();
     super.dispose();
   }
@@ -642,17 +777,32 @@ class _WorkspaceHomeState extends ConsumerState<WorkspaceHome> {
         Row(
           children: [
             // Minimalist Outlined Theme Selector Toggle
-            GestureDetector(
-              onTap: _toggleTheme,
-              child: Container(
-                padding: const EdgeInsets.all(NoSusTheme.s12),
-                decoration: NoSusTheme.buttonDecoration(context, radius: 14),
-                child: Icon(
-                  isDark
-                      ? Icons.wb_sunny_outlined
-                      : Icons.nightlight_round_outlined,
-                  size: 18,
-                  color: theme.colorScheme.onSurface,
+            Semantics(
+              button: true,
+              label: isDark ? 'Switch to light theme' : 'Switch to dark theme',
+              child: GestureDetector(
+                onTap: _toggleTheme,
+                child: Container(
+                  padding: const EdgeInsets.all(NoSusTheme.s12),
+                  decoration: NoSusTheme.buttonDecoration(context, radius: 14),
+                  child: Icon(
+                    isDark
+                        ? Icons.wb_sunny_outlined
+                        : Icons.nightlight_round_outlined,
+                    size: 18,
+                    color: theme.colorScheme.onSurface,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: NoSusTheme.s12),
+            // Notification inbox. Present regardless of push: the inbox reads
+            // Postgres directly, so it is the reliable delivery channel and
+            // push is the optimisation on top.
+            _NotificationBell(
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const NotificationInboxScreen(),
                 ),
               ),
             ),
@@ -662,43 +812,62 @@ class _WorkspaceHomeState extends ConsumerState<WorkspaceHome> {
               final profileAsync = ref.watch(profileProvider);
               return profileAsync.maybeWhen(
                 data: (profile) {
-                  return GestureDetector(
+                  return Semantics(
+                    button: true,
+                    label: 'Your profile',
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const ProfileScreen(),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: NoSusTheme.lBorder,
+                          border: Border.all(
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.1,
+                            ),
+                            width: 1.0,
+                          ),
+                        ),
+                        child: ClipOval(
+                          child: ExcludeSemantics(
+                            child: ProfileAvatar(profile: profile, size: 42),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+                orElse: () => Semantics(
+                  button: true,
+                  label: 'Your profile',
+                  child: GestureDetector(
                     onTap: () {
                       Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                        MaterialPageRoute(
+                          builder: (_) => const ProfileScreen(),
+                        ),
                       );
                     },
                     child: Container(
                       width: 42,
                       height: 42,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: NoSusTheme.lBorder,
-                        border: Border.all(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
-                          width: 1.0,
-                        ),
+                      decoration: NoSusTheme.buttonDecoration(
+                        context,
+                        radius: 21,
                       ),
-                      child: ClipOval(
-                        child: ProfileAvatar(profile: profile, size: 42),
+                      child: Icon(
+                        Icons.person_outline,
+                        color: theme.colorScheme.onSurface,
+                        size: 18,
                       ),
-                    ),
-                  );
-                },
-                orElse: () => GestureDetector(
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const ProfileScreen()),
-                    );
-                  },
-                  child: Container(
-                    width: 42,
-                    height: 42,
-                    decoration: NoSusTheme.buttonDecoration(context, radius: 21),
-                    child: Icon(
-                      Icons.person_outline,
-                      color: theme.colorScheme.onSurface,
-                      size: 18,
                     ),
                   ),
                 ),
@@ -730,13 +899,21 @@ class _WorkspaceHomeState extends ConsumerState<WorkspaceHome> {
             const MascotView(
               character: MascotCharacter.nox,
               size: 20,
-              fallback: Icon(Icons.notifications_active, color: Colors.white, size: 20),
+              fallback: Icon(
+                Icons.notifications_active,
+                color: Colors.white,
+                size: 20,
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 '${event.viewerEmail} opened "$fileName"',
-                style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -808,46 +985,116 @@ class _WorkspaceHomeState extends ConsumerState<WorkspaceHome> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 760),
             child: Stack(
-          children: [
-            // Main Content Area with thin border framing
-            Padding(
-              padding: const EdgeInsets.only(
-                left: NoSusTheme.s24,
-                right: NoSusTheme.s24,
-                top: NoSusTheme.s16,
-                bottom: 110.0, // Space for floating bottom nav
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // App Bar (Calm Monochrome UI Style)
-                  _buildHeader(context, isDark),
-                  const SizedBox(height: NoSusTheme.s24),
+              children: [
+                // Main Content Area with thin border framing
+                Padding(
+                  padding: const EdgeInsets.only(
+                    left: NoSusTheme.s24,
+                    right: NoSusTheme.s24,
+                    top: NoSusTheme.s16,
+                    bottom: 110.0, // Space for floating bottom nav
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // App Bar (Calm Monochrome UI Style)
+                      _buildHeader(context, isDark),
+                      const SizedBox(height: NoSusTheme.s24),
 
-                  // Animated Screen Content — using PageView to preserve states properly
-                  Expanded(
-                    child: PageView(
-                      controller: _pageController,
-                      physics: const NeverScrollableScrollPhysics(), // Prevent swipe
-                      children: [
-                        const WorkspaceTab(),
-                        VaultTab(onRevealRequested: _navigateToDesk),
-                        StudyDeskTab(initialFileId: _deskFileId),
-                        const AuditTab(),
-                        const GroupsScreen(key: ValueKey('groups_tab')),
-                      ],
+                      // Animated Screen Content — using PageView to preserve states properly
+                      Expanded(
+                        child: PageView(
+                          controller: _pageController,
+                          physics:
+                              const NeverScrollableScrollPhysics(), // Prevent swipe
+                          children: [
+                            const WorkspaceTab(),
+                            VaultTab(onRevealRequested: _navigateToDesk),
+                            StudyDeskTab(initialFileId: _deskFileId),
+                            const AuditTab(),
+                            const GroupsScreen(key: ValueKey('groups_tab')),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Floating bottom navigation
+                FloatingNav(currentIndex: _currentTab, onTap: _onTabTapped),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Header bell with an unread badge.
+///
+/// The count is announced in the semantics label, not conveyed by the dot
+/// alone — a red circle is invisible to a screen reader and to anyone who
+/// cannot distinguish it against the header.
+class _NotificationBell extends ConsumerWidget {
+  final VoidCallback onTap;
+  const _NotificationBell({required this.onTap});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final unread = ref.watch(unreadNotificationCountProvider);
+
+    return Semantics(
+      button: true,
+      label: unread == 0 ? 'Notifications' : 'Notifications, $unread unread',
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(NoSusTheme.s12),
+          decoration: NoSusTheme.buttonDecoration(context, radius: 14),
+          child: ExcludeSemantics(
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(
+                  unread > 0
+                      ? Icons.notifications_active_outlined
+                      : Icons.notifications_none_outlined,
+                  size: 18,
+                  color: theme.colorScheme.onSurface,
+                ),
+                if (unread > 0)
+                  Positioned(
+                    top: -3,
+                    right: -3,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 1,
+                      ),
+                      constraints: const BoxConstraints(minWidth: 14),
+                      decoration: BoxDecoration(
+                        color: Colors.redAccent,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: theme.scaffoldBackgroundColor,
+                          width: 1.0,
+                        ),
+                      ),
+                      child: Text(
+                        unread > 9 ? '9+' : '$unread',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 8,
+                          fontWeight: FontWeight.bold,
+                          height: 1.3,
+                        ),
+                      ),
                     ),
                   ),
-                ],
-              ),
-            ),
-
-            // Floating bottom navigation
-            FloatingNav(
-              currentIndex: _currentTab,
-              onTap: _onTabTapped,
-            ),
-          ],
+              ],
             ),
           ),
         ),
@@ -878,4 +1125,82 @@ void _handleInAppInviteLink(String inviteCode) {
       ),
     );
   }
+}
+
+/// Routes an incoming `https://app.nosus.foo/...` link to the viewer it names.
+/// Returns true if the link was recognised and handled.
+///
+/// **Why every shape has to be handled here.** The Android App Links filter for
+/// `app.nosus.foo` is necessarily host-wide: an intent filter cannot match on a
+/// URL fragment, and every link this app mints is fragment-shaped at path `/`
+/// (`/#/burn/<id>?k=…`, `/#/burnfile/<id>`, `/#/burnfiles/<ids>`, `/?cb=…#/v/…`,
+/// `/#/join/<code>`). So once the app is installed it intercepts *all* of them.
+/// Anything not routed here is silently swallowed — the recipient lands on the
+/// home screen and a single-use link looks broken, with no browser fallback,
+/// because the system already chose the app over the web page.
+///
+/// On web these same shapes are handled off `Uri.base` in [main] before the
+/// normal app boots, each in its own standalone `runApp`. Native cannot do that
+/// (the app may already be running), so they become pushed routes instead —
+/// same screens, same anonymous fetch path, no session required.
+///
+/// Order mirrors the web branches deliberately: single-file burn is checked
+/// before multi-file so an old `burnfile/<uuid>` link is never re-parsed by the
+/// plural matcher.
+bool _routeIncomingWebLink(Uri uri) {
+  final context = ScreenshotGuard.instance.navigatorKey.currentContext;
+  if (context == null) return false;
+
+  final shareToken = extractShareToken(uri);
+  if (shareToken != null) {
+    _handleInAppShareView(shareToken);
+    return true;
+  }
+
+  final burnNote = extractBurnNoteToken(uri);
+  if (burnNote != null) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BurnNoteViewerScreen(
+          noteId: burnNote.id,
+          keyHex: burnNote.keyHex,
+          ivHex: burnNote.ivHex,
+        ),
+      ),
+    );
+    return true;
+  }
+
+  final burnFile = extractBurnFileToken(uri);
+  if (burnFile != null) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BurnFileViewerScreen(
+          files: [
+            (id: burnFile.id, keyHex: burnFile.keyHex, ivHex: burnFile.ivHex),
+          ],
+        ),
+      ),
+    );
+    return true;
+  }
+
+  final burnFiles = extractBurnFilesToken(uri);
+  if (burnFiles != null) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BurnFileViewerScreen(
+          files: burnFiles
+              .map((t) => (id: t.id, keyHex: t.keyHex, ivHex: t.ivHex))
+              .toList(),
+        ),
+      ),
+    );
+    return true;
+  }
+
+  return false;
 }

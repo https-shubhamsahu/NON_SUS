@@ -58,7 +58,8 @@ class _VideoSplashScreenState extends ConsumerState<VideoSplashScreen>
       ref.read(duoMascotProvider.notifier).play(MascotMood.returnToLogo);
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) => widget.nextScreen,
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              widget.nextScreen,
           transitionDuration: const Duration(milliseconds: 500),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return FadeTransition(opacity: animation, child: child);
@@ -72,48 +73,60 @@ class _VideoSplashScreenState extends ConsumerState<VideoSplashScreen>
   Widget build(BuildContext context) {
     final themeMode = ref.watch(themeModeProvider);
     final isLight = themeMode == ThemeMode.light;
-    
+
     return Scaffold(
-      backgroundColor: isLight ? const Color(0xFFFAFAFA) : const Color(0xFF0A0A0A),
-      body: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: _navigateToNextScreen,
-        child: AnimatedBuilder(
-          animation: _controller,
-          builder: (context, child) {
-            // Use a time-seeded random each frame for live noise
-            final frameSeed = (_controller.value * 10000).toInt();
-            return Stack(
-              children: [
-                CustomPaint(
-                  painter: PixelSplashPainter(
-                    progress: _controller.value,
-                    random: _random,
-                    frameSeed: frameSeed,
-                    isLight: isLight,
+      backgroundColor: isLight
+          ? const Color(0xFFFAFAFA)
+          : const Color(0xFF0A0A0A),
+      // Tap anywhere skips the boot animation. Without an explicit label a
+      // screen reader has nothing to announce here — the whole surface is a
+      // CustomPaint, so the one available action would be invisible.
+      body: Semantics(
+        button: true,
+        label: 'Skip intro',
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: _navigateToNextScreen,
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) {
+              // Use a time-seeded random each frame for live noise
+              final frameSeed = (_controller.value * 10000).toInt();
+              return Stack(
+                children: [
+                  CustomPaint(
+                    painter: PixelSplashPainter(
+                      progress: _controller.value,
+                      random: _random,
+                      frameSeed: frameSeed,
+                      isLight: isLight,
+                    ),
+                    child: const SizedBox.expand(),
                   ),
-                  child: const SizedBox.expand(),
-                ),
-                // Fades in only as the boot sequence completes — the one
-                // moment Lux+Nox appear together, per the Scarcity rule.
-                if (_controller.value > 0.85)
-                  Positioned(
-                    bottom: 64,
-                    left: 0,
-                    right: 0,
-                    child: Center(
-                      child: Opacity(
-                        opacity: ((_controller.value - 0.85) / 0.15).clamp(0.0, 1.0),
-                        child: const MascotView(
-                          character: MascotCharacter.duo,
-                          size: 40,
+                  // Fades in only as the boot sequence completes — the one
+                  // moment Lux+Nox appear together, per the Scarcity rule.
+                  if (_controller.value > 0.85)
+                    Positioned(
+                      bottom: 64,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: Opacity(
+                          opacity: ((_controller.value - 0.85) / 0.15).clamp(
+                            0.0,
+                            1.0,
+                          ),
+                          child: const MascotView(
+                            character: MascotCharacter.duo,
+                            size: 40,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-              ],
-            );
-          },
+                ],
+              );
+            },
+          ),
         ),
       ),
     );
@@ -138,11 +151,171 @@ class PixelSplashPainter extends CustomPainter {
 
   // NO SUS in 5x5 pixel art font
   static const List<List<int>> _noSusPixelText = [
-    [1,0,0,0,1, 0, 0,1,1,1,0, 0,0,0, 0,1,1,1,1, 0, 1,0,0,0,1, 0, 0,1,1,1,1],
-    [1,1,0,0,1, 0, 1,0,0,0,1, 0,0,0, 1,0,0,0,0, 0, 1,0,0,0,1, 0, 1,0,0,0,0],
-    [1,0,1,0,1, 0, 1,0,0,0,1, 0,0,0, 0,1,1,1,0, 0, 1,0,0,0,1, 0, 0,1,1,1,0],
-    [1,0,0,1,1, 0, 1,0,0,0,1, 0,0,0, 0,0,0,0,1, 0, 1,0,0,0,1, 0, 0,0,0,0,1],
-    [1,0,0,0,1, 0, 0,1,1,1,0, 0,0,0, 1,1,1,1,0, 0, 0,1,1,1,0, 0, 1,1,1,1,0],
+    [
+      1,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      1,
+      1,
+      1,
+      0,
+      1,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      1,
+      1,
+      1,
+      1,
+    ],
+    [
+      1,
+      1,
+      0,
+      0,
+      1,
+      0,
+      1,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      1,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+    ],
+    [
+      1,
+      0,
+      1,
+      0,
+      1,
+      0,
+      1,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      1,
+      1,
+      1,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      1,
+      1,
+      1,
+      0,
+    ],
+    [
+      1,
+      0,
+      0,
+      1,
+      1,
+      0,
+      1,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      1,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+    ],
+    [
+      1,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      0,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      1,
+      0,
+      0,
+      1,
+      1,
+      1,
+      1,
+      0,
+    ],
   ];
 
   @override
@@ -162,17 +335,29 @@ class PixelSplashPainter extends CustomPainter {
       for (int r = 0; r < rows; r++) {
         for (int c = 0; c < cols; c++) {
           if (liveRng.nextDouble() < noiseDensity) {
-            final grayVal = isLight ? (200 + liveRng.nextInt(47)) : (8 + liveRng.nextInt(55));
+            final grayVal = isLight
+                ? (200 + liveRng.nextInt(47))
+                : (8 + liveRng.nextInt(55));
             // Occasional color pop: red, blue, green channel glitch
             final colorBias = liveRng.nextInt(10);
             if (colorBias < 2) {
               paint.color = isLight
                   ? Color.fromARGB(255, grayVal - 30, grayVal, grayVal)
-                  : Color.fromARGB(255, grayVal + 40, grayVal ~/ 2, grayVal ~/ 2);
+                  : Color.fromARGB(
+                      255,
+                      grayVal + 40,
+                      grayVal ~/ 2,
+                      grayVal ~/ 2,
+                    );
             } else if (colorBias < 4) {
               paint.color = isLight
                   ? Color.fromARGB(255, grayVal, grayVal, grayVal - 30)
-                  : Color.fromARGB(255, grayVal ~/ 2, grayVal ~/ 2, grayVal + 40);
+                  : Color.fromARGB(
+                      255,
+                      grayVal ~/ 2,
+                      grayVal ~/ 2,
+                      grayVal + 40,
+                    );
             } else {
               paint.color = Color.fromARGB(255, grayVal, grayVal, grayVal);
             }
@@ -218,7 +403,9 @@ class PixelSplashPainter extends CustomPainter {
     final double mainT = (progress - 0.30) / 0.70; // 0→1
     final bool isDissolving = mainT > 0.75;
     final double dissolveT = isDissolving ? (mainT - 0.75) / 0.25 : 0.0;
-    final double assembleT = isDissolving ? 1.0 : (mainT / 0.75).clamp(0.0, 1.0);
+    final double assembleT = isDissolving
+        ? 1.0
+        : (mainT / 0.75).clamp(0.0, 1.0);
 
     // 1. Dark/Light CRT noise background (persists at low density)
     const int bgPx = 28;
@@ -227,9 +414,16 @@ class PixelSplashPainter extends CustomPainter {
     for (int r = 0; r < bgRows; r++) {
       for (int c = 0; c < bgCols; c++) {
         if (liveRng.nextDouble() < 0.025) {
-          paint.color = isLight ? const Color(0xFFF5F5F5) : const Color(0xFF141414);
+          paint.color = isLight
+              ? const Color(0xFFF5F5F5)
+              : const Color(0xFF141414);
           canvas.drawRect(
-            Rect.fromLTWH(c * bgPx.toDouble(), r * bgPx.toDouble(), bgPx.toDouble(), bgPx.toDouble()),
+            Rect.fromLTWH(
+              c * bgPx.toDouble(),
+              r * bgPx.toDouble(),
+              bgPx.toDouble(),
+              bgPx.toDouble(),
+            ),
             paint,
           );
         }
@@ -288,8 +482,9 @@ class PixelSplashPainter extends CustomPainter {
 
         if (isDissolving) {
           // Gravity + wind physics dissolve
-          y += dissolveT * dissolveT * size.height * 1.15 +
-               math.sin(col * 2.0 + row) * 45.0 * dissolveT;
+          y +=
+              dissolveT * dissolveT * size.height * 1.15 +
+              math.sin(col * 2.0 + row) * 45.0 * dissolveT;
           x += math.sin(row * 4.0 + col) * 32.0 * dissolveT;
         }
 
@@ -303,27 +498,46 @@ class PixelSplashPainter extends CustomPainter {
         if (aberrationOffset > 0.5) {
           paint.color = Color.fromARGB(
             (alpha * 0.5 * 255).toInt(),
-            255, 60, 60,
+            255,
+            60,
+            60,
           );
-          canvas.drawRect(Rect.fromLTWH(x - aberrationOffset, y, pxW, pxH), paint);
+          canvas.drawRect(
+            Rect.fromLTWH(x - aberrationOffset, y, pxW, pxH),
+            paint,
+          );
 
           paint.color = Color.fromARGB(
             (alpha * 0.5 * 255).toInt(),
-            60, 120, 255,
+            60,
+            120,
+            255,
           );
-          canvas.drawRect(Rect.fromLTWH(x + aberrationOffset, y, pxW, pxH), paint);
+          canvas.drawRect(
+            Rect.fromLTWH(x + aberrationOffset, y, pxW, pxH),
+            paint,
+          );
         }
 
         // Main pixel color
-        paint.color = (isLight ? Colors.black : Colors.white).withValues(alpha: alpha);
+        paint.color = (isLight ? Colors.black : Colors.white).withValues(
+          alpha: alpha,
+        );
         canvas.drawRect(Rect.fromLTWH(x, y, pxW, pxH), paint);
 
         // Occasional pixel "spark" during assembly (random bright flicker)
         if (!isDissolving && liveRng.nextDouble() < 0.04) {
-          paint.color = (isLight ? Colors.black : Colors.white).withValues(alpha: 0.7);
+          paint.color = (isLight ? Colors.black : Colors.white).withValues(
+            alpha: 0.7,
+          );
           final sparkSize = textBlockSize * 1.4;
           canvas.drawRect(
-            Rect.fromLTWH(x - sparkSize / 4, y - sparkSize / 4, sparkSize, sparkSize),
+            Rect.fromLTWH(
+              x - sparkSize / 4,
+              y - sparkSize / 4,
+              sparkSize,
+              sparkSize,
+            ),
             paint,
           );
         }
@@ -337,13 +551,20 @@ class PixelSplashPainter extends CustomPainter {
     final double barTop = textTop + textHeight + 56.0;
 
     final double loadPct = (mainT / 0.75).clamp(0.0, 1.0);
-    final double barAlpha = isDissolving ? (1.0 - dissolveT).clamp(0.0, 1.0) : 0.22;
+    final double barAlpha = isDissolving
+        ? (1.0 - dissolveT).clamp(0.0, 1.0)
+        : 0.22;
 
     // Border
-    paint.color = (isLight ? Colors.black : Colors.white).withValues(alpha: barAlpha);
+    paint.color = (isLight ? Colors.black : Colors.white).withValues(
+      alpha: barAlpha,
+    );
     paint.style = PaintingStyle.stroke;
     paint.strokeWidth = 1.0;
-    canvas.drawRect(Rect.fromLTWH(barLeft - 3, barTop - 3, barWidth + 6, barHeight + 6), paint);
+    canvas.drawRect(
+      Rect.fromLTWH(barLeft - 3, barTop - 3, barWidth + 6, barHeight + 6),
+      paint,
+    );
     paint.style = PaintingStyle.fill;
 
     // Filled blocks
@@ -355,15 +576,23 @@ class PixelSplashPainter extends CustomPainter {
       double by = barTop;
       if (isDissolving) {
         final double localT = dissolveT;
-        by += localT * localT * size.height * 1.15 + math.sin(i * 1.5) * 42.0 * localT;
+        by +=
+            localT * localT * size.height * 1.15 +
+            math.sin(i * 1.5) * 42.0 * localT;
         bx += math.sin(i.toDouble()) * 30.0 * localT;
       }
-      final double fillAlpha = isDissolving ? (1.0 - dissolveT).clamp(0.0, 1.0) : 0.88;
+      final double fillAlpha = isDissolving
+          ? (1.0 - dissolveT).clamp(0.0, 1.0)
+          : 0.88;
       // Occasional flicker
       final flicker = liveRng.nextDouble();
       paint.color = flicker < 0.05
-          ? (isLight ? Colors.black : Colors.white).withValues(alpha: fillAlpha * 0.3)
-          : (isLight ? Colors.black : Colors.white).withValues(alpha: fillAlpha);
+          ? (isLight ? Colors.black : Colors.white).withValues(
+              alpha: fillAlpha * 0.3,
+            )
+          : (isLight ? Colors.black : Colors.white).withValues(
+              alpha: fillAlpha,
+            );
       canvas.drawRect(Rect.fromLTWH(bx, by, blockW - 2.0, barHeight), paint);
     }
 
@@ -371,10 +600,10 @@ class PixelSplashPainter extends CustomPainter {
     final String statusText = isDissolving
         ? 'SYS_DISINTEGRAT1NG...'
         : loadPct < 0.35
-            ? 'SYS_B00TING_...'
-            : loadPct < 0.70
-                ? 'ENCLAVE_MOUNT1NG_...'
-                : 'READY_T0_B00T_...';
+        ? 'SYS_B00TING_...'
+        : loadPct < 0.70
+        ? 'ENCLAVE_MOUNT1NG_...'
+        : 'READY_T0_B00T_...';
 
     // Glitch swap characters randomly at low probability
     final glitchText = _maybGlitch(statusText, liveRng);
@@ -412,7 +641,9 @@ class PixelSplashPainter extends CustomPainter {
     // 7. Flash burst on first appear (very brief white/black flash)
     if (mainT < 0.05) {
       final double flashAlpha = (1.0 - mainT / 0.05).clamp(0.0, 1.0) * 0.6;
-      paint.color = (isLight ? Colors.black : Colors.white).withValues(alpha: flashAlpha);
+      paint.color = (isLight ? Colors.black : Colors.white).withValues(
+        alpha: flashAlpha,
+      );
       canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
     }
   }
@@ -420,8 +651,14 @@ class PixelSplashPainter extends CustomPainter {
   /// Randomly swaps some characters with lookalike glitch chars for immersion.
   String _maybGlitch(String input, math.Random rng) {
     const glitchMap = {
-      'O': '0', 'I': '1', 'E': '3', 'A': '4', 'G': '6', 'T': '7',
-      'S': '5', 'B': '8',
+      'O': '0',
+      'I': '1',
+      'E': '3',
+      'A': '4',
+      'G': '6',
+      'T': '7',
+      'S': '5',
+      'B': '8',
     };
     final buf = StringBuffer();
     for (final ch in input.split('')) {
@@ -436,6 +673,7 @@ class PixelSplashPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant PixelSplashPainter oldDelegate) {
-    return oldDelegate.progress != progress || oldDelegate.frameSeed != frameSeed;
+    return oldDelegate.progress != progress ||
+        oldDelegate.frameSeed != frameSeed;
   }
 }

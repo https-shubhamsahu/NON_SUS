@@ -4,9 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../analytics/data/analytics_service.dart';
 import '../../auth/presentation/providers/auth_providers.dart';
+import '../../auth/presentation/providers/pending_intent_provider.dart';
 import '../../auth/presentation/screens/auth_screen.dart';
 import '../../config/presentation/providers/config_provider.dart';
+import '../../notifications/presentation/widgets/notification_permission_prompt.dart';
 import '../../../core/mascot/mascot_controller.dart';
 import '../../../core/mascot/mascot_state.dart';
 import '../../../core/mascot/mascot_view.dart';
@@ -89,18 +92,37 @@ class _GroupInviteLandingScreenState extends ConsumerState<GroupInviteLandingScr
   Future<void> _joinGroup() async {
     final auth = ref.read(authStateProvider).value;
     if (auth == null) {
-      // User is not logged in: redirect to login/register screen first,
-      // and preserve the invite code so we join immediately after login.
+      // Joining a private group is one of the places identity is genuinely
+      // required, so this wall stays. What matters is that the intent survives
+      // it: the invite code is parked (durably, through an email-confirmation
+      // or OAuth round trip) and replayed once there is a session, so the user
+      // lands back on this join flow rather than on Home.
       if (mounted) {
+        AnalyticsService.instance.log(
+          AnalyticsEvent.authWallHit,
+          properties: {'action': 'join_group'},
+        );
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Please log in or register to join the study group.'),
+            content: Text(
+              'Create an account to join this group — we will bring you '
+              'straight back here.',
+            ),
             behavior: SnackBarBehavior.floating,
           ),
         );
+        ref.read(pendingIntentProvider.notifier).set(
+              PendingIntent(
+                PendingIntentKind.joinGroup,
+                payload: widget.inviteCode,
+              ),
+            );
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (_) => AuthScreen(pendingInviteCode: widget.inviteCode),
+            builder: (_) => AuthScreen(
+              pendingInviteCode: widget.inviteCode,
+              startOnSignUp: true,
+            ),
           ),
         );
       }
@@ -120,6 +142,7 @@ class _GroupInviteLandingScreenState extends ConsumerState<GroupInviteLandingScr
 
       // Invalidate groups lists so they refresh immediately
       ref.invalidate(groupsProvider);
+      AnalyticsService.instance.log(AnalyticsEvent.groupJoinCompleted);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -129,7 +152,20 @@ class _GroupInviteLandingScreenState extends ConsumerState<GroupInviteLandingScr
             behavior: SnackBarBehavior.floating,
           ),
         );
-        
+
+        // Ask about notifications here, and only here-ish: the user has just
+        // joined a group, so "activity in your groups" is a concrete thing they
+        // now have rather than an abstraction. Awaited before popping so the
+        // sheet is not raced by the navigation. It self-limits to once per
+        // device and never spends the one-shot system dialog on a decline.
+        await maybePrimeNotifications(
+          context,
+          ref,
+          reason: 'You just joined a group. Want to know when people share '
+              'documents in it, or when your access changes?',
+        );
+
+        if (!mounted) return;
         // Go back to the main app dashboard/workspace
         Navigator.of(context).popUntil((route) => route.isFirst);
       }

@@ -4,6 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:no_sus/main.dart' show activeTabProvider;
+import '../../../components/coach_mark.dart';
+import '../../analytics/data/analytics_service.dart';
+import '../../notifications/presentation/widgets/notification_permission_prompt.dart';
+import '../../onboarding/presentation/providers/tour_providers.dart';
 import '../providers/groups_provider.dart';
 import '../domain/models/study_group.dart';
 import '../widgets/group_card.dart';
@@ -28,7 +33,17 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen>
   @override
   bool get wantKeepAlive => true;
 
+  static const _tabIndex = 4;
+
   final _searchController = TextEditingController();
+  final _joinKey = GlobalKey();
+  final _createKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    if (ref.read(activeTabProvider) == _tabIndex) _scheduleTips();
+  }
 
   @override
   void dispose() {
@@ -36,8 +51,35 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen>
     super.dispose();
   }
 
+  /// See the note in WorkspaceTab: every tab is built up front, so tips have to
+  /// wait for this one to actually become the visible page.
+  void _scheduleTips() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      CoachMarks.showSequence(context, ref, [
+        CoachMarkStep(
+          id: TourSteps.groupsJoin,
+          targetKey: _joinKey,
+          title: 'Got an invite?',
+          body:
+              'Groups are invite-only — there is no directory to browse. Paste an invite '
+              'code or link here to join one.',
+        ),
+        CoachMarkStep(
+          id: TourSteps.groupsCreate,
+          targetKey: _createKey,
+          title: 'Or start your own',
+          body:
+              'You become the admin: you decide who joins, and you can remove or ban '
+              'anyone. Everything shared inside stays inside.',
+        ),
+      ]);
+    });
+  }
+
   void _openCreateGroup() {
     HapticFeedback.lightImpact();
+    AnalyticsService.instance.log(AnalyticsEvent.groupCreateStarted);
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -57,6 +99,10 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen>
         : NoSusTheme.lTextSecondary;
     final groupsAsync = ref.watch(filteredGroupsProvider);
 
+    ref.listen<int>(activeTabProvider, (previous, next) {
+      if (next == _tabIndex && previous != _tabIndex) _scheduleTips();
+    });
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -64,6 +110,7 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen>
         _GroupsHeader(
           fg: fg,
           subtle: subtle,
+          joinKey: _joinKey,
         ).animate().fadeIn(duration: 250.ms),
 
         const SizedBox(height: NoSusTheme.s16),
@@ -99,6 +146,7 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen>
               data: (context, groups) => _GroupList(
                 groups: groups,
                 onCreateGroup: _openCreateGroup,
+                createKey: _createKey,
                 onGroupTap: (group) => Navigator.of(
                   context,
                 ).push(_slideRoute(GroupDetailScreen(group: group))),
@@ -116,7 +164,12 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen>
 class _GroupsHeader extends StatelessWidget {
   final Color fg;
   final Color subtle;
-  const _GroupsHeader({required this.fg, required this.subtle});
+  final GlobalKey joinKey;
+  const _GroupsHeader({
+    required this.fg,
+    required this.subtle,
+    required this.joinKey,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -148,10 +201,12 @@ class _GroupsHeader extends StatelessWidget {
         ),
         const Spacer(),
         Tooltip(
+          key: joinKey,
           message: 'Join Group',
           child: InkWell(
             onTap: () {
               HapticFeedback.lightImpact();
+              AnalyticsService.instance.log(AnalyticsEvent.groupJoinStarted);
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const JoinGroupPage()),
               );
@@ -227,11 +282,13 @@ class _SearchBar extends StatelessWidget {
 class _GroupList extends StatelessWidget {
   final List<StudyGroup> groups;
   final VoidCallback onCreateGroup;
+  final GlobalKey createKey;
   final ValueChanged<StudyGroup> onGroupTap;
 
   const _GroupList({
     required this.groups,
     required this.onCreateGroup,
+    required this.createKey,
     required this.onGroupTap,
   });
 
@@ -258,6 +315,7 @@ class _GroupList extends StatelessWidget {
 
         // Floating action button
         Positioned(
+          key: createKey,
           bottom: 16,
           right: 0,
           child: Semantics(
@@ -363,7 +421,20 @@ class _CreateGroupModalState extends ConsumerState<_CreateGroupModal> {
     setState(() => _isCreating = true);
     try {
       await ref.read(groupsProvider.notifier).createGroup(newGroup);
-      if (mounted) Navigator.of(context).pop();
+      AnalyticsService.instance.log(AnalyticsEvent.groupCreateCompleted);
+      if (mounted) {
+        Navigator.of(context).pop();
+        // Contextual, not at launch: the user now administers a group, so
+        // join requests and document activity are things that will actually
+        // happen to them. Uses the parent context — this sheet is being
+        // dismissed, and its own context dies with it.
+        await maybePrimeNotifications(
+          context,
+          ref,
+          reason: "You're the admin of this group. Want to know when someone "
+              'joins or shares a document?',
+        );
+      }
     } catch (e) {
       if (mounted) {
         setState(() => _isCreating = false);
