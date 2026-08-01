@@ -264,6 +264,28 @@ browser, which is where they already worked.
 | `GOOGLE_SERVICES_JSON_BASE64` | GitHub repo secret (new) | 🔴 release builds ship without push — the file is git-ignored, so CI has no other way to get it |
 | `PLAY_INTEGRITY_SERVICE_ACCOUNT_EMAIL`, `PLAY_INTEGRITY_PRIVATE_KEY` | Supabase secrets | ⚪ Play Integrity stays scaffolded |
 | `SENTRY_DSN` | CI secret + `.env` | ⚪ crash reporting stays off by default |
+| `MEASURE_API_KEY`, `MEASURE_API_URL` | CI secrets + `.env` (**both** required) | ⚪ Measure stays off by default — read the warning below before setting them |
+
+**On Measure (measure.sh):** the SDK is wired but inert, Android-only. Setting these two turns it on
+in both places at once — Dart reads them via `--dart-define-from-file=.env`, Gradle reads the same
+`.env` to fill the `AndroidManifest` meta-data the native SDK needs. Create the app in the Measure
+dashboard first; **cross-platform apps need a separate API key per platform**, so use the Android
+one.
+
+Before you set them, do this in the Measure dashboard, because it cannot be done from app code:
+
+1. ⬜ **Turn off screenshot-on-crash** (`crash_take_screenshot`). It defaults to **on** and lives in
+   the SDK's server-driven config — no app-side setting exists. Left on, a crash inside a burn-note,
+   burn-file or `SpyglassViewer` screen can upload decrypted document content, which would make the
+   product's central claim false. `FLAG_SECURE` blanks the capture path used on Android 8+, but not
+   the fallback used on older devices, so it is mitigation rather than a guarantee.
+2. ⬜ Update `store_listing/data_safety_answers.md` **and** the live Play Console questionnaire —
+   Crash logs / Diagnostics flips to "Yes, collected", shared with measure.sh. If you leave
+   screenshots on it also becomes a Photos / in-app-content declaration.
+
+Interaction tracking is deliberately not wired (no `MeasureWidget`, no `MsrNavigatorObserver`), so
+this is crash + app-health only. Adding either would start shipping note titles, group names and
+filenames as event metadata — see AGENTS.md §8.
 
 **On push specifically:** `send-push` is **not deployed** — confirmed against the live project, which
 runs 11 edge functions, none of them `send-push`. Turning push on needs five things; as of

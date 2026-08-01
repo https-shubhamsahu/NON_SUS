@@ -346,6 +346,59 @@ product's whole premise is zero-knowledge/no-tracking, so don't casually raise e
 reading `store_listing/data_safety_answers.md`'s note first (enabling it flips a Data Safety answer
 from "not collected" to "collected").
 
+**Measure (measure.sh) — off by default, Android-only, and deliberately
+crash-only.** `measure_flutter` ^0.6.0, gated by
+`lib/config/measure_reporting_config.dart` on `MEASURE_API_KEY` +
+`MEASURE_API_URL` (both required), same `--dart-define`/`.env` convention as
+`SENTRY_DSN`. Sentry is untouched and still independently gated — if both are
+ever configured, both report.
+
+Three things about this integration are non-obvious and easy to undo by accident:
+
+1. **It is initialised *after* `FlutterError.onError` is assigned in `main()`, on
+   purpose.** Measure's `init` captures whatever handler is installed at that
+   instant and calls it after its own, so the current order chains
+   Measure → Sentry → `presentError`. Hoist it above that assignment and the
+   assignment overwrites Measure's handler — leaving an SDK that is configured,
+   reports nothing, and looks healthy. It is also called with an empty action
+   callback rather than Measure's documented `init(() => runApp(...))` form,
+   because this bootstrap has several early-return `runApp()` branches for
+   share/burn deep links; `init` only awaits its own setup before invoking the
+   callback, so this is equivalent (same reasoning as the low-level
+   `SentryFlutter.init` form).
+2. **Credentials are plumbed twice from one file, and that is not redundancy.**
+   The native SDK has *no* Dart-side init path — `measure_flutter`'s
+   MethodChannel exposes `start`/`stop`/`trackEvent` but no `init` — so it must
+   come up in `Application.onCreate`, which is why `android:name` on
+   `<application>` is now `.NoSusApplication` instead of Flutter's
+   `${applicationName}` placeholder. That class reads manifest meta-data
+   injected by `android/app/build.gradle.kts` out of the repo-root `.env`, the
+   same file `--dart-define-from-file` feeds the Dart gate. Both sides skip
+   initialisation when either value is blank. `NoSusApplication` pins
+   `trackActivityIntentData = false`: every link this app mints carries its AES
+   key in the fragment and arrives as Activity intent data, so flipping that
+   would upload plaintext decryption keys. Don't delete it as "already the
+   default" — it is pinning a default that must never drift.
+3. **Two of Measure's defaults are hostile to this product.** Screenshot-on-crash
+   (`crash_take_screenshot`) is in the SDK's *server-driven* dynamic config,
+   defaults to **on**, and is not settable from app code at all — it has to be
+   disabled in the Measure dashboard, and until it is, a crash in a burn viewer
+   or `SpyglassViewer` can upload decrypted content. `MainActivity`'s
+   `FLAG_SECURE` blanks the `PixelCopy` capture path on API 26+ but not the
+   Canvas fallback on older devices, so it is mitigation, not a guarantee.
+   Separately, `ClickData` carries `label`/`semanticLabel` — note titles, group
+   names, filenames in this app — which is why the app is **not** wrapped in
+   `MeasureWidget` and `MsrNavigatorObserver` is **not** installed. That makes
+   this crash + app-health only, with no interaction timeline, by choice.
+   Adding either wrapper is a Data Safety change; read
+   `store_listing/data_safety_answers.md` first.
+
+Incidental: `measure_flutter` pulls `image_picker` transitively (for bug-report
+attachments, a feature this app doesn't use). Checked — it contributes a
+FileProvider and a Play-services module-dependency service to the merged
+manifest, **no permissions**, so §7's "still no storage/media permissions"
+stance is intact.
+
 **Device identity is hardware-backed on Android (Stage 1 of 2).** `DeviceIntegrityService.deviceId`
 returns the SHA-256 of a non-extractable EC keypair's public key, generated in the Android Keystore
 by `KeyAttestationManager.kt` (StrongBox → TEE → software fallback, exposed as `getDeviceKeyId` on
@@ -420,6 +473,8 @@ codebase — assume still outstanding unless you know otherwise.
 | `BURN_FILES_IP_SALT` not set | Open — burn-file per-IP rate limiting degrades without it |
 | `migrate_device_id()` never exercised against a signed-in session | Open — needs a physical device; all `user_known_devices` rows are still legacy UUIDs |
 | Orphaned keystore `android/app/release_orphaned_2026-06-21.keystore` | On disk, git-ignored — delete once confirmed unneeded |
+| **Measure Android build never compiled locally** | Open — `flutter analyze` + `flutter test` are clean, and `Measure.init`/`MeasureConfig(autoStart, trackActivityIntentData)` were checked against the pinned `android-v0.18.0` tag, but `NoSusApplication.kt`, the manifest placeholders and the merged manifest have **not** been through a real Gradle build: this machine OOM'd (1.4 GB free of 15.6 GB, paging file too small for even a 1 GB JVM heap). First Android build after this must be watched |
+| **(manual)** Measure dashboard: disable `crash_take_screenshot` | Open — server-side setting, **not** controllable from app code. Until it's off, a crash in a burn/document viewer can upload decrypted content (§8). Only matters once `MEASURE_API_KEY`/`MEASURE_API_URL` are set |
 
 ---
 
@@ -456,6 +511,8 @@ codebase — assume still outstanding unless you know otherwise.
 > bottom rather than letting this section grow without bound.
 
 <!-- CHANGELOG:INSERT -->
+
+- **2026-08-01** · `22ae883` · docs(agents): log ea81f20 in the change log
 
 - **2026-08-01** · `ea81f20` · docs(agents): add the "why" for this release, refresh stale header facts
 

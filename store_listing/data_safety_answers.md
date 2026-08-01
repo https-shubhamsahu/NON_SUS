@@ -83,6 +83,32 @@ functionality / analytics, shared with Sentry as a service provider) — update
 this file and the live Play Console questionnaire together with that change,
 not after the fact.
 
+**Measure (measure.sh) — same status, but a wider blast radius than Sentry.**
+`measure_flutter` is in the codebase and wired into the `main.dart` bootstrap,
+inert until both `MEASURE_API_KEY` and `MEASURE_API_URL` are set (Android only;
+there is no web implementation). Enabling it flips the same Crash logs /
+Diagnostics answer to "Yes, collected", shared with measure.sh as a service
+provider. Three things to settle **before** flipping it, because they are not
+answerable from app code:
+
+- **Screenshot-on-crash is a server-side setting.** The SDK's
+  `crash_take_screenshot` lives in its server-driven dynamic config and
+  defaults to **on**; no app-side config exposes it. It must be turned off in
+  the Measure dashboard. Left on, a crash inside a burn-note/burn-file viewer
+  or `SpyglassViewer` can upload decrypted document content — which would make
+  "the server cannot see it" false and contradicts
+  `PROJECT_CONSTITUTION.md` §2.3. `FLAG_SECURE` blanks the `PixelCopy` capture
+  path on API 26+ but **not** the Canvas fallback used on older devices, so it
+  is mitigation, not a guarantee.
+- **If screenshots stay on, this also becomes a "Photos" / in-app content
+  declaration**, not just diagnostics.
+- **Interaction tracking is deliberately not wired.** `main.dart` does not use
+  `MeasureWidget` or `MsrNavigatorObserver`, so no click/scroll/screen-view
+  timeline is collected. `ClickData` carries `label` / `semanticLabel`, which
+  in this app are note titles, group names and filenames — adding either
+  wrapper would start shipping user content as event metadata and change these
+  answers again.
+
 If a reviewer questions burn notes/files: content is AES-256 encrypted
 client-side; key material travels only in the URL fragment, which browsers
 never transmit to the server. Storage holds ciphertext only, deleted on first

@@ -37,6 +37,13 @@ jobs:
           echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env
           echo "SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}" >> .env
           echo "SENTRY_DSN=${{ secrets.SENTRY_DSN }}" >> .env
+          # Measure (measure.sh). Read twice from this one file: by
+          # --dart-define-from-file for the Dart gate, and by
+          # android/app/build.gradle.kts for the AndroidManifest meta-data the
+          # native SDK needs. Empty unless both secrets are set, in which case
+          # the SDK ships inert — see lib/config/measure_reporting_config.dart.
+          echo "MEASURE_API_KEY=${{ secrets.MEASURE_API_KEY }}" >> .env
+          echo "MEASURE_API_URL=${{ secrets.MEASURE_API_URL }}" >> .env
 
       - name: Analyze
         run: flutter analyze

@@ -3,11 +3,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:measure_flutter/measure_flutter.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:universal_html/html.dart' as html;
 
 import 'config/crash_reporting_config.dart';
+import 'config/measure_reporting_config.dart';
 import 'theme.dart';
 import 'features/profile/presentation/widgets/profile_avatar.dart';
 import 'core/providers/theme_provider.dart';
@@ -281,6 +283,37 @@ void main() async {
           Sentry.captureException(details.exception, stackTrace: details.stack);
         }
       };
+
+      // Measure (measure.sh) — Android-only, and a no-op unless both
+      // MEASURE_API_KEY and MEASURE_API_URL are supplied via --dart-define
+      // (see lib/config/measure_reporting_config.dart, which also documents
+      // what this SDK collects and the two behaviours that are hostile to this
+      // product).
+      //
+      // Order is load-bearing: this must stay AFTER the FlutterError.onError
+      // assignment above. Measure's init captures whatever handler is
+      // installed at that instant and calls it after its own, so initialising
+      // here chains Measure → Sentry → presentError. Move it earlier and the
+      // assignment above silently overwrites Measure's handler, leaving the
+      // SDK configured, reporting nothing, and looking fine.
+      //
+      // The empty callback is deliberate. Measure's documented form runs
+      // runApp() inside init(), which this bootstrap cannot do — there are
+      // several early-return runApp() branches below for share/burn deep
+      // links. init() only awaits its own setup and then invokes the callback,
+      // so a no-op is equivalent; same reasoning as the low-level
+      // SentryFlutter.init form above.
+      //
+      // start() is explicit because both MeasureConfigs are set to
+      // autoStart: false — one place where collection begins, and the point a
+      // consent gate would attach.
+      if (MeasureReportingConfig.isEnabled) {
+        await Measure.instance.init(
+          () {},
+          config: const MeasureConfig(autoStart: false),
+        );
+        await Measure.instance.start();
+      }
 
       // Pre-load SharedPreferences synchronously before routing and app run
       final prefs = await SharedPreferences.getInstance();

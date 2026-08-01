@@ -19,6 +19,17 @@ if (file("google-services.json").exists()) {
     apply(plugin = "com.google.gms.google-services")
 }
 
+// Repo-root .env, the same file CI writes and `--dart-define-from-file=.env`
+// reads. Git-ignored and usually absent, in which case this stays empty and
+// every lookup below falls back to "". rootProject here is android/, so the
+// repo root is one level up.
+val measureEnv = Properties().apply {
+    val envFile = rootProject.file("../.env")
+    if (envFile.exists()) {
+        envFile.inputStream().use { load(it) }
+    }
+}
+
 android {
     namespace = "foo.nosus.app"
     compileSdk = flutter.compileSdkVersion
@@ -35,6 +46,22 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // Measure (measure.sh) credentials for AndroidManifest.xml.
+        //
+        // The native SDK initialises in Application.onCreate, before the
+        // Flutter engine exists, so it cannot be handed a --dart-define. It
+        // reads meta-data from the manifest instead. Sourcing both sides from
+        // the one repo-root .env is what keeps the native gate and the Dart
+        // gate (lib/config/measure_reporting_config.dart, fed by
+        // --dart-define-from-file=.env) in agreement.
+        //
+        // Empty when .env is absent — a fresh clone and a CI run without the
+        // secrets both build fine and ship the SDK inert. Placeholders must
+        // always be set to *something*: an unresolved ${...} in the manifest
+        // is a merge failure, not a warning.
+        manifestPlaceholders["measureApiKey"] = measureEnv.getProperty("MEASURE_API_KEY") ?: ""
+        manifestPlaceholders["measureApiUrl"] = measureEnv.getProperty("MEASURE_API_URL") ?: ""
     }
 
     signingConfigs {

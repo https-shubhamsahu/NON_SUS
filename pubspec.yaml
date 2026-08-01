@@ -48,6 +48,18 @@ dependencies:
   # Postgres directly and works either way.
   firebase_core: ^3.8.0
   firebase_messaging: ^15.1.5
+
+  # Measure (measure.sh) app monitoring. Android-only — the package registers
+  # plugin implementations for android/ios only, and iOS has never shipped
+  # here, so on web this is dead weight that lib/config/measure_reporting_config
+  # .dart gates out. Inert unless MEASURE_API_KEY *and* MEASURE_API_URL are
+  # supplied; see AGENTS.md §8 for the two defaults that are hostile to this
+  # product (server-side screenshot-on-crash, and gesture labels) and why the
+  # app is deliberately not wrapped in MeasureWidget.
+  #
+  # Pulls image_picker transitively for a bug-report feature this app does not
+  # use. Checked: it adds a FileProvider and a Play-services module service to
+  # the merged manifest, no permissions.
   measure_flutter: ^0.6.0
 
 

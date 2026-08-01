@@ -25,9 +25,14 @@
          Data Safety review and least-privilege expectations both flag unused
          dangerous-permission declarations. -->
 
+    <!-- android:name is NoSusApplication, not Flutter's ${applicationName}
+         placeholder, because the Measure SDK has no Dart-side init path and
+         must come up in Application.onCreate — see NoSusApplication.kt. It
+         extends plain android.app.Application, which is correct for the v2
+         embedding this app uses. -->
     <application
         android:label="NO SUS"
-        android:name="${applicationName}"
+        android:name=".NoSusApplication"
         android:icon="@mipmap/launcher_icon"
         android:allowBackup="false"
         android:fullBackupContent="false"
@@ -121,6 +126,21 @@
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="nosus_general" />
+
+        <!-- Measure (measure.sh) credentials. Injected by
+             android/app/build.gradle.kts out of the repo-root .env — the same
+             file --dart-define-from-file feeds to
+             lib/config/measure_reporting_config.dart. Both resolve to the
+             empty string on a build without that .env, and NoSusApplication
+             skips SDK init entirely when either is blank, so a fresh clone or
+             a CI run without the secrets ships an inert SDK rather than one
+             pointed at a bad endpoint. -->
+        <meta-data
+            android:name="sh.measure.android.API_KEY"
+            android:value="${measureApiKey}" />
+        <meta-data
+            android:name="sh.measure.android.API_URL"
+            android:value="${measureApiUrl}" />
 
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
