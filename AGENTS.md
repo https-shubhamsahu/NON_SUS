@@ -457,6 +457,8 @@ codebase — assume still outstanding unless you know otherwise.
 
 <!-- CHANGELOG:INSERT -->
 
+- **2026-08-01** · `ea81f20` · docs(agents): add the "why" for this release, refresh stale header facts
+
 - **2026-08-01** · `cd514aa` · feat: ship the 1.4.0 feature set and bundle fonts locally — why:
   this was ~60 files of unshipped work in the working tree; tag `v1.3.0` points at `6015dc3`, which
   contains none of it. Released as **1.4.0+11** rather than reusing 1.3.0 so one version string does
