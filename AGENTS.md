@@ -512,6 +512,8 @@ codebase — assume still outstanding unless you know otherwise.
 
 <!-- CHANGELOG:INSERT -->
 
+- **2026-08-01** · `d8dd915` · feat: wire Measure (measure.sh) crash/session monitoring, off by default
+
 - **2026-08-01** · `22ae883` · docs(agents): log ea81f20 in the change log
 
 - **2026-08-01** · `ea81f20` · docs(agents): add the "why" for this release, refresh stale header facts
