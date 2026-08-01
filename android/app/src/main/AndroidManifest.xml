@@ -129,7 +129,7 @@
 
         <!-- Measure (measure.sh) credentials. Injected by
              android/app/build.gradle.kts out of the repo-root .env — the same
-             file --dart-define-from-file feeds to
+             file the dart-define-from-file flag feeds to
              lib/config/measure_reporting_config.dart. Both resolve to the
              empty string on a build without that .env, and NoSusApplication
              skips SDK init entirely when either is blank, so a fresh clone or
