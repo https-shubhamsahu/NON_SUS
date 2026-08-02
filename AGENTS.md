@@ -99,6 +99,35 @@ the user rather than chasing flaky rendering.
 
 ---
 
+## Cursor Cloud specific instructions
+
+Notes for agents running in the Cursor Cloud VM (a Linux box, **not** the Windows machine described
+in §2). The startup update script only refreshes dependencies (`flutter pub get`; `npm ci` in
+`homepage/`); everything below is already provisioned in the VM snapshot.
+
+- **Flutter SDK lives at `~/flutter`** (stable `3.44.4`, matching CI — §3). It is on `PATH` via
+  `~/.bashrc`, so `flutter`/`dart` work in a login shell. The §2 "Windows machine" `flutter.bat`
+  paths do **not** apply here. Node comes from `nvm` (v22); `cargo` is preinstalled. Standard gates
+  from §2/§0 apply unchanged: `flutter analyze` + `flutter test` for the app, `npm run lint` +
+  `npm run build` in `homepage/`.
+- **The backend is live, not mock.** `lib/config/supabase_credentials.dart` is populated with a
+  hosted Supabase project (`rxfnazmusofikwaggntb.supabase.co`), so the app **and** the homepage burn
+  tools run against a real backend by default — §4's "leave both fields empty → mock fallback" note
+  describes the *empty* state, which is not the committed state. Consequence: `flutter test` includes
+  `test/db_test.dart`, which talks to that hosted project, so the full suite **needs network access**
+  and real accounts/burn notes created during testing hit the live project.
+- **Run the app (web) for manual testing:** `flutter run -d web-server --web-hostname 0.0.0.0
+  --web-port 5000`. The `web-server` device needs no Chrome and **compiles lazily on the first HTTP
+  request** (~30 s to first paint) — a blank page right after start is normal; wait/refresh. Sign-up
+  with email+password logs in immediately (email confirmation is not enforced), so you can reach the
+  Workspace and exercise core features (e.g. Burn Notes) end-to-end without an inbox.
+- **Run the homepage:** `npm run dev` in `homepage/` (Next.js on :3000). Its hero Burn Note/File
+  tools are real and hit the same live Supabase backend.
+- **Do not build `services/fhe-compute/` unless working on FHE** — it's shelved (§8), its `target/`
+  is ~39 GB and its tests take ~14 min.
+
+---
+
 ## 3. CI & release
 
 - **`.github/workflows/gh-pages.yml`** — on push to `main`: analyze, test, build web, deploy to
