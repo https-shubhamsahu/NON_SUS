@@ -406,6 +406,12 @@ codebase — assume still outstanding unless you know otherwise.
 
 <!-- CHANGELOG:INSERT -->
 
+- **2026-08-02** · `e562218` · docs(agents): add Cursor Cloud specific setup/run instructions — why:
+  the §2 "Windows machine" Flutter paths and §4 "empty creds → mock fallback" note are both untrue in
+  the Cursor Cloud Linux VM (Flutter is at `~/flutter`; `supabase_credentials.dart` ships live hosted
+  creds, so `flutter test` hits a real backend). Captured the non-obvious run caveats (lazy
+  `web-server` compile, immediate-login sign-up) so future cloud agents don't rediscover them.
+
 - **2026-07-25** · `96efcac` · ci: bump softprops/action-gh-release to v3
 
 - **2026-07-25** · `d6a1c1d` · fix(ci): pin actions/checkout to v5 — v6+ breaks the cross-repo deploy
