@@ -406,6 +406,8 @@ codebase — assume still outstanding unless you know otherwise.
 
 <!-- CHANGELOG:INSERT -->
 
+- **2026-08-02** · `fb01672` · docs(agents): add change log why for e562218
+
 - **2026-08-02** · `e562218` · docs(agents): add Cursor Cloud specific setup/run instructions — why:
   the §2 "Windows machine" Flutter paths and §4 "empty creds → mock fallback" note are both untrue in
   the Cursor Cloud Linux VM (Flutter is at `~/flutter`; `supabase_credentials.dart` ships live hosted
