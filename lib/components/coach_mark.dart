@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -32,6 +33,57 @@ class CoachMarkStep {
     required this.body,
     this.inflate = 8,
   });
+}
+
+/// Geometry for keeping a tip inside the visible safe rectangle.
+///
+/// Flutter web typically reports `padding.bottom == 0` even when Chrome's
+/// toolbar and the Android gesture bar overlay the canvas. Placement uses
+/// view padding plus a web chrome floor so the action row is never clipped.
+@visibleForTesting
+abstract final class CoachMarkPlacement {
+  static const double webBottomChrome = 32;
+
+  static double topInset(MediaQueryData media) =>
+      math.max(media.padding.top, media.viewPadding.top);
+
+  static double bottomInset(MediaQueryData media, {required bool isWeb}) {
+    return math.max(
+      media.viewInsets.bottom,
+      math.max(
+        media.padding.bottom,
+        math.max(media.viewPadding.bottom, isWeb ? webBottomChrome : 0),
+      ),
+    );
+  }
+
+  static Rect safeViewport(
+    Size screen,
+    MediaQueryData media, {
+    required bool isWeb,
+  }) {
+    final top = topInset(media) + NoSusTheme.s12;
+    final bottom =
+        screen.height - bottomInset(media, isWeb: isWeb) - NoSusTheme.s12;
+    return Rect.fromLTRB(
+      NoSusTheme.s24,
+      top,
+      math.max(NoSusTheme.s24, screen.width - NoSusTheme.s24),
+      math.max(top, bottom),
+    );
+  }
+
+  static bool targetVisible(Rect? target, Rect viewport) {
+    if (target == null) return false;
+    return target.overlaps(viewport);
+  }
+
+  static bool placeBelow(Rect target, Rect viewport) {
+    final spaceBelow = viewport.bottom - (target.bottom + NoSusTheme.s16);
+    final spaceAbove = target.top - NoSusTheme.s16 - viewport.top;
+    const minimumReadableHeight = 160.0;
+    return spaceBelow >= minimumReadableHeight || spaceBelow >= spaceAbove;
+  }
 }
 
 /// Presents a sequence of [CoachMarkStep]s, one at a time, over the current
@@ -147,19 +199,35 @@ class _CoachMarkLayer extends StatefulWidget {
   State<_CoachMarkLayer> createState() => _CoachMarkLayerState();
 }
 
-class _CoachMarkLayerState extends State<_CoachMarkLayer> {
+class _CoachMarkLayerState extends State<_CoachMarkLayer>
+    with WidgetsBindingObserver {
   Rect? _targetRect;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     SchedulerBinding.instance.addPostFrameCallback((_) => _measure());
+  }
+
+  @override
+  void didChangeMetrics() {
+    SchedulerBinding.instance.addPostFrameCallback((_) => _measure());
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   void _measure() {
     if (!mounted) return;
     final targetContext = widget.step.targetKey.currentContext;
-    if (targetContext == null) return;
+    if (targetContext == null) {
+      if (_targetRect != null) setState(() => _targetRect = null);
+      return;
+    }
     final box = targetContext.findRenderObject();
     if (box is! RenderBox || !box.hasSize) return;
     final offset = box.localToGlobal(Offset.zero);
@@ -186,26 +254,10 @@ class _CoachMarkLayerState extends State<_CoachMarkLayer> {
       onSkip: widget.onSkip,
     );
 
-    final safeTop = media.padding.top + NoSusTheme.s12;
-    final safeBottom = screen.height - media.padding.bottom - NoSusTheme.s12;
-    final belowTop = rect == null ? 0.0 : rect.bottom + NoSusTheme.s16;
-    final aboveBottom = rect == null
-        ? 0.0
-        : screen.height - rect.top + NoSusTheme.s16;
-    final spaceBelow = rect == null ? 0.0 : safeBottom - belowTop;
-    final spaceAbove = rect == null ? 0.0 : rect.top - NoSusTheme.s16 - safeTop;
-
-    // Use the side with enough room for a readable tip, then constrain the
-    // bubble to the actual available space. The old fixed 240px estimate
-    // could place a longer tip off-screen on short phones or with large text.
-    const minimumReadableHeight = 180.0;
+    final safe = CoachMarkPlacement.safeViewport(screen, media, isWeb: kIsWeb);
+    final anchored = CoachMarkPlacement.targetVisible(rect, safe);
     final placeBelow =
-        rect == null ||
-        spaceBelow >= minimumReadableHeight ||
-        spaceBelow >= spaceAbove;
-    final availableHeight = rect == null
-        ? safeBottom - safeTop
-        : math.max(0.0, placeBelow ? spaceBelow : spaceAbove);
+        anchored && rect != null && CoachMarkPlacement.placeBelow(rect, safe);
 
     return Material(
       type: MaterialType.transparency,
@@ -248,30 +300,20 @@ class _CoachMarkLayerState extends State<_CoachMarkLayer> {
                 ),
               ),
             ),
-          if (rect == null)
-            Positioned(
-              left: NoSusTheme.s24,
-              right: NoSusTheme.s24,
-              top: safeTop,
-              bottom: media.padding.bottom + NoSusTheme.s12,
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(maxHeight: availableHeight),
-                  child: _animateBubble(bubble, reduceMotion),
-                ),
-              ),
-            )
-          else
-            Positioned(
-              left: NoSusTheme.s24,
-              right: NoSusTheme.s24,
-              top: placeBelow ? belowTop : null,
-              bottom: placeBelow ? null : aboveBottom,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(maxHeight: availableHeight),
-                child: _animateBubble(bubble, reduceMotion),
-              ),
+          Positioned(
+            left: safe.left,
+            right: screen.width - safe.right,
+            top: safe.top,
+            bottom: screen.height - safe.bottom,
+            child: Align(
+              alignment: !anchored
+                  ? Alignment.center
+                  : placeBelow
+                  ? Alignment.topCenter
+                  : Alignment.bottomCenter,
+              child: _animateBubble(bubble, reduceMotion),
             ),
+          ),
         ],
       ),
     );
@@ -319,6 +361,81 @@ class _CoachMarkBubble extends StatelessWidget {
     final bg = isDark ? NoSusTheme.dCard : Colors.white;
     final fg = isDark ? NoSusTheme.dText : NoSusTheme.lText;
 
+    final actions = Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        if (!isLast)
+          TextButton(
+            onPressed: onSkip,
+            child: Text(
+              'SKIP',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.0,
+                color: fg.withValues(alpha: 0.55),
+              ),
+            ),
+          ),
+        const SizedBox(width: NoSusTheme.s8),
+        FilledButton(
+          onPressed: onNext,
+          style: FilledButton.styleFrom(
+            backgroundColor: fg,
+            foregroundColor: isDark ? Colors.black : Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(NoSusTheme.r12),
+            ),
+          ),
+          child: Text(
+            isLast ? 'DONE' : 'NEXT',
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.0,
+            ),
+          ),
+        ),
+      ],
+    );
+
+    final copy = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (total > 1)
+          Padding(
+            padding: const EdgeInsets.only(bottom: NoSusTheme.s8),
+            child: Text(
+              'TIP ${index + 1} OF $total',
+              style: theme.textTheme.labelLarge?.copyWith(
+                fontSize: 9,
+                letterSpacing: 1.5,
+                color: fg.withValues(alpha: 0.45),
+              ),
+            ),
+          ),
+        Text(
+          step.title,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+            color: fg,
+          ),
+        ),
+        const SizedBox(height: NoSusTheme.s8),
+        Text(
+          step.body,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontSize: 13,
+            height: 1.55,
+            color: fg.withValues(alpha: 0.75),
+          ),
+        ),
+      ],
+    );
+
     return Semantics(
       liveRegion: true,
       // The whole bubble reads as one announcement; the buttons below carry
@@ -337,85 +454,36 @@ class _CoachMarkBubble extends StatelessWidget {
             ),
           ],
         ),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(NoSusTheme.s24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (total > 1)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: NoSusTheme.s8),
-                  child: Text(
-                    'TIP ${index + 1} OF $total',
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      fontSize: 9,
-                      letterSpacing: 1.5,
-                      color: fg.withValues(alpha: 0.45),
-                    ),
-                  ),
-                ),
-              Text(
-                step.title,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  color: fg,
-                ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // Keep DONE/SKIP pinned even when the copy is taller than the
+            // remaining safe viewport — the previous single scroll view let
+            // the action row clip under the Android home indicator.
+            const actionsReserve = 76.0;
+            final maxCopyHeight = constraints.hasBoundedHeight
+                ? math.max(64.0, constraints.maxHeight - actionsReserve)
+                : double.infinity;
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(
+                NoSusTheme.s24,
+                NoSusTheme.s24,
+                NoSusTheme.s24,
+                NoSusTheme.s16,
               ),
-              const SizedBox(height: NoSusTheme.s8),
-              Text(
-                step.body,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontSize: 13,
-                  height: 1.55,
-                  color: fg.withValues(alpha: 0.75),
-                ),
-              ),
-              const SizedBox(height: NoSusTheme.s24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  if (!isLast)
-                    TextButton(
-                      onPressed: onSkip,
-                      child: Text(
-                        'SKIP',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.0,
-                          color: fg.withValues(alpha: 0.55),
-                        ),
-                      ),
-                    ),
-                  const SizedBox(width: NoSusTheme.s8),
-                  FilledButton(
-                    onPressed: onNext,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: fg,
-                      foregroundColor: isDark ? Colors.black : Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(NoSusTheme.r12),
-                      ),
-                    ),
-                    child: Text(
-                      isLast ? 'DONE' : 'NEXT',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.0,
-                      ),
-                    ),
+                  ConstrainedBox(
+                    constraints: BoxConstraints(maxHeight: maxCopyHeight),
+                    child: SingleChildScrollView(child: copy),
                   ),
+                  const SizedBox(height: NoSusTheme.s16),
+                  actions,
                 ],
               ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );

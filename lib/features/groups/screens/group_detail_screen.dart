@@ -218,7 +218,9 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
           // ── Sliver app bar ──────────────────────────────────────────────
           SliverAppBar(
             backgroundColor: bg,
-            expandedHeight: 200,
+            // Title + counts must sit above the pinned tab bar. 200px was
+            // shorter than that stack, so member/file counts painted on the tabs.
+            expandedHeight: 240,
             floating: false,
             pinned: true,
             elevation: 0,
@@ -321,16 +323,17 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
               ),
             ],
             flexibleSpace: FlexibleSpaceBar(
-              collapseMode: CollapseMode.pin,
+              collapseMode: CollapseMode.none,
               background: Container(
-                padding: const EdgeInsets.fromLTRB(24, 90, 24, 0),
+                padding: const EdgeInsets.fromLTRB(24, 72, 24, 52),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    const SizedBox(height: 20),
-                    const SizedBox(height: 12),
                     Text(
                           group.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: fg,
                             fontSize: 26,
@@ -350,9 +353,13 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
                           size: 22,
                         ),
                         const SizedBox(width: 10),
-                        Text(
-                          '${group.memberCount} members  ·  ${group.fileCount} files',
-                          style: TextStyle(fontSize: 12, color: subtle),
+                        Expanded(
+                          child: Text(
+                            '${group.memberCount} members  ·  ${group.fileCount} files',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: 12, color: subtle),
+                          ),
                         ),
                       ],
                     ).animate().fadeIn(delay: 100.ms),
