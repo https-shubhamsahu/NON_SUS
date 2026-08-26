@@ -480,6 +480,13 @@ codebase — assume still outstanding unless you know otherwise.
 > bottom rather than letting this section grow without bound.
 
 <!-- CHANGELOG:INSERT -->
+- **2026-08-27** · `54a905d` · fix: keep tips and group tabs inside the phone viewport — why:
+  the notepad tip was anchored to a target below the fold, so the bubble sat on the Android
+  home indicator with DONE clipped off. Placement now uses the visible safe rectangle (including
+  a web chrome floor, because Flutter web reports no bottom padding) and pins the action row.
+  The group header counts were painted in the same band as the pinned tab bar; they now sit
+  above it.
+
 - **2026-08-27** · fix: keep compact navigation and tips in bounds — why:
   five text labels cannot fit reliably in a phone-width footer, so compact layouts now use the
   accessible icon tabs and reserve the matching content clearance. Coach-mark placement is based on
