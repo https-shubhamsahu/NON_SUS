@@ -376,6 +376,7 @@ codebase — assume still outstanding unless you know otherwise.
 > bottom rather than letting this section grow without bound.
 
 <!-- CHANGELOG:INSERT -->
+- **2026-08-27** · `c4fd779` · feat(loading): streamline NO SUS splash wordmark — why: replaces the timed, animated boot sequence with the canonical responsive wordmark and a square gray stop. It starts no work and adds no wait, so it never delays the real app.
 
 - **2026-07-25** · `96efcac` · ci: bump softprops/action-gh-release to v3
 
