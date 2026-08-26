@@ -1030,11 +1030,13 @@ class _WorkspaceHomeState extends ConsumerState<WorkspaceHome> {
               children: [
                 // Main Content Area with thin border framing
                 Padding(
-                  padding: const EdgeInsets.only(
+                  padding: EdgeInsets.only(
                     left: NoSusTheme.s24,
                     right: NoSusTheme.s24,
                     top: NoSusTheme.s16,
-                    bottom: 110.0, // Space for floating bottom nav
+                    // Space for floating bottom nav. The compact phone nav
+                    // uses icons only, so it needs less reserved height.
+                    bottom: FloatingNav.contentClearance(context),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

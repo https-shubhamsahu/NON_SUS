@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -185,14 +186,26 @@ class _CoachMarkLayerState extends State<_CoachMarkLayer> {
       onSkip: widget.onSkip,
     );
 
-    // Prefer below the target; flip above when the bottom half is too tight.
-    // 240 is a deliberate over-estimate of the bubble's height — being wrong
-    // in this direction only costs a flip, being wrong the other way clips.
-    const estimatedBubbleHeight = 240.0;
+    final safeTop = media.padding.top + NoSusTheme.s12;
+    final safeBottom = screen.height - media.padding.bottom - NoSusTheme.s12;
+    final belowTop = rect == null ? 0.0 : rect.bottom + NoSusTheme.s16;
+    final aboveBottom = rect == null
+        ? 0.0
+        : screen.height - rect.top + NoSusTheme.s16;
+    final spaceBelow = rect == null ? 0.0 : safeBottom - belowTop;
+    final spaceAbove = rect == null ? 0.0 : rect.top - NoSusTheme.s16 - safeTop;
+
+    // Use the side with enough room for a readable tip, then constrain the
+    // bubble to the actual available space. The old fixed 240px estimate
+    // could place a longer tip off-screen on short phones or with large text.
+    const minimumReadableHeight = 180.0;
     final placeBelow =
         rect == null ||
-        rect.bottom + estimatedBubbleHeight <
-            screen.height - media.padding.bottom;
+        spaceBelow >= minimumReadableHeight ||
+        spaceBelow >= spaceAbove;
+    final availableHeight = rect == null
+        ? safeBottom - safeTop
+        : math.max(0.0, placeBelow ? spaceBelow : spaceAbove);
 
     return Material(
       type: MaterialType.transparency,
@@ -235,37 +248,49 @@ class _CoachMarkLayerState extends State<_CoachMarkLayer> {
                 ),
               ),
             ),
-          Positioned(
-            left: NoSusTheme.s24,
-            right: NoSusTheme.s24,
-            top: placeBelow
-                ? (rect == null
-                      ? screen.height / 2 - estimatedBubbleHeight / 2
-                      : rect.bottom + NoSusTheme.s16)
-                : null,
-            // placeBelow is false only when rect != null (a null rect forces
-            // placeBelow true), so this branch always has a rect to measure.
-            bottom: placeBelow
-                ? null
-                : screen.height - rect.top + NoSusTheme.s16,
-            child: reduceMotion
-                ? bubble
-                : TweenAnimationBuilder<double>(
-                    tween: Tween(begin: 0, end: 1),
-                    duration: const Duration(milliseconds: 220),
-                    curve: Curves.easeOutCubic,
-                    builder: (context, t, child) => Opacity(
-                      opacity: t,
-                      child: Transform.translate(
-                        offset: Offset(0, (1 - t) * 8),
-                        child: child,
-                      ),
-                    ),
-                    child: bubble,
-                  ),
-          ),
+          if (rect == null)
+            Positioned(
+              left: NoSusTheme.s24,
+              right: NoSusTheme.s24,
+              top: safeTop,
+              bottom: media.padding.bottom + NoSusTheme.s12,
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxHeight: availableHeight),
+                  child: _animateBubble(bubble, reduceMotion),
+                ),
+              ),
+            )
+          else
+            Positioned(
+              left: NoSusTheme.s24,
+              right: NoSusTheme.s24,
+              top: placeBelow ? belowTop : null,
+              bottom: placeBelow ? null : aboveBottom,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: availableHeight),
+                child: _animateBubble(bubble, reduceMotion),
+              ),
+            ),
         ],
       ),
+    );
+  }
+
+  Widget _animateBubble(Widget bubble, bool reduceMotion) {
+    if (reduceMotion) return bubble;
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+      builder: (context, t, child) => Opacity(
+        opacity: t,
+        child: Transform.translate(
+          offset: Offset(0, (1 - t) * 8),
+          child: child,
+        ),
+      ),
+      child: bubble,
     );
   }
 }
@@ -300,7 +325,6 @@ class _CoachMarkBubble extends StatelessWidget {
       // their own labels.
       container: true,
       child: Container(
-        padding: const EdgeInsets.all(NoSusTheme.s24),
         decoration: BoxDecoration(
           color: bg,
           borderRadius: BorderRadius.circular(NoSusTheme.r16),
@@ -313,82 +337,85 @@ class _CoachMarkBubble extends StatelessWidget {
             ),
           ],
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (total > 1)
-              Padding(
-                padding: const EdgeInsets.only(bottom: NoSusTheme.s8),
-                child: Text(
-                  'TIP ${index + 1} OF $total',
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    fontSize: 9,
-                    letterSpacing: 1.5,
-                    color: fg.withValues(alpha: 0.45),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(NoSusTheme.s24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (total > 1)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: NoSusTheme.s8),
+                  child: Text(
+                    'TIP ${index + 1} OF $total',
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      fontSize: 9,
+                      letterSpacing: 1.5,
+                      color: fg.withValues(alpha: 0.45),
+                    ),
                   ),
                 ),
+              Text(
+                step.title,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: fg,
+                ),
               ),
-            Text(
-              step.title,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-                color: fg,
+              const SizedBox(height: NoSusTheme.s8),
+              Text(
+                step.body,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontSize: 13,
+                  height: 1.55,
+                  color: fg.withValues(alpha: 0.75),
+                ),
               ),
-            ),
-            const SizedBox(height: NoSusTheme.s8),
-            Text(
-              step.body,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontSize: 13,
-                height: 1.55,
-                color: fg.withValues(alpha: 0.75),
-              ),
-            ),
-            const SizedBox(height: NoSusTheme.s24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                if (!isLast)
-                  TextButton(
-                    onPressed: onSkip,
+              const SizedBox(height: NoSusTheme.s24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  if (!isLast)
+                    TextButton(
+                      onPressed: onSkip,
+                      child: Text(
+                        'SKIP',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.0,
+                          color: fg.withValues(alpha: 0.55),
+                        ),
+                      ),
+                    ),
+                  const SizedBox(width: NoSusTheme.s8),
+                  FilledButton(
+                    onPressed: onNext,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: fg,
+                      foregroundColor: isDark ? Colors.black : Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(NoSusTheme.r12),
+                      ),
+                    ),
                     child: Text(
-                      'SKIP',
-                      style: TextStyle(
+                      isLast ? 'DONE' : 'NEXT',
+                      style: const TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 1.0,
-                        color: fg.withValues(alpha: 0.55),
                       ),
                     ),
                   ),
-                const SizedBox(width: NoSusTheme.s8),
-                FilledButton(
-                  onPressed: onNext,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: fg,
-                    foregroundColor: isDark ? Colors.black : Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 12,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(NoSusTheme.r12),
-                    ),
-                  ),
-                  child: Text(
-                    isLast ? 'DONE' : 'NEXT',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.0,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

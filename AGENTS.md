@@ -480,6 +480,12 @@ codebase — assume still outstanding unless you know otherwise.
 > bottom rather than letting this section grow without bound.
 
 <!-- CHANGELOG:INSERT -->
+- **2026-08-27** · fix: keep compact navigation and tips in bounds — why:
+  five text labels cannot fit reliably in a phone-width footer, so compact layouts now use the
+  accessible icon tabs and reserve the matching content clearance. Coach-mark placement is based on
+  measured safe viewport space and its content scrolls within that space, preventing long tips or
+  large-text settings from being positioned outside the screen.
+
 - **2026-08-27** · feat: polish recipient access and session restore — why:
   a saved Supabase session must survive transient profile/network failures; only a proven permanent
   authentication failure can clear it. The browser recipient flow now records the self-entered email
