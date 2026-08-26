@@ -12,7 +12,6 @@ import 'theme.dart';
 import 'features/profile/presentation/widgets/profile_avatar.dart';
 import 'core/providers/theme_provider.dart';
 import 'components/floating_nav.dart';
-import 'screens/splash_screen.dart';
 import 'features/profile/providers/profile_provider.dart';
 import 'features/profile/presentation/screens/profile_screen.dart';
 import 'features/auth/presentation/widgets/auth_gate.dart';
@@ -590,9 +589,7 @@ class MyApp extends ConsumerWidget {
       themeMode: themeMode,
       home: inviteToken != null
           ? GroupInviteLandingScreen(inviteCode: inviteToken)
-          : const SplashScreen(
-              nextScreen: AuthGate(child: WorkspaceHome()),
-            ),
+          : const AuthGate(child: WorkspaceHome()),
       onGenerateRoute: (settings) {
         // Web OAuth (Google/GitHub) redirects land on e.g. "/?code=..." — not
         // exactly "/", so Flutter treats it as a distinct route instead of
@@ -602,9 +599,7 @@ class MyApp extends ConsumerWidget {
         // AuthGate reacts to the now-signed-in state normally.
         if (settings.name != null && settings.name!.contains('code=')) {
           return PageRouteBuilder(
-            pageBuilder: (context, _, _) => const SplashScreen(
-              nextScreen: AuthGate(child: WorkspaceHome()),
-            ),
+            pageBuilder: (context, _, _) => const AuthGate(child: WorkspaceHome()),
             transitionDuration: Duration.zero,
           );
         }

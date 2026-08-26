@@ -13,6 +13,7 @@ import '../../../../services/device_integrity_service.dart';
 import '../../../onboarding/presentation/screens/get_started_screen.dart';
 import '../../../onboarding/presentation/screens/welcome_screen.dart';
 import '../../../onboarding/presentation/providers/onboarding_providers.dart';
+import '../../../../screens/splash_screen.dart';
 
 class AuthGate extends ConsumerWidget {
   final Widget child;
@@ -102,9 +103,7 @@ class AuthGate extends ConsumerWidget {
           }),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Scaffold(
-                body: Center(child: CircularProgressIndicator(color: Colors.grey)),
-              );
+              return const BrandSplash();
             }
 
             final theme = Theme.of(context);
@@ -192,9 +191,7 @@ class AuthGate extends ConsumerWidget {
           },
         );
       },
-      loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator(color: Colors.grey)),
-      ),
+      loading: () => const BrandSplash(),
       error: (error, _) {
         final theme = Theme.of(context);
         final isDark = theme.brightness == Brightness.dark;

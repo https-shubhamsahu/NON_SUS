@@ -480,6 +480,7 @@ codebase — assume still outstanding unless you know otherwise.
 > bottom rather than letting this section grow without bound.
 
 <!-- CHANGELOG:INSERT -->
+- **2026-08-27** · feat(loading): streamline NO SUS splash wordmark — why: replaces the timed, animated boot sequence with the canonical responsive wordmark and a square gray stop. It starts no work and adds no wait, so it never delays the real app.
 
 - **2026-08-26** · `32f2ac5` · feat(ui): refine responsive launch experience — why:
   launch is now a short, platform-responsive visual hand-off rather than a simulated boot sequence.
