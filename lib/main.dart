@@ -590,7 +590,7 @@ class MyApp extends ConsumerWidget {
       themeMode: themeMode,
       home: inviteToken != null
           ? GroupInviteLandingScreen(inviteCode: inviteToken)
-          : const VideoSplashScreen(
+          : const SplashScreen(
               nextScreen: AuthGate(child: WorkspaceHome()),
             ),
       onGenerateRoute: (settings) {
@@ -602,7 +602,7 @@ class MyApp extends ConsumerWidget {
         // AuthGate reacts to the now-signed-in state normally.
         if (settings.name != null && settings.name!.contains('code=')) {
           return PageRouteBuilder(
-            pageBuilder: (context, _, _) => const VideoSplashScreen(
+            pageBuilder: (context, _, _) => const SplashScreen(
               nextScreen: AuthGate(child: WorkspaceHome()),
             ),
             transitionDuration: Duration.zero,
