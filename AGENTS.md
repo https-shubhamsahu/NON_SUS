@@ -481,6 +481,11 @@ codebase — assume still outstanding unless you know otherwise.
 
 <!-- CHANGELOG:INSERT -->
 
+- **2026-08-26** · `32f2ac5` · feat(ui): refine responsive launch experience — why:
+  launch is now a short, platform-responsive visual hand-off rather than a simulated boot sequence.
+  The web pre-loader has no remote font dependency; both surfaces honour reduced-motion preferences,
+  avoid fixed-device sizing, and keep mascots out of the critical startup path.
+
 - **2026-08-26** · `bb0e43a` · feat: simplify sharing and ship secure redemption pairing — why:
   two visible digits are a human confirmation, never an access credential; an opaque 256-bit token
   in the pairing link is required for the atomic claim. This removes the old FHE/Sealed runtime and
