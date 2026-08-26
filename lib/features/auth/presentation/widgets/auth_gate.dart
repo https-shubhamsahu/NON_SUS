@@ -78,7 +78,8 @@ class AuthGate extends ConsumerWidget {
         // SupabaseCredentials) has no backend to reach by design, so it must
         // not trip this gate. Only a *configured* backend that's momentarily
         // unreachable should block here.
-        if (SupabaseService.instance.isConfigured && !SupabaseService.instance.isReachable) {
+        if (SupabaseService.instance.isConfigured &&
+            !SupabaseService.instance.isReachable) {
           return _OfflineGateScreen(
             onRetry: () async {
               await SupabaseService.instance.initialize();
@@ -87,108 +88,20 @@ class AuthGate extends ConsumerWidget {
           );
         }
 
-        return FutureBuilder<Map<String, dynamic>>(
-          future: SupabaseService.instance.fetchProfile(user.id).then((profile) async {
-            if (profile.isEmpty && SupabaseService.instance.isReachable) {
-              try {
-                // Verify the user actually still exists on the server
-                await Supabase.instance.client.auth.getUser();
-              } catch (e) {
-                // Session invalid (e.g. user was deleted from DB but local token remains)
-                await Supabase.instance.client.auth.signOut();
-                return <String, dynamic>{};
-              }
-            }
-            return profile;
-          }),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const BrandSplash();
-            }
+        final localCompleted = ref.watch(onboardingCompletedProvider);
+        if (localCompleted) return child;
 
-            final theme = Theme.of(context);
-            final isDark = theme.brightness == Brightness.dark;
-            final fg = isDark ? NoSusTheme.dText : NoSusTheme.lText;
-
-            if (snapshot.hasError) {
-              return Scaffold(
-                body: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.error_outline,
-                          color: Colors.redAccent,
-                          size: 48,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'SESSION ERROR',
-                          style: theme.textTheme.labelLarge?.copyWith(
-                            color: Colors.redAccent,
-                            letterSpacing: 2.0,
-                            fontSize: 11,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          snapshot.error.toString().replaceAll('Exception: ', ''),
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: fg.withValues(alpha: 0.6),
-                            fontSize: 13,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        Semantics(
-                          button: true,
-                          label: 'Retry',
-                          child: GestureDetector(
-                            onTap: () {
-                              ref.invalidate(authStateProvider);
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 12,
-                                horizontal: 24,
-                              ),
-                              decoration: BoxDecoration(
-                                color: fg,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                'RETRY',
-                                style: TextStyle(
-                                  color: isDark ? Colors.black : Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            }
-
-            final profileData = snapshot.data ?? {};
-            final hasCompletedRemoteOnboarding = profileData['onboarding_completed'] == true;
-            // Now genuinely durable on this device — see OnboardingNotifier.
-            // Previously in-memory only, so a user who finished setup while the
-            // backend was unreachable replayed it on every single launch.
-            final localCompleted = ref.watch(onboardingCompletedProvider);
-
-            if (!hasCompletedRemoteOnboarding && !localCompleted) {
-              return const GetStartedScreen();
-            }
-
-            return child;
+        final profileAsync = ref.watch(sessionProfileProvider);
+        return profileAsync.when(
+          data: (profileData) {
+            if (profileData['onboarding_completed'] == true) return child;
+            return const GetStartedScreen();
           },
+          loading: () => const BrandSplash(),
+          // A profile request can fail while a valid persisted session is
+          // offline. Keep that user in the app rather than creating a login
+          // flicker or signing them out.
+          error: (_, _) => child,
         );
       },
       loading: () => const BrandSplash(),
@@ -308,7 +221,9 @@ class _OfflineGateScreenState extends State<_OfflineGateScreen> {
     final isDark = theme.brightness == Brightness.dark;
     final bg = isDark ? NoSusTheme.dBackground : NoSusTheme.lBackground;
     final fg = isDark ? NoSusTheme.dText : NoSusTheme.lText;
-    final subtle = isDark ? NoSusTheme.dTextSecondary : NoSusTheme.lTextSecondary;
+    final subtle = isDark
+        ? NoSusTheme.dTextSecondary
+        : NoSusTheme.lTextSecondary;
 
     return Scaffold(
       backgroundColor: bg,
@@ -324,7 +239,11 @@ class _OfflineGateScreenState extends State<_OfflineGateScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const Center(
-                    child: Icon(Icons.wifi_off_outlined, color: Colors.amber, size: 40),
+                    child: Icon(
+                      Icons.wifi_off_outlined,
+                      color: Colors.amber,
+                      size: 40,
+                    ),
                   ),
                   const SizedBox(height: NoSusTheme.s24),
                   Text(
@@ -411,7 +330,9 @@ class _SecurityGateScreen extends ConsumerWidget {
     final isDark = theme.brightness == Brightness.dark;
     final bg = isDark ? NoSusTheme.dBackground : NoSusTheme.lBackground;
     final fg = isDark ? NoSusTheme.dText : NoSusTheme.lText;
-    final subtle = isDark ? NoSusTheme.dTextSecondary : NoSusTheme.lTextSecondary;
+    final subtle = isDark
+        ? NoSusTheme.dTextSecondary
+        : NoSusTheme.lTextSecondary;
 
     return Scaffold(
       backgroundColor: bg,
@@ -429,7 +350,9 @@ class _SecurityGateScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  critical ? 'ACCESS TEMPORARILY RESTRICTED' : 'SECURITY CHECK REQUIRED',
+                  critical
+                      ? 'ACCESS TEMPORARILY RESTRICTED'
+                      : 'SECURITY CHECK REQUIRED',
                   textAlign: TextAlign.center,
                   style: theme.textTheme.labelLarge?.copyWith(
                     fontSize: 13,

@@ -132,9 +132,9 @@
         overlay.style.left = '0';
         overlay.style.width = '100vw';
         overlay.style.height = '100vh';
-        overlay.style.background = 'radial-gradient(circle, #151515 0%, #0D0D0D 100%)';
+        overlay.style.background = '#000000';
         overlay.style.color = '#F5F5F5';
-        overlay.style.fontFamily = "'VT323', monospace";
+        overlay.style.fontFamily = 'ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif';
         overlay.style.zIndex = '999999';
         overlay.style.display = 'flex';
         overlay.style.flexDirection = 'column';
@@ -145,16 +145,16 @@
         overlay.style.textAlign = 'center';
 
         overlay.innerHTML = `
-          <div style="font-size: 56px; color: #FFFFFF; margin-bottom: 24px; letter-spacing: 2px;">[//]</div>
-          <h2 style="font-size: 32px; font-weight: bold; letter-spacing: 2px; margin-top: 0; margin-bottom: 12px; color: #FFFFFF;">AUTHENTICATING SESSION</h2>
-          <p style="color: #999999; font-size: 14px; max-width: 320px; line-height: 1.5; margin-bottom: 36px; font-family: 'Courier New', monospace;">
-            Your credentials have been verified. Tap below to launch the NO SUS native app client.
+          <div style="font-size: 27px; color: #FFFFFF; margin-bottom: 36px; font-weight: 800; letter-spacing: -0.5px;">NO SUS<span style="display: inline-block; width: 6px; height: 6px; margin-left: 3px; background: #808080;"></span></div>
+          <h2 style="font-size: 20px; font-weight: 700; margin-top: 0; margin-bottom: 10px; color: #FFFFFF;">Finishing sign-in</h2>
+          <p style="color: #A0A0A0; font-size: 14px; max-width: 320px; line-height: 1.5; margin-bottom: 32px;">
+            Open NO SUS to continue.
           </p>
-          <button id="open-app-btn" style="background-color: #FFFFFF; color: #0D0D0D; border: 1.5px solid #FFFFFF; padding: 16px 32px; border-radius: 0; font-weight: bold; font-family: inherit; cursor: pointer; font-size: 20px; letter-spacing: 1.5px; width: 100%; max-width: 260px; box-shadow: 0 4px 20px rgba(255, 255, 255, 0.05); transition: background-color 0.2s;">
-            LAUNCH APP
+          <button id="open-app-btn" style="background-color: #FFFFFF; color: #0D0D0D; border: 1.5px solid #FFFFFF; padding: 15px 32px; border-radius: 12px; font-weight: 700; font-family: inherit; cursor: pointer; font-size: 15px; width: 100%; max-width: 260px;">
+            OPEN APP
           </button>
-          <a id="continue-web-btn" href="#" style="color: #666666; font-size: 16px; margin-top: 28px; text-decoration: underline; letter-spacing: 1px;">
-            Continue in Browser
+          <a id="continue-web-btn" href="#" style="color: #A0A0A0; font-size: 14px; margin-top: 24px; text-decoration: underline;">
+            Continue in browser
           </a>
         `;
 

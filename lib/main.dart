@@ -525,8 +525,8 @@ void main() async {
 
       // Initialize security audit logging service
       AuditService.instance.init();
-      // 2. Block screenshots (FLAG_SECURE on Android) + funny popup on attempt
-      await ScreenshotGuard.instance.initialize();
+      // Screen protection does not need to hold the first useful frame.
+      unawaited(ScreenshotGuard.instance.initialize());
       // 3. Device-integrity scan (root/Frida/Xposed) — fire-and-forget so a
       // 150ms socket probe never delays first paint; findings land in the
       // device_integrity_events ledger asynchronously.
@@ -599,7 +599,8 @@ class MyApp extends ConsumerWidget {
         // AuthGate reacts to the now-signed-in state normally.
         if (settings.name != null && settings.name!.contains('code=')) {
           return PageRouteBuilder(
-            pageBuilder: (context, _, _) => const AuthGate(child: WorkspaceHome()),
+            pageBuilder: (context, _, _) =>
+                const AuthGate(child: WorkspaceHome()),
             transitionDuration: Duration.zero,
           );
         }

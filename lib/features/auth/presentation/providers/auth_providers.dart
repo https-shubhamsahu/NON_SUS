@@ -30,6 +30,16 @@ final authStateProvider = StreamProvider<AuthenticatedUser?>((ref) {
   return ref.watch(authRepositoryProvider).watchAuthState();
 });
 
+/// Profile data is loaded once for the active session rather than each time
+/// [AuthGate] rebuilds for a theme, risk, or auth event. An empty result means
+/// onboarding is needed; it must never be treated as a reason to sign out.
+final sessionProfileProvider = FutureProvider<Map<String, dynamic>>((
+  ref,
+) async {
+  final user = await ref.watch(authStateProvider.future);
+  if (user == null) return {};
+  return SupabaseService.instance.fetchProfile(user.id);
+});
 
 final signInUseCaseProvider = Provider<SignInUseCase>((ref) {
   return SignInUseCase(ref.watch(authRepositoryProvider));
@@ -50,14 +60,17 @@ final signOutUseCaseProvider = Provider<SignOutUseCase>((ref) {
 class PasswordRecoveryNotifier extends Notifier<bool> {
   @override
   bool build() {
-    if (!SupabaseBootstrap.isConfigured || !SupabaseService.instance.isReachable) {
+    if (!SupabaseBootstrap.isConfigured ||
+        !SupabaseService.instance.isReachable) {
       return false;
     }
-    final sub = ref.watch(supabaseClientProvider).auth.onAuthStateChange.listen((state) {
-      if (state.event == AuthChangeEvent.passwordRecovery) {
-        this.state = true;
-      }
-    });
+    final sub = ref.watch(supabaseClientProvider).auth.onAuthStateChange.listen(
+      (state) {
+        if (state.event == AuthChangeEvent.passwordRecovery) {
+          this.state = true;
+        }
+      },
+    );
     ref.onDispose(sub.cancel);
     return false;
   }
@@ -66,5 +79,6 @@ class PasswordRecoveryNotifier extends Notifier<bool> {
 }
 
 final passwordRecoveryProvider =
-    NotifierProvider<PasswordRecoveryNotifier, bool>(PasswordRecoveryNotifier.new);
-
+    NotifierProvider<PasswordRecoveryNotifier, bool>(
+      PasswordRecoveryNotifier.new,
+    );

@@ -480,6 +480,12 @@ codebase — assume still outstanding unless you know otherwise.
 > bottom rather than letting this section grow without bound.
 
 <!-- CHANGELOG:INSERT -->
+- **2026-08-27** · feat: polish recipient access and session restore — why:
+  a saved Supabase session must survive transient profile/network failures; only a proven permanent
+  authentication failure can clear it. The browser recipient flow now records the self-entered email
+  as access activity without presenting it as verified identity or making recipients install the app
+  before they can view a document. The first frame also no longer waits for screenshot-guard setup.
+
 - **2026-08-27** · feat(loading): streamline NO SUS splash wordmark — why: replaces the timed, animated boot sequence with the canonical responsive wordmark and a square gray stop. It starts no work and adds no wait, so it never delays the real app.
 
 - **2026-08-26** · `32f2ac5` · feat(ui): refine responsive launch experience — why:
