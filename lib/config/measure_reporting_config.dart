@@ -11,14 +11,12 @@ import 'package:flutter/foundation.dart';
 /// calls.
 ///
 /// **Android only.** `measure_flutter` registers plugin implementations for
-/// `android` and `ios` only — there is no web implementation, so on
-/// `app.nosus.foo` (this product's primary surface) the method channel would
-/// simply throw `MissingPluginException`. `Measure.instance.init` swallows that
-/// internally, but initialising a no-op SDK on every web session is pointless,
-/// so [isEnabled] gates it out. iOS is excluded too: that target has never
-/// shipped (still on Flutter's `com.example.*` template ids, see AGENTS.md §5)
-/// and Measure's iOS setup needs a `pod install` + `AppDelegate` change that
-/// does not exist here.
+/// `android` and `ios` only. It is conditionally imported by
+/// `services/measure_reporting.dart`, so its JavaScript-incompatible package
+/// code is excluded from the web program rather than merely skipped at runtime.
+/// iOS is excluded too: that target has never shipped (still on Flutter's
+/// `com.example.*` template ids, see AGENTS.md §5) and Measure's iOS setup
+/// needs a `pod install` + `AppDelegate` change that does not exist here.
 ///
 /// **The same two values are also read by Gradle**, out of the repo-root
 /// `.env`, and injected into `AndroidManifest.xml` as the

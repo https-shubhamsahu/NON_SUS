@@ -39,23 +39,24 @@ class BurnFileCreatorScreen extends ConsumerStatefulWidget {
   const BurnFileCreatorScreen({super.key, this.prefilledFile});
 
   @override
-  ConsumerState<BurnFileCreatorScreen> createState() => _BurnFileCreatorScreenState();
+  ConsumerState<BurnFileCreatorScreen> createState() =>
+      _BurnFileCreatorScreenState();
 }
 
 enum _ExpiryOption { oneHour, oneDay, sevenDays }
 
 extension on _ExpiryOption {
   int get hours => switch (this) {
-        _ExpiryOption.oneHour => 1,
-        _ExpiryOption.oneDay => 24,
-        _ExpiryOption.sevenDays => 24 * 7,
-      };
+    _ExpiryOption.oneHour => 1,
+    _ExpiryOption.oneDay => 24,
+    _ExpiryOption.sevenDays => 24 * 7,
+  };
 
   String get label => switch (this) {
-        _ExpiryOption.oneHour => '1 HOUR',
-        _ExpiryOption.oneDay => '24 HOURS',
-        _ExpiryOption.sevenDays => '7 DAYS',
-      };
+    _ExpiryOption.oneHour => '1 HOUR',
+    _ExpiryOption.oneDay => '24 HOURS',
+    _ExpiryOption.sevenDays => '7 DAYS',
+  };
 }
 
 // Combined cap across every file in ONE share. The per-file cap is the
@@ -79,7 +80,11 @@ class _EncryptJob {
 // files encrypt at once. compute() degrades to a plain synchronous call on
 // platforms without isolate support, so this is safe everywhere.
 Uint8List _encryptOnIsolate(_EncryptJob job) {
-  return encryptBurnFilePayload(job.packed, enc.Key(job.keyBytes), enc.IV(job.ivBytes));
+  return encryptBurnFilePayload(
+    job.packed,
+    enc.Key(job.keyBytes),
+    enc.IV(job.ivBytes),
+  );
 }
 
 class _BurnFileCreatorScreenState extends ConsumerState<BurnFileCreatorScreen> {
@@ -89,6 +94,7 @@ class _BurnFileCreatorScreenState extends ConsumerState<BurnFileCreatorScreen> {
   String? _statusLabel;
   String? _generatedLink;
   String? _generatedCode;
+  String? _generatedPairingLink;
   int _filesDoneCount = 0;
 
   @override
@@ -101,7 +107,10 @@ class _BurnFileCreatorScreenState extends ConsumerState<BurnFileCreatorScreen> {
   bool get _overLimit => _totalBytes > _maxTotalBytes;
 
   Future<void> _pickFiles() async {
-    final result = await fp.FilePicker.pickFiles(withData: true, allowMultiple: true);
+    final result = await fp.FilePicker.pickFiles(
+      withData: true,
+      allowMultiple: true,
+    );
     if (result == null || result.files.isEmpty) return;
     setState(() {
       for (final f in result.files) {
@@ -115,7 +124,9 @@ class _BurnFileCreatorScreenState extends ConsumerState<BurnFileCreatorScreen> {
     setState(() => _selectedFiles.removeAt(index));
   }
 
-  Future<({String fileId, String keyHex, String ivHex})> _burnOneFile(fp.PlatformFile file) async {
+  Future<({String fileId, String keyHex, String ivHex})> _burnOneFile(
+    fp.PlatformFile file,
+  ) async {
     final bytes = file.bytes!;
     final keyMaterial = generateBurnFileKeyMaterial();
     final packed = packBurnFilePayload(
@@ -135,7 +146,11 @@ class _BurnFileCreatorScreenState extends ConsumerState<BurnFileCreatorScreen> {
 
     await Supabase.instance.client.storage
         .from('burn-files')
-        .uploadBinaryToSignedUrl(initResult.fileId, initResult.uploadToken, ciphertext);
+        .uploadBinaryToSignedUrl(
+          initResult.fileId,
+          initResult.uploadToken,
+          ciphertext,
+        );
 
     await BurnFileClient.instance.confirm(initResult.fileId);
 
@@ -157,7 +172,11 @@ class _BurnFileCreatorScreenState extends ConsumerState<BurnFileCreatorScreen> {
     }
     if (_overLimit) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Total size is ${_formatSize(_totalBytes)} — Burn Files shares are capped at 25MB combined.')),
+        SnackBar(
+          content: Text(
+            'Total size is ${_formatSize(_totalBytes)} — Burn Files shares are capped at 25MB combined.',
+          ),
+        ),
       );
       return;
     }
@@ -184,12 +203,14 @@ class _BurnFileCreatorScreenState extends ConsumerState<BurnFileCreatorScreen> {
       final (:origin, :basePath) = webShareLinkBase();
       final String link;
       String? code;
+      String? pairingLink;
       if (triples.length == 1) {
         // Exactly the original single-file link shape — unchanged so every
         // burn-file link already shared into the wild keeps working, and so
         // the common case doesn't pay for multi-file link overhead.
         final t = triples.single;
-        link = '$origin$basePath/#/burnfile/${t.fileId}?k=${t.keyHex}&v=${t.ivHex}';
+        link =
+            '$origin$basePath/#/burnfile/${t.fileId}?k=${t.keyHex}&v=${t.ivHex}';
         try {
           final codeResult = await RedemptionCodeClient.instance.createCode(
             targetKind: 'file',
@@ -198,8 +219,10 @@ class _BurnFileCreatorScreenState extends ConsumerState<BurnFileCreatorScreen> {
             ivHex: t.ivHex,
           );
           code = codeResult.code;
+          pairingLink = '$origin$basePath/#/redeem/${codeResult.redeemToken}';
         } catch (_) {
           code = null;
+          pairingLink = null;
         }
       } else {
         // New multi-file shape. Redemption codes stay single-target only
@@ -210,11 +233,13 @@ class _BurnFileCreatorScreenState extends ConsumerState<BurnFileCreatorScreen> {
         final ivs = triples.map((t) => t.ivHex).join(',');
         link = '$origin$basePath/#/burnfiles/$ids?k=$keys&v=$ivs';
         code = null;
+        pairingLink = null;
       }
 
       setState(() {
         _generatedLink = link;
         _generatedCode = code;
+        _generatedPairingLink = pairingLink;
         _isProcessing = false;
         _statusLabel = null;
       });
@@ -227,7 +252,11 @@ class _BurnFileCreatorScreenState extends ConsumerState<BurnFileCreatorScreen> {
       ref.read(noxMascotProvider.notifier).play(MascotMood.alert);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to create Burn File: ${e.toString().replaceFirst('Exception: ', '')}')),
+        SnackBar(
+          content: Text(
+            'Failed to create Burn File: ${e.toString().replaceFirst('Exception: ', '')}',
+          ),
+        ),
       );
     }
   }
@@ -265,7 +294,10 @@ class _BurnFileCreatorScreenState extends ConsumerState<BurnFileCreatorScreen> {
   void _shareLink() {
     if (_generatedLink == null) return;
     SharePlus.instance.share(
-      ShareParams(text: 'Here\'s a file — it self-destructs after one download: $_generatedLink'),
+      ShareParams(
+        text:
+            'Here\'s a file — it self-destructs after one download: $_generatedLink',
+      ),
     );
   }
 
@@ -276,6 +308,19 @@ class _BurnFileCreatorScreenState extends ConsumerState<BurnFileCreatorScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Code copied to clipboard!'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _copyPairingLinkToClipboard() {
+    final pairingLink = _generatedPairingLink;
+    if (pairingLink == null) return;
+    Clipboard.setData(ClipboardData(text: pairingLink));
+    HapticFeedback.mediumImpact();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Secure pairing link copied to clipboard!'),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -298,10 +343,18 @@ class _BurnFileCreatorScreenState extends ConsumerState<BurnFileCreatorScreen> {
         title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('BURN FILES', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+            Text(
+              'BURN FILES',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            ),
             Text(
               'ANONYMOUS · SELF-DESTRUCTS ON DOWNLOAD',
-              style: TextStyle(fontSize: 9, color: Colors.orangeAccent, letterSpacing: 1.0, fontWeight: FontWeight.w800),
+              style: TextStyle(
+                fontSize: 9,
+                color: Colors.orangeAccent,
+                letterSpacing: 1.0,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ],
         ),
@@ -316,7 +369,10 @@ class _BurnFileCreatorScreenState extends ConsumerState<BurnFileCreatorScreen> {
                 if (_generatedLink == null) ...[
                   Text(
                     'Drop up to $_maxFilesPerShare files, get one link. Nobody needs an account — not you, not them. Once downloaded, they\'re gone.',
-                    style: theme.textTheme.bodyMedium?.copyWith(color: fg.withValues(alpha: 0.6), fontSize: 13),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: fg.withValues(alpha: 0.6),
+                      fontSize: 13,
+                    ),
                   ),
                   const SizedBox(height: 20),
                   if (_selectedFiles.isNotEmpty) ...[
@@ -326,31 +382,56 @@ class _BurnFileCreatorScreenState extends ConsumerState<BurnFileCreatorScreen> {
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 8),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 10,
+                          ),
                           decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF161616) : Colors.black.withValues(alpha: 0.03),
+                            color: isDark
+                                ? const Color(0xFF161616)
+                                : Colors.black.withValues(alpha: 0.03),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.orangeAccent.withValues(alpha: 0.3)),
+                            border: Border.all(
+                              color: Colors.orangeAccent.withValues(alpha: 0.3),
+                            ),
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.insert_drive_file_outlined, size: 18, color: Colors.orangeAccent),
+                              const Icon(
+                                Icons.insert_drive_file_outlined,
+                                size: 18,
+                                color: Colors.orangeAccent,
+                              ),
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
                                   f.name,
                                   overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: fg.withValues(alpha: 0.85)),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: fg.withValues(alpha: 0.85),
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              Text(_formatSize(f.size), style: TextStyle(fontSize: 11, color: fg.withValues(alpha: 0.4))),
+                              Text(
+                                _formatSize(f.size),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: fg.withValues(alpha: 0.4),
+                                ),
+                              ),
                               if (!_isProcessing) ...[
                                 const SizedBox(width: 4),
                                 IconButton(
                                   onPressed: () => _removeFile(i),
                                   tooltip: 'Remove ${f.name}',
-                                  icon: Icon(Icons.close_rounded, size: 16, color: fg.withValues(alpha: 0.4)),
+                                  icon: Icon(
+                                    Icons.close_rounded,
+                                    size: 16,
+                                    color: fg.withValues(alpha: 0.4),
+                                  ),
                                 ),
                               ],
                             ],
@@ -367,14 +448,20 @@ class _BurnFileCreatorScreenState extends ConsumerState<BurnFileCreatorScreen> {
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
-                            color: _overLimit ? Colors.redAccent : fg.withValues(alpha: 0.45),
+                            color: _overLimit
+                                ? Colors.redAccent
+                                : fg.withValues(alpha: 0.45),
                           ),
                         ),
-                        if (_selectedFiles.length < _maxFilesPerShare && !_isProcessing)
+                        if (_selectedFiles.length < _maxFilesPerShare &&
+                            !_isProcessing)
                           TextButton.icon(
                             onPressed: _pickFiles,
                             icon: const Icon(Icons.add, size: 14),
-                            label: const Text('ADD MORE', style: TextStyle(fontSize: 11)),
+                            label: const Text(
+                              'ADD MORE',
+                              style: TextStyle(fontSize: 11),
+                            ),
                           ),
                       ],
                     ),
@@ -385,42 +472,72 @@ class _BurnFileCreatorScreenState extends ConsumerState<BurnFileCreatorScreen> {
                       enabled: !_isProcessing,
                       label: 'Choose files',
                       child: InkWell(
-                      onTap: _isProcessing ? null : _pickFiles,
-                      borderRadius: BorderRadius.circular(16),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
-                        decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF161616) : Colors.black.withValues(alpha: 0.03),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: fg.withValues(alpha: 0.12)),
-                        ),
-                        child: Column(
-                          children: [
-                            Icon(Icons.upload_file_outlined, size: 36, color: fg.withValues(alpha: 0.4)),
-                            const SizedBox(height: 12),
-                            Text(
-                              'TAP TO CHOOSE FILES',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: fg.withValues(alpha: 0.85)),
+                        onTap: _isProcessing ? null : _pickFiles,
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 28,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? const Color(0xFF161616)
+                                : Colors.black.withValues(alpha: 0.03),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: fg.withValues(alpha: 0.12),
                             ),
-                          ],
+                          ),
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.upload_file_outlined,
+                                size: 36,
+                                color: fg.withValues(alpha: 0.4),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                'TAP TO CHOOSE FILES',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: fg.withValues(alpha: 0.85),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
                       ),
                     ),
                   const SizedBox(height: 20),
                   Text(
                     'LINK EXPIRES AFTER',
-                    style: TextStyle(fontSize: 10, letterSpacing: 1.0, color: fg.withValues(alpha: 0.4), fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 10,
+                      letterSpacing: 1.0,
+                      color: fg.withValues(alpha: 0.4),
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   SegmentedButton<_ExpiryOption>(
                     segments: _ExpiryOption.values
-                        .map((e) => ButtonSegment(value: e, label: Text(e.label, style: const TextStyle(fontSize: 11))))
+                        .map(
+                          (e) => ButtonSegment(
+                            value: e,
+                            label: Text(
+                              e.label,
+                              style: const TextStyle(fontSize: 11),
+                            ),
+                          ),
+                        )
                         .toList(),
                     selected: {_expiry},
-                    onSelectionChanged: _isProcessing ? null : (s) => setState(() => _expiry = s.first),
+                    onSelectionChanged: _isProcessing
+                        ? null
+                        : (s) => setState(() => _expiry = s.first),
                   ),
                   const SizedBox(height: 24),
                   SizedBox(
@@ -431,14 +548,31 @@ class _BurnFileCreatorScreenState extends ConsumerState<BurnFileCreatorScreen> {
                         foregroundColor: Colors.black,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
-                      onPressed: (_isProcessing || _selectedFiles.isEmpty || _overLimit) ? null : _burnAndUpload,
+                      onPressed:
+                          (_isProcessing ||
+                              _selectedFiles.isEmpty ||
+                              _overLimit)
+                          ? null
+                          : _burnAndUpload,
                       icon: _isProcessing
-                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
-                          : const Icon(Icons.local_fire_department_outlined, size: 16),
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.black,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.local_fire_department_outlined,
+                              size: 16,
+                            ),
                       label: Text(
                         _isProcessing
                             ? '${_statusLabel ?? 'WORKING...'} ${_selectedFiles.length > 1 ? '($_filesDoneCount/${_selectedFiles.length})' : ''}'
-                            : (_selectedFiles.length > 1 ? 'ENCRYPT & GENERATE LINK (${_selectedFiles.length} FILES)' : 'ENCRYPT & GENERATE LINK'),
+                            : (_selectedFiles.length > 1
+                                  ? 'ENCRYPT & GENERATE LINK (${_selectedFiles.length} FILES)'
+                                  : 'ENCRYPT & GENERATE LINK'),
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -451,12 +585,22 @@ class _BurnFileCreatorScreenState extends ConsumerState<BurnFileCreatorScreen> {
                         const MascotView(
                           character: MascotCharacter.nox,
                           size: 48,
-                          fallback: Icon(Icons.verified_user_outlined, size: 48, color: Colors.green),
+                          fallback: Icon(
+                            Icons.verified_user_outlined,
+                            size: 48,
+                            color: Colors.green,
+                          ),
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          _selectedFiles.length > 1 ? '${_selectedFiles.length} FILES SEALED' : 'FILE SEALED',
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1.0),
+                          _selectedFiles.length > 1
+                              ? '${_selectedFiles.length} FILES READY TO SHARE'
+                              : 'FILE READY TO SHARE',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.0,
+                          ),
                         ),
                         const SizedBox(height: 12),
                         Text(
@@ -464,60 +608,116 @@ class _BurnFileCreatorScreenState extends ConsumerState<BurnFileCreatorScreen> {
                               ? 'Your files are encrypted. The keys live only in this link — the server cannot read them, and each is deleted permanently the moment it\'s downloaded.'
                               : 'Your file is encrypted. The key lives only in this link — the server cannot read it, and it\'s deleted permanently the moment it\'s downloaded.',
                           textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 12, color: Colors.white70),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.white70,
+                          ),
                         ),
                         const SizedBox(height: 32),
                         Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF161616) : Colors.black.withValues(alpha: 0.03),
+                            color: isDark
+                                ? const Color(0xFF161616)
+                                : Colors.black.withValues(alpha: 0.03),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+                            border: Border.all(
+                              color: Colors.green.withValues(alpha: 0.3),
+                            ),
                           ),
                           child: Text(
                             _generatedLink!,
                             textAlign: TextAlign.center,
-                            style: const TextStyle(fontSize: 12, color: Colors.green),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.green,
+                            ),
                           ),
                         ),
-                        if (_generatedCode != null) ...[
+                        if (_generatedCode != null &&
+                            _generatedPairingLink != null) ...[
                           const SizedBox(height: 20),
                           Text(
-                            'OR SHARE THIS CODE',
-                            style: TextStyle(fontSize: 10, letterSpacing: 1.0, color: fg.withValues(alpha: 0.4), fontWeight: FontWeight.bold),
+                            'OPTIONAL QUICK PAIRING',
+                            style: TextStyle(
+                              fontSize: 10,
+                              letterSpacing: 1.0,
+                              color: fg.withValues(alpha: 0.4),
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           const SizedBox(height: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 14,
+                              horizontal: 20,
+                            ),
                             decoration: BoxDecoration(
-                              color: isDark ? const Color(0xFF161616) : Colors.black.withValues(alpha: 0.03),
+                              color: isDark
+                                  ? const Color(0xFF161616)
+                                  : Colors.black.withValues(alpha: 0.03),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.lightBlueAccent.withValues(alpha: 0.3)),
+                              border: Border.all(
+                                color: Colors.lightBlueAccent.withValues(
+                                  alpha: 0.3,
+                                ),
+                              ),
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text(
                                   _generatedCode!,
-                                  style: const TextStyle(fontSize: 20, letterSpacing: 4, fontWeight: FontWeight.bold, color: Colors.lightBlueAccent),
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    letterSpacing: 4,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.lightBlueAccent,
+                                  ),
                                 ),
                                 const SizedBox(width: 12),
                                 IconButton(
                                   onPressed: _copyCodeToClipboard,
                                   tooltip: 'Copy code',
-                                  icon: const Icon(Icons.copy_rounded, size: 16, color: Colors.lightBlueAccent),
+                                  icon: const Icon(
+                                    Icons.copy_rounded,
+                                    size: 16,
+                                    color: Colors.lightBlueAccent,
+                                  ),
                                 ),
                               ],
                             ),
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            'Expires in ~20 min, one-time use — anyone with this code can open the file.',
+                            'Send the secure pairing link, then share these two digits. The link controls access; the code only confirms the share.',
                             textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 10.5, color: fg.withValues(alpha: 0.4)),
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              color: fg.withValues(alpha: 0.4),
+                            ),
                           ),
                         ],
                         const SizedBox(height: 32),
+                        if (_generatedPairingLink != null) ...[
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                              ),
+                              onPressed: _copyPairingLinkToClipboard,
+                              icon: const Icon(Icons.link_rounded, size: 16),
+                              label: const Text(
+                                'COPY PAIRING LINK',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                        ],
                         SizedBox(
                           width: double.infinity,
                           child: FilledButton.icon(
@@ -528,17 +728,25 @@ class _BurnFileCreatorScreenState extends ConsumerState<BurnFileCreatorScreen> {
                             ),
                             onPressed: _copyToClipboard,
                             icon: const Icon(Icons.copy_rounded, size: 16),
-                            label: const Text('COPY LINK', style: TextStyle(fontWeight: FontWeight.bold)),
+                            label: const Text(
+                              'COPY LINK',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
                           ),
                         ),
                         const SizedBox(height: 12),
                         SizedBox(
                           width: double.infinity,
                           child: OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                            ),
                             onPressed: _shareLink,
                             icon: const Icon(Icons.ios_share_rounded, size: 16),
-                            label: const Text('SHARE LINK', style: TextStyle(fontWeight: FontWeight.bold)),
+                            label: const Text(
+                              'SHARE LINK',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
                           ),
                         ),
                         const SizedBox(height: 24),
@@ -547,10 +755,14 @@ class _BurnFileCreatorScreenState extends ConsumerState<BurnFileCreatorScreen> {
                             setState(() {
                               _generatedLink = null;
                               _generatedCode = null;
+                              _generatedPairingLink = null;
                               _selectedFiles.clear();
                             });
                           },
-                          child: const Text('BURN MORE FILES', style: TextStyle(color: Colors.grey, fontSize: 11)),
+                          child: const Text(
+                            'BURN MORE FILES',
+                            style: TextStyle(color: Colors.grey, fontSize: 11),
+                          ),
                         ),
                       ],
                     ),

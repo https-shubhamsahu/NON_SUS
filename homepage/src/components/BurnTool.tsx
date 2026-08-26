@@ -36,6 +36,7 @@ export default function BurnTool() {
   const [error, setError] = useState("");
   const [link, setLink] = useState("");
   const [code, setCode] = useState<string | null>(null);
+  const [pairingLink, setPairingLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
   const [noteText, setNoteText] = useState("");
@@ -54,6 +55,7 @@ export default function BurnTool() {
     setError("");
     setLink("");
     setCode(null);
+    setPairingLink(null);
     setCopied(false);
     setCodeCopied(false);
     setStatusLabel("");
@@ -82,8 +84,11 @@ export default function BurnTool() {
       setNoteText("");
       setPhase("done");
       // Arrives a moment after "done" — never blocks it.
-      result.codePromise.then((code) => {
-        if (generationRef.current === generation) setCode(code);
+      result.pairingPromise.then((pairing) => {
+        if (generationRef.current === generation) {
+          setCode(pairing?.code ?? null);
+          setPairingLink(pairing?.link ?? null);
+        }
       });
     } catch (e) {
       fail(e);
@@ -106,8 +111,11 @@ export default function BurnTool() {
       });
       setLink(result.link);
       setPhase("done");
-      result.codePromise.then((code) => {
-        if (generationRef.current === generation) setCode(code);
+      result.pairingPromise.then((pairing) => {
+        if (generationRef.current === generation) {
+          setCode(pairing?.code ?? null);
+          setPairingLink(pairing?.link ?? null);
+        }
       });
     } catch (e) {
       fail(e);
@@ -135,6 +143,13 @@ export default function BurnTool() {
 
   const copyLink = async () => {
     await navigator.clipboard.writeText(link);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const copyPairingLink = async () => {
+    if (!pairingLink) return;
+    await navigator.clipboard.writeText(pairingLink);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -271,14 +286,14 @@ export default function BurnTool() {
                   </button>
 
                   <button
-                    onClick={copyLink}
+                    onClick={copyPairingLink}
                     className="text-[8px] font-mono uppercase tracking-wider text-brand-gray-light hover:text-white transition-colors underline underline-offset-2 z-20"
                   >
-                    {copied ? "Link copied" : "or copy the full link"}
+                    {copied ? "Pairing link copied" : "Copy secure pairing link"}
                   </button>
 
                   <p className="text-[7px] text-brand-gray-light leading-relaxed max-w-[230px]">
-                    Code: ~20 min, one-time use, easy to text or read aloud<span className="text-white">.</span> Link: true zero-knowledge, the key never touches our server<span className="text-white">.</span>
+                    Send the pairing link, then share these two digits. The link controls access; the code simply confirms the share<span className="text-white">.</span>
                   </p>
                 </>
               ) : (
@@ -465,14 +480,14 @@ export default function BurnTool() {
                     value={redeemInput}
                     onChange={(e) => setRedeemInput(e.target.value.toUpperCase().slice(0, 8))}
                     onKeyDown={(e) => { if (e.key === "Enter") handleRedeem(); }}
-                    placeholder="ABCD1234"
+                    placeholder="LEGACY CODE"
                     autoCapitalize="characters"
                     autoCorrect="off"
                     spellCheck={false}
                     className="w-[70%] bg-brand-black/50 border border-white/10 hover:border-white/30 focus:border-white focus:outline-none py-3 text-center text-lg font-mono tracking-[0.35em] text-white rounded-xl uppercase"
                   />
                   <p className="text-[7.5px] font-mono text-brand-gray-light mt-3 uppercase text-center max-w-[220px] leading-relaxed">
-                    Got a short code instead of a link? Enter it here to open the note or file.
+                    Open a secure pairing link to use a new two-digit code. This field only supports older 8-character codes while they expire.
                   </p>
                   <button
                     onClick={handleRedeem}

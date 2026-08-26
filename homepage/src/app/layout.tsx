@@ -100,8 +100,8 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `(function(){try{
 var h=window.location.hash||"",p=window.location.pathname||"/",s=window.location.search||"";
-var appHash=/^#\\/?(burn|burnfiles|burnfile|v|join)\\//.test(h);
-var appPath=/^\\/(burn|burnfiles|burnfile|v|join)\\//.test(p);
+var appHash=/^#\\/?(burn|burnfiles|burnfile|redeem|v|join)\\//.test(h);
+var appPath=/^\\/(burn|burnfiles|burnfile|redeem|v|join)\\//.test(p);
 var authCb=/(access_token|refresh_token|error_description|type=recovery)/.test(h)||/[?&]code=/.test(s);
 if(appHash||appPath||authCb){window.location.replace("https://app.nosus.foo"+(appPath?p:"/")+s+h);}
 }catch(e){}})();`,

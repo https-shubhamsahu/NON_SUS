@@ -10,17 +10,17 @@
 // full design rationale.
 //
 // POST { target_kind: 'note'|'file', target_id, key_hex, iv_hex } ->
-//   { code, expires_at }
+//   { code, redeem_token, expires_at }
 //
 // Responsibilities:
 //   1. Check the burn_redemption_codes_enabled kill-switch.
 //   2. Verify the target actually exists and hasn't already been
 //      consumed/expired — no point minting a code for dead content.
-//   3. Generate an 8-character code (same 32-symbol alphabet already used
-//      for group invite codes — one consistent "type this into NO SUS"
-//      style app-wide), hash it, and store the row with expiry capped to
-//      the underlying content's own expiry.
-//   4. Return the plaintext code once — it is never stored.
+//   3. Generate a two-digit human confirmation code AND a 256-bit redeem
+//      token. The token is the actual credential; the code is intentionally
+//      only a convenient pairing check.
+//   4. Hash both values and store them with expiry capped to the underlying
+//      content's own expiry. Return plaintext values once.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8";
 
@@ -30,11 +30,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-// Same alphabet as groups_screen.dart's _generateInviteCode — excludes
-// 0/O/1/I/L to avoid ambiguity when a code is read aloud or handwritten.
-const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-const CODE_LENGTH = 8;
-const MAX_INSERT_ATTEMPTS = 5; // collision odds are ~1-in-1.1-trillion; this just guards the freak case
+const TOKEN_BYTES = 32;
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -55,10 +51,17 @@ async function hmacHex(message: string, secret: string): Promise<string> {
   return Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-function generateCode(): string {
-  const bytes = new Uint8Array(CODE_LENGTH);
+function generatePairingCode(): string {
+  // Rejection sampling avoids modulo bias: every value 00–99 has equal odds.
+  const byte = new Uint8Array(1);
+  do crypto.getRandomValues(byte); while (byte[0] >= 200);
+  return String(byte[0] % 100).padStart(2, "0");
+}
+
+function generateRedeemToken(): string {
+  const bytes = new Uint8Array(TOKEN_BYTES);
   crypto.getRandomValues(bytes);
-  return Array.from(bytes, (b) => CODE_ALPHABET[b % CODE_ALPHABET.length]).join("");
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 Deno.serve(async (req: Request) => {
@@ -89,6 +92,13 @@ Deno.serve(async (req: Request) => {
   }
   if (!targetId || !keyHex || !ivHex) {
     return json({ error: "Missing target_id, key_hex, or iv_hex" }, 400);
+  }
+  if (
+    !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(targetId) ||
+    !/^[0-9a-f]{64}$/i.test(keyHex) ||
+    !/^[0-9a-f]{32}$/i.test(ivHex)
+  ) {
+    return json({ error: "Invalid redemption target" }, 400);
   }
 
   const { data: flag } = await admin
@@ -135,29 +145,27 @@ Deno.serve(async (req: Request) => {
   const targetExpiry = new Date(targetExpiresAt);
   const expiresAt = (ttlExpiry < targetExpiry ? ttlExpiry : targetExpiry).toISOString();
 
-  for (let attempt = 0; attempt < MAX_INSERT_ATTEMPTS; attempt++) {
-    const code = generateCode();
-    const codeHash = await hmacHex(code, codeSalt);
+  const code = generatePairingCode();
+  const redeemToken = generateRedeemToken();
+  const [codeHash, redeemTokenHash] = await Promise.all([
+    hmacHex(code, codeSalt),
+    hmacHex(redeemToken, codeSalt),
+  ]);
 
-    const { error: insertErr } = await admin.from("burn_redemption_codes").insert({
-      code_hash: codeHash,
-      target_kind: targetKind,
-      target_id: targetId,
-      key_hex: keyHex,
-      iv_hex: ivHex,
-      expires_at: expiresAt,
-    });
+  const { error: insertErr } = await admin.from("burn_redemption_codes").insert({
+    code_hash: codeHash,
+    redeem_token_hash: redeemTokenHash,
+    target_kind: targetKind,
+    target_id: targetId,
+    key_hex: keyHex,
+    iv_hex: ivHex,
+    expires_at: expiresAt,
+  });
 
-    if (!insertErr) {
-      return json({ code, expires_at: expiresAt });
-    }
-    // 23505 = unique_violation on code_hash — vanishingly unlikely, just retry with a new code.
-    if (insertErr.code !== "23505") {
-      console.error("create-redemption-code: failed to insert row", insertErr);
-      return json({ error: "Could not create a redemption code" }, 502);
-    }
+  if (insertErr) {
+    console.error("create-redemption-code: failed to insert row", insertErr);
+    return json({ error: "Could not create a redemption pairing" }, 502);
   }
 
-  console.error("create-redemption-code: exhausted retries on code collision");
-  return json({ error: "Could not create a redemption code" }, 502);
+  return json({ code, redeem_token: redeemToken, expires_at: expiresAt });
 });

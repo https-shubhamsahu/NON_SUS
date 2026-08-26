@@ -2,8 +2,8 @@
 ///
 /// Off by default — [sentryDsn] is empty until explicitly provided via
 /// `--dart-define=SENTRY_DSN=...` (or a `.env` picked up by
-/// `--dart-define-from-file`), mirroring [FheConfig]'s "disabled unless
-/// configured" pattern. To turn this on:
+/// `--dart-define-from-file`) and is disabled unless explicitly configured.
+/// To turn this on:
 ///   1. Create a free project at sentry.io (Flutter platform).
 ///   2. Copy its DSN.
 ///   3. Add `SENTRY_DSN=https://...` to your `.env` / CI secret and pass it

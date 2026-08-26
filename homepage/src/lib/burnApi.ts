@@ -8,9 +8,9 @@
 //           (redemption_code_client.dart) — see
 //           supabase/migrations/20260713000000_burn_redemption_codes.sql for
 //           why this path trades zero-knowledge for a short, typeable code:
-//           the server briefly holds the key/IV, compensated by a short
-//           expiry, single-use, and rate limiting. The link stays untouched
-//           and keeps its original guarantee.
+//           the server briefly holds the key/IV. New two-digit codes are
+//           paired with an unguessable link token, while the direct link stays
+//           untouched and keeps its original guarantee.
 import { APP_URL, SUPABASE_ANON_KEY, SUPABASE_URL } from "./links";
 import {
   bytesToHex,
@@ -29,22 +29,26 @@ export const NOTE_MAX_CHARS = 10000;
 // tool is still single-file only.
 export const FILE_MAX_BYTES = 25 * 1024 * 1024;
 
-export type BurnResult = { link: string; codePromise: Promise<string | null> };
+export type RedemptionPairing = { code: string; link: string };
+export type BurnResult = {
+  link: string;
+  pairingPromise: Promise<RedemptionPairing | null>;
+};
 
 function shareLink(kind: "burn" | "burnfile", id: string, key: Uint8Array, iv: Uint8Array): string {
   // Key + IV live in the fragment — never transmitted to any server.
   return `${APP_URL}#/${kind}/${id}?k=${bytesToHex(key)}&v=${bytesToHex(iv)}`;
 }
 
-/** Best-effort: mints a short redemption code for an already-created note/file.
- * Never throws — the link already works on its own, so a hiccup here should
- * just leave the code section hidden, not fail the whole operation. */
-async function mintCode(
+/** Best-effort: mints a two-digit confirmation and its secure pairing link.
+ * Never throws — the direct link already works, so a hiccup here should not
+ * fail the share. */
+async function mintPairing(
   targetKind: "note" | "file",
   targetId: string,
   keyHex: string,
   ivHex: string,
-): Promise<string | null> {
+): Promise<RedemptionPairing | null> {
   try {
     const res = await fetch(`${SUPABASE_URL}/functions/v1/create-redemption-code`, {
       method: "POST",
@@ -58,13 +62,16 @@ async function mintCode(
     });
     if (!res.ok) return null;
     const data = await res.json();
-    return typeof data.code === "string" ? data.code : null;
+    if (typeof data.code !== "string" || typeof data.redeem_token !== "string") {
+      return null;
+    }
+    return { code: data.code, link: `${APP_URL}#/redeem/${data.redeem_token}` };
   } catch {
     return null;
   }
 }
 
-/** Creates a real self-destructing note; returns the one-time link + a short redemption code. */
+/** Creates a real self-destructing note and optional two-digit pairing. */
 export async function createBurnNote(text: string): Promise<BurnResult> {
   const { key, iv } = generateKeyMaterial();
   const ciphertext = await encryptNote(text, key, iv);
@@ -87,10 +94,10 @@ export async function createBurnNote(text: string): Promise<BurnResult> {
   const keyHex = bytesToHex(key);
   const ivHex = bytesToHex(iv);
   // Not awaited: the link is the actual deliverable and is already ready.
-  // The code is a secondary convenience — let it arrive whenever it arrives
-  // instead of making every share wait on a 4th network round trip.
-  const codePromise = mintCode("note", noteId, keyHex, ivHex);
-  return { link: shareLink("burn", noteId, key, iv), codePromise };
+  // Pairing is a secondary convenience — let it arrive whenever it arrives
+  // instead of making every share wait on another network round trip.
+  const pairingPromise = mintPairing("note", noteId, keyHex, ivHex);
+  return { link: shareLink("burn", noteId, key, iv), pairingPromise };
 }
 
 export type BurnFileProgress =
@@ -98,7 +105,7 @@ export type BurnFileProgress =
   | { phase: "uploading" }
   | { phase: "sealing" };
 
-/** Encrypts + uploads a real one-time file drop; returns the one-time link + a short redemption code. */
+/** Encrypts + uploads a real one-time file drop and optional pairing. */
 export async function createBurnFile(
   file: File,
   expiryHours: number,
@@ -163,21 +170,21 @@ export async function createBurnFile(
   const keyHex = bytesToHex(key);
   const ivHex = bytesToHex(iv);
   // Same as createBurnNote: not awaited, arrives after the "done" state.
-  const codePromise = mintCode("file", init.file_id, keyHex, ivHex);
-  return { link: shareLink("burnfile", init.file_id, key, iv), codePromise };
+  const pairingPromise = mintPairing("file", init.file_id, keyHex, ivHex);
+  return { link: shareLink("burnfile", init.file_id, key, iv), pairingPromise };
 }
 
 /** Recipient side: resolves a short redemption code into the same kind of
  * link a sender would share, so the existing app viewer handles the rest —
  * no need to duplicate note/file viewing here. */
-export async function redeemCode(code: string): Promise<string> {
+export async function redeemCode(code: string, redeemToken?: string): Promise<string> {
   const trimmed = code.trim();
   if (!trimmed) throw new Error("Enter a code first.");
 
   const res = await fetch(`${SUPABASE_URL}/functions/v1/redeem-code`, {
     method: "POST",
     headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY },
-    body: JSON.stringify({ code: trimmed }),
+    body: JSON.stringify({ code: trimmed, ...(redeemToken ? { redeem_token: redeemToken } : {}) }),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {

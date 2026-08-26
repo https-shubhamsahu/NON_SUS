@@ -18,6 +18,12 @@ final class SupabaseBootstrap {
     await Supabase.initialize(
       url: SupabaseCredentials.url,
       publishableKey: SupabaseCredentials.anonKey,
+      // Make the session contract explicit. Supabase Flutter restores this
+      // durable session before initialization completes and refreshes it in
+      // the background, so startup stays fast even on a poor connection.
+      authOptions: const FlutterAuthClientOptions(
+        authFlowType: AuthFlowType.pkce,
+      ),
     );
   }
 }

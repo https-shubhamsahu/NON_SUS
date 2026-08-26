@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/utils/debug_logger.dart';
@@ -9,13 +11,36 @@ class SupabaseAuthService {
 
   User? get currentUser => _client.auth.currentUser;
 
-  Stream<User?> watchUser() async* {
-    yield currentUser;
-    _client.auth.onAuthStateChange.listen((state) {
-      debugLog('NO SUS Auth State Changed: event=${state.event}, hasSession=${state.session != null}, user=${state.session?.user.email}');
-    });
-    yield* _client.auth.onAuthStateChange
-        .map((state) => state.session?.user);
+  Stream<User?> watchUser() {
+    late final StreamController<User?> controller;
+    StreamSubscription<AuthState>? subscription;
+
+    controller = StreamController<User?>(
+      onListen: () {
+        // Subscribe before emitting the cached session so an auth event that
+        // lands during restore cannot be missed. `currentUser` comes from the
+        // SDK's persistent storage and gives AuthGate an immediate answer.
+        subscription = _client.auth.onAuthStateChange.listen(
+          (state) {
+            debugLog(
+              'NO SUS Auth State Changed: event=${state.event}, '
+              'hasSession=${state.session != null}',
+            );
+            controller.add(state.session?.user);
+          },
+          onError: (Object error, StackTrace stackTrace) {
+            // Auth refresh can fail while the device is offline. Keep the
+            // cached session rather than turning a transient network problem
+            // into a forced logout or an unhandled zone exception.
+            debugLog('NO SUS Auth State Error: $error');
+          },
+        );
+        controller.add(currentUser);
+      },
+      onCancel: () => subscription?.cancel(),
+    );
+
+    return controller.stream;
   }
 
   Future<User> signIn({required String email, required String password}) async {
@@ -27,7 +52,9 @@ class SupabaseAuthService {
       return _requireUser(response);
     } on AuthException catch (e) {
       if (e.message.contains('Invalid login credentials')) {
-        throw const AuthException('You are not a registered user, try registration instead, or check your password.');
+        throw const AuthException(
+          'You are not a registered user, try registration instead, or check your password.',
+        );
       }
       rethrow;
     }
@@ -45,8 +72,9 @@ class SupabaseAuthService {
     await _client.auth.signInWithOAuth(
       OAuthProvider.google,
       redirectTo: kIsWeb ? null : 'io.supabase.nosus://login-callback',
-      authScreenLaunchMode:
-          kIsWeb ? LaunchMode.platformDefault : LaunchMode.externalApplication,
+      authScreenLaunchMode: kIsWeb
+          ? LaunchMode.platformDefault
+          : LaunchMode.externalApplication,
     );
   }
 
@@ -54,15 +82,14 @@ class SupabaseAuthService {
     await _client.auth.signInWithOAuth(
       OAuthProvider.github,
       redirectTo: kIsWeb ? null : 'io.supabase.nosus://login-callback',
-      authScreenLaunchMode:
-          kIsWeb ? LaunchMode.platformDefault : LaunchMode.externalApplication,
+      authScreenLaunchMode: kIsWeb
+          ? LaunchMode.platformDefault
+          : LaunchMode.externalApplication,
     );
   }
 
   Future<void> signInWithPhone(String phone) async {
-    await _client.auth.signInWithOtp(
-      phone: phone.trim(),
-    );
+    await _client.auth.signInWithOtp(phone: phone.trim());
   }
 
   Future<User> verifyPhoneOtp(String phone, String otp) async {

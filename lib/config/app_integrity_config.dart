@@ -1,7 +1,6 @@
 /// Play Integrity API feature flag.
 ///
-/// Off by default — mirrors [FheConfig]'s "disabled unless explicitly
-/// configured" pattern. Even once [enabled] is flipped on via
+/// Off by default. Even once [enabled] is flipped on via
 /// `--dart-define=APP_INTEGRITY_ENABLED=true`, requesting a real token still
 /// requires:
 ///   1. A Google Cloud project linked to this app in Play Console (App

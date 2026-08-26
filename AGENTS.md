@@ -17,7 +17,6 @@ the code wins — fix this file in the same commit.
    See §11 for the exact protocol.
 2. **Verification gates.** Do not claim a task is done until the relevant gate is clean:
    - Flutter: `flutter analyze` **and** `flutter test`
-   - Rust (`services/fhe-compute/`): `cargo build && cargo test`
    - Homepage: `npm run build` in `homepage/`
    Report failures with the actual output. Never describe an unrun command as passing.
 3. **Cryptographic honesty (load-bearing).** Copy, marketing, and UI must never outrun the actual
@@ -38,21 +37,19 @@ the code wins — fix this file in the same commit.
 audit logging) built with Flutter on a Supabase backend. Ships to web (GitHub Pages) and Android
 (Play Store).
 
-Current version: **`1.4.0+11`** (`pubspec.yaml`). Latest migration: `20260801062256_revoke_internal_function_execute.sql`.
+Current version: **`1.4.0+11`** (`pubspec.yaml`). Latest migration: `20260826085740_secure_two_digit_redemption_pairing.sql`.
 
-Four sub-projects live in this repo:
+Three sub-projects live in this repo:
 
 - **Root** — the Flutter app (`lib/`, `test/`, `android/`, `web/`).
 - **`supabase/`** — Postgres migrations + Deno Edge Functions (15 of them: `burn-file-{init,confirm,fetch}`,
   `share-fetch`, `share-heartbeat`, `create-redemption-code`, `redeem-code`, `storage-router`,
-  `drive-proxy`, `account-manager`, `cleanup-burn-files`, `verify-play-integrity`, plus the shelved
-  `fhe-proxy`, `sealed-api`, `pact-matcher`).
-- **`services/fhe-compute/`** — isolated Rust (TFHE-rs) homomorphic-compute service. Not V1 (§8).
+  `drive-proxy`, `account-manager`, `cleanup-burn-files`, `verify-play-integrity`).
 - **`homepage/`** — Next.js marketing landing page, statically exported (`output: "export"`), served
   at the **`nosus.foo` root**. The Flutter web app lives at **`app.nosus.foo`** (deployed to a
   separate `nosus-app` repo). `.github/workflows/gh-pages.yml` has two independent jobs: `landing`
   (this repo's gh-pages) and `app` (needs `APP_DEPLOY_TOKEN`). A pre-paint shim in
-  `homepage/src/app/layout.tsx` forwards legacy `nosus.foo/#/burn|burnfile|v|join/…` links and
+  `homepage/src/app/layout.tsx` forwards legacy `nosus.foo/#/burn|burnfile|redeem|v|join/…` links and
   Supabase auth callbacks to the app subdomain (fragment preserved — **the AES key lives there**).
   The hero has REAL working Burn Note/File tools; their WebCrypto (`homepage/src/lib/burnCrypto.ts`)
   is kept byte-compatible with the Dart app by `test/unit/burn_crypto_web_compat_test.dart` — never
@@ -77,24 +74,13 @@ flutter build web --base-href "/"    # web release (CI adds --dart-define-from-f
 **This Windows machine:** the `flutter` on PATH (`C:\Users\shubh\flutter\bin`) is an EMPTY checkout —
 the real SDK is `C:\Users\shubh\AppData\Local\flutter\bin\flutter.bat` (stable 3.44.4, matching CI).
 
-**Rust service** (`services/fhe-compute/`): `cargo build && cargo test`. Toolchain is
-scoop-installed `stable-x86_64-pc-windows-gnu` (no MSVC); needs scoop gcc + cargo on PATH:
-
-```sh
-export PATH="/c/Users/shubh/scoop/apps/gcc/current/bin:/c/Users/shubh/.cargo/bin:/c/Users/shubh/scoop/persist/rustup/.cargo/bin:/c/Users/shubh/scoop/shims:$PATH"
-```
-
-Real-crypto test suites are slow (~14 min). The gnu-linker workaround lives in
-`services/fhe-compute/.cargo/config.toml` — don't remove it. The Rust `target/` dir is ~39 GB
-locally (gitignored).
-
 **Previewing web builds:** use the Browser pane with `.claude/launch.json` servers —
 `web-release-static` serves `build/web` on :5051 (build first). Interactive click-through
 verification in the preview harness is unreliable; diagnose briefly, then hand the click-through to
 the user rather than chasing flaky rendering.
 
 **Test layout:** `test/unit/` (crypto, deep links, version compare, constants), `test/widget/`
-(auth, groups — semantics regression tests), `test/features/` (auth, groups, fhe, sealed),
+(auth, groups — semantics regression tests), `test/features/` (auth, groups),
 `test/providers/`.
 
 ---
@@ -156,8 +142,8 @@ flatter (`screens/`, `widgets/`, `providers/` at feature root) — match whichev
 you're editing already uses. Access data only through repositories from presentation code; don't
 call Supabase clients directly from widgets in Clean-Architecture features.
 
-Features: `admin`, `analytics`, `audit`, `auth`, `config`, `fhe`, `files`, `focus`, `groups`,
-`help`, `notes`, `notifications`, `onboarding`, `profile`, `sealed`, `settings`, `share`, `vault`,
+Features: `admin`, `analytics`, `audit`, `auth`, `config`, `files`, `focus`, `groups`,
+`help`, `notes`, `notifications`, `onboarding`, `profile`, `settings`, `share`, `vault`,
 `workspace`.
 
 **Onboarding is two surfaces, not a slideshow.** `WelcomeScreen` (pre-auth, explained above) and
@@ -175,7 +161,7 @@ state in `tourProgressProvider`, replayable from Help and Settings.
   `web_security_guard.dart`, `burn_file_crypto.dart`, `play_integrity_service.dart`
 - `lib/core/` — Supabase bootstrap + providers (`core/supabase/`), theme provider, mascot (Rive), utils
 - `lib/config/` — `supabase_credentials.dart` (**leave both fields empty → app runs in mock fallback
-  mode with no backend**), `fhe_config.dart`, `storage_router_config.dart`,
+  mode with no backend**), `storage_router_config.dart`,
   `crash_reporting_config.dart`
 - `lib/components/` — shared widgets used across features. The document-watermarking stack
   (`SpyglassViewer` → `secure_viewer/secure_document_viewer.dart` composing `watermark_overlay.dart`
@@ -186,7 +172,7 @@ state in `tourProgressProvider`, replayable from Help and Settings.
 
 **Backend:** everything goes through Supabase — auth, storage, Postgres (schema history in
 `supabase/migrations/`, heavy RLS use), and Edge Functions for anything secret-touching (burn files,
-share fetch/heartbeat, FHE proxy). Client-side crypto (AES via `encrypt`) is used for burn
+share fetch/heartbeat). Client-side crypto (AES via `encrypt`) is used for burn
 notes/files; keys travel in URL fragments, never to the server.
 
 **Riverpod rebuild scoping:** `StudyGroup`/`GroupMember`
@@ -318,25 +304,10 @@ run `dart format` across a file you are only editing a few lines of — it burie
 
 ## 8. Subsystems that are scaffolded, shelved, or off
 
-**FHE / Sealed — long-term vision, not V1, and now absent from the UI.** FHE
-(`lib/features/fhe/`, `services/fhe-compute/`, `supabase/functions/fhe-proxy/`) is long-term-vision
-infrastructure per `PROJECT_CONSTITUTION.md` §4 — not V1 scope, not the active product.
-`lib/features/sealed/` and the `sealed-api`/`pact-matcher` edge functions specifically are
-**shelved** (kept in the repo, not shipped — `SHIELD.md` documents the architecture).
-
-As of 2026-07-29 Sealed is also gone from the **product surface**, pending a separate redesign.
-`_SealedTeaserCard` used to occupy the first slot on the Workspace tab: a scripted ASCII
-"simulation" followed by a star rating, checkboxes and free-text feedback that were **discarded on
-`Navigator.pop`** while the app said "Verification submitted to the secure ledger." Both the dead
-control and the false confirmation are removed. `SealedHomeScreen` and `FheDemoScreen` remain
-unrouted — `test/unit/sealed_removed_test.dart` fails if anything outside `lib/features/{sealed,fhe}/`
-references them, so the code can stay without the surface coming back by accident.
-
-Detailed guardrails live in `.claude/rules/no-sus-fhe.md` (mirrors
-`.cursor/rules/no-sus-fhe.mdc`), which loads automatically when touching FHE files. Summary:
-additive only, off by default behind granular flags in `lib/config/fhe_config.dart` (never a single
-global switch), Flutter never talks to TFHE directly (app → `FheTransport` → `fhe-proxy` → Rust),
-never log or persist key material.
+**FHE / Sealed — retired.** The Flutter features, Edge Functions, Rust service,
+feature flags, and guardrail files were removed on 2026-08-26. They must not be
+reintroduced into the active product. Immutable schema migrations remain as
+historical database history; they are not runtime dependencies.
 
 **Crash reporting (Sentry) — off by default.** `lib/config/crash_reporting_config.dart` (`SENTRY_DSN`
 empty). Wired into `FlutterError.onError` and the `runZonedGuarded` handler in `lib/main.dart` via
@@ -486,10 +457,8 @@ codebase — assume still outstanding unless you know otherwise.
 | `MANUAL_TASKS.md` | ✅ Operator checklist — console logins, credentials, device tests, product calls. Deliberately *not* guidance; mirrors §9 |
 | `PROJECT_CONSTITUTION.md` | ✅ Authoritative for product vision, honesty rules, non-negotiables |
 | `RELEASE_REPORT.md` | ✅ Release-readiness audit (10–11 July 2026); §12 checklist still useful |
-| `SHIELD.md` | ✅ Architecture of the shelved Sealed/FHE subsystem |
 | `MASCOT_GUIDE.md` | ✅ Mascot mood table |
 | `homepage/CLAUDE.md`, `homepage/AGENTS.md` | ✅ Scoped to the Next.js landing page |
-| `.claude/rules/no-sus-fhe.md` | ✅ FHE guardrails (auto-loads) |
 | `docs/archive/*` | ❌ **Historical snapshots.** Superseded; several declare themselves "the single source of truth" and contradict both this file and each other |
 
 ---
@@ -511,6 +480,16 @@ codebase — assume still outstanding unless you know otherwise.
 > bottom rather than letting this section grow without bound.
 
 <!-- CHANGELOG:INSERT -->
+
+- **2026-08-26** · `b734270` · feat: simplify sharing and ship secure redemption pairing — why:
+  two visible digits are a human confirmation, never an access credential; an opaque 256-bit token
+  in the pairing link is required for the atomic claim. This removes the old FHE/Sealed runtime and
+  source tree, fixes destructive auth restoration, and conditionally excludes Android-only Measure
+  code from web compilation. The migration and both redemption functions were applied live together.
+
+- **2026-08-01** · `d74eca0` · fix(android): remove literal -- from manifest XML comment
+
+- **2026-08-01** · `a740d58` · docs(agents): log ee95653, 281a9a3 in the change log — why
 
 - **2026-08-01** · `281a9a3` · fix(db): fold in the renumbering rationale comment
 

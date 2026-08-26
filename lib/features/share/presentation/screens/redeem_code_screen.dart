@@ -13,7 +13,11 @@ import 'burn_note_viewer_screen.dart';
 /// this path has a different (server briefly holds the key) guarantee than
 /// the link.
 class RedeemCodeScreen extends StatefulWidget {
-  const RedeemCodeScreen({super.key});
+  /// The opaque token from a `#/redeem/<token>` pairing link. It is the real
+  /// credential; the visible two digits only confirm the intended share.
+  final String? redeemToken;
+
+  const RedeemCodeScreen({super.key, this.redeemToken});
 
   @override
   State<RedeemCodeScreen> createState() => _RedeemCodeScreenState();
@@ -47,7 +51,10 @@ class _RedeemCodeScreenState extends State<RedeemCodeScreen> {
     });
 
     try {
-      final result = await RedemptionCodeClient.instance.redeem(code);
+      final result = await RedemptionCodeClient.instance.redeem(
+        code,
+        redeemToken: widget.redeemToken,
+      );
       if (!mounted) return;
       final viewer = result.targetKind == 'file'
           ? BurnFileViewerScreen(
@@ -108,9 +115,13 @@ class _RedeemCodeScreenState extends State<RedeemCodeScreen> {
               ),
               const SizedBox(height: NoSusTheme.s8),
               Text(
-                'Enter the 8-character code someone shared with you to open '
-                'their Burn Note or Burn File. Codes expire quickly and can '
-                'only be used once — same as a link.',
+                widget.redeemToken == null
+                    ? 'Open the secure pairing link first, then enter its '
+                          'two-digit confirmation code. This screen also accepts '
+                          'an older 8-character code while existing shares expire.'
+                    : 'Enter the two digits the sender gave you. The secure '
+                          'link you opened is the access credential; these digits '
+                          'simply confirm the right share.',
                 style: theme.textTheme.bodyMedium?.copyWith(color: subtle),
               ),
               const SizedBox(height: NoSusTheme.s32),
@@ -120,13 +131,13 @@ class _RedeemCodeScreenState extends State<RedeemCodeScreen> {
                 autofocus: true,
                 textCapitalization: TextCapitalization.characters,
                 textInputAction: TextInputAction.done,
-                maxLength: 8,
+                maxLength: widget.redeemToken == null ? 8 : 2,
                 style: theme.textTheme.titleLarge?.copyWith(
                   letterSpacing: 4,
                   fontFeatures: const [FontFeature.tabularFigures()],
                 ),
                 decoration: InputDecoration(
-                  hintText: 'ABCD1234',
+                  hintText: widget.redeemToken == null ? 'ABCD1234' : '00',
                   counterText: '',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(NoSusTheme.r12),
@@ -134,10 +145,17 @@ class _RedeemCodeScreenState extends State<RedeemCodeScreen> {
                   errorText: _error,
                 ),
                 inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9]')),
+                  FilteringTextInputFormatter.allow(
+                    widget.redeemToken == null
+                        ? RegExp(r'[A-Za-z0-9]')
+                        : RegExp(r'[0-9]'),
+                  ),
                   TextInputFormatter.withFunction(
-                    (oldValue, newValue) =>
-                        newValue.copyWith(text: newValue.text.toUpperCase()),
+                    (oldValue, newValue) => newValue.copyWith(
+                      text: widget.redeemToken == null
+                          ? newValue.text.toUpperCase()
+                          : newValue.text,
+                    ),
                   ),
                 ],
                 onSubmitted: (_) => _submit(),

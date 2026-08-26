@@ -6,15 +6,17 @@
 // design. Public on purpose (verify_jwt: false), same anonymous posture as
 // burn-file-fetch/read_and_burn_note — a recipient never needs an account.
 //
-// POST { code } -> { target_kind, target_id, key_hex, iv_hex }
+// POST { code, redeem_token? } -> { target_kind, target_id, key_hex, iv_hex }
 //                 | 410 if invalid/expired/already-used (one generic error —
 //                   deliberately not distinguishing wrong-vs-expired-vs-used,
 //                   so a guesser gets no oracle signal)
 //
 // Rate-limited by a salted hash of the request IP (never the raw IP),
 // mirroring burn-file-init's limiter — defense-in-depth against a
-// scripted/distributed brute-force attempt, on top of the code's own
-// ~1.1-trillion-combination entropy.
+// scripted/distributed brute-force attempt. New two-digit values are never a
+// standalone credential: they must be paired with an unguessable 256-bit
+// redeem token from the secure link. Legacy eight-character codes remain
+// redeemable briefly for backwards compatibility.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8";
 
@@ -64,7 +66,19 @@ Deno.serve(async (req: Request) => {
   }
 
   const code = String(body.code ?? "").trim().toUpperCase();
+  const redeemToken = String(body.redeem_token ?? "").trim().toLowerCase();
   if (!code) return json({ error: "Missing code" }, 400);
+  const isPairingCode = /^\d{2}$/.test(code);
+  const hasRedeemToken = /^[0-9a-f]{64}$/.test(redeemToken);
+  if (isPairingCode && !hasRedeemToken) {
+    return json({ error: "Open the secure pairing link before entering this two-digit code" }, 400);
+  }
+  if (redeemToken && !hasRedeemToken) {
+    return json({ error: "Invalid pairing link" }, 400);
+  }
+  if (!isPairingCode && !/^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{8}$/.test(code)) {
+    return json({ error: "Invalid or expired code" }, 410);
+  }
 
   const { data: flag } = await admin
     .from("feature_flags")
@@ -103,9 +117,15 @@ Deno.serve(async (req: Request) => {
   }
 
   const codeHash = await hmacHex(code, codeSalt);
-  const { data: claimed, error: claimErr } = await admin.rpc("claim_redemption_code", {
-    p_code_hash: codeHash,
-  });
+  const tokenHash = hasRedeemToken
+    ? await hmacHex(redeemToken, codeSalt)
+    : null;
+  const { data: claimed, error: claimErr } = hasRedeemToken
+    ? await admin.rpc("claim_redemption_code", {
+      p_code_hash: codeHash,
+      p_redeem_token_hash: tokenHash,
+    })
+    : await admin.rpc("claim_redemption_code", { p_code_hash: codeHash });
   if (claimErr) {
     console.error("redeem-code: claim RPC failed", claimErr);
     return json({ error: "Could not process this code" }, 500);

@@ -58,7 +58,7 @@ void main() {
       });
 
       test('matches on body text, not just titles', () {
-        // "reciprocity" is gone with Sealed; "watermark" is a real concept.
+        // Watermark is a real product concept; retired experiments are absent.
         final results = HelpCatalog.search('watermark');
         expect(results, isNotEmpty);
         expect(results.map((t) => t.id), contains(HelpCatalog.watermarking));

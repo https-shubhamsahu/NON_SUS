@@ -5,12 +5,11 @@
 
 ## 1. Product Vision
 **One-Sentence Vision:**
-NO SUS is a secure, tracked, and watermarked document-sharing and private messaging platform that gives creators complete visibility and control over external data access without forcing recipients to register or install applications.
+NO SUS lets people share a sensitive document, know when it was opened, and retain simple control over the link without forcing recipients to register or install anything.
 
 **Target Users:**
-1. **Professionals**: Sharing highly sensitive documents (NDAs, financial sheets, draft contracts) with external counterparties.
-2. **Privacy-Conscious Communicators**: Exchanging one-time secrets (credentials, private messages) over a zero-knowledge, self-destructing channel.
-3. **Academic/Institutional Researchers**: Collaborating on sensitive datasets without raw document exposure.
+1. **Students, professionals, and small teams**: Sharing documents that need context, visibility, or a revocable link.
+2. **Privacy-conscious communicators**: Exchanging one-time secrets (credentials, private messages) over a client-encrypted, self-destructing channel.
 
 ---
 
@@ -29,15 +28,13 @@ V1 focuses on shipping a highly stable, low-maintenance, polished web-first docu
 ---
 
 ## 4. Long-Term Vision
-* **Sealed (Reciprocity-Gated Intent Graph)**: An FHE-backed matching system where mutual intent is evaluated homomorphically over ciphertext, ensuring the server learns nothing unless a match is established.
-* **Private AI Memory**: Users query private data pools where the server computes encrypted similarity without seeing the raw query or documents.
-* **Selective Truth / Encrypted Policy Engine**: LLMs receive restricted context only after encrypted permission checks have run.
+* **Optional document assistance**: A future Gemini or on-device adapter may help an authorized user summarize or understand a document. It is always optional, feature-flagged, and cannot block core sharing.
 
 ---
 
 ## 5. Engineering & Security Philosophy
 * **RLS-First Security**: Every table must have Row-Level Security enabled. RLS policies must prevent data leaks even if client applications are fully compromised.
-* **Proxy Boundary**: The mobile/web client must never communicate directly with internal compute services (such as FHE containers) or external cloud storage. All requests go through authenticated Supabase Edge Functions.
+* **Server Boundary**: The mobile/web client must never receive server-side credentials or communicate directly with external cloud storage. Sensitive server operations go through Supabase Edge Functions.
 * **Client-Side Secret Ownership**: For zero-knowledge features, the keys must be generated, stored, and used entirely in the client browser. No key material may ever touch the server database or logs.
 * **Shipping Over Perfection**: Focus on production readiness, simplicity, and maintainability over unnecessary optimizations or architectural complexity.
 

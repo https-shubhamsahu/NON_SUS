@@ -45,17 +45,14 @@ void main() {
     });
 
     test('parses the legacy double-hash format', () {
-      final uri =
-          Uri.parse('https://host/#/burn/$noteId%23$keyHex.$ivHex');
+      final uri = Uri.parse('https://host/#/burn/$noteId%23$keyHex.$ivHex');
       final token = extractBurnNoteToken(uri);
       expect(token, isNotNull);
       expect(token!.id, noteId);
     });
 
     test('rejects wrong-length keys', () {
-      final uri = Uri.parse(
-        'https://host/#/burn/$noteId?k=deadbeef&v=$ivHex',
-      );
+      final uri = Uri.parse('https://host/#/burn/$noteId?k=deadbeef&v=$ivHex');
       expect(extractBurnNoteToken(uri), isNull);
     });
 
@@ -90,12 +87,19 @@ void main() {
       );
     });
 
-    test('parses invite code from hash fragment (legacy GitHub Pages link)', () {
-      expect(
-        extractInviteToken(Uri.parse('https://https-shubhamsahu.github.io/NON_SUS/#/join/invite123')),
-        'invite123',
-      );
-    });
+    test(
+      'parses invite code from hash fragment (legacy GitHub Pages link)',
+      () {
+        expect(
+          extractInviteToken(
+            Uri.parse(
+              'https://https-shubhamsahu.github.io/NON_SUS/#/join/invite123',
+            ),
+          ),
+          'invite123',
+        );
+      },
+    );
 
     test('parses invite code from path', () {
       expect(
@@ -119,10 +123,7 @@ void main() {
     });
 
     test('returns null when absent', () {
-      expect(
-        extractInviteToken(Uri.parse('https://nosus.app/v/tok9')),
-        isNull,
-      );
+      expect(extractInviteToken(Uri.parse('https://nosus.app/v/tok9')), isNull);
     });
   });
 
@@ -209,8 +210,47 @@ void main() {
     });
 
     test('returns null on ordinary app URLs', () {
-      expect(extractBurnFilesToken(Uri.parse('https://app.nosus.foo/')), isNull);
+      expect(
+        extractBurnFilesToken(Uri.parse('https://app.nosus.foo/')),
+        isNull,
+      );
       expect(extractBurnFilesToken(Uri.parse('file:///')), isNull);
+    });
+  });
+
+  group('extractRedemptionToken', () {
+    const redemptionToken =
+        '1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef';
+
+    test('parses a two-digit pairing link from the hash fragment', () {
+      expect(
+        extractRedemptionToken(
+          Uri.parse('https://app.nosus.foo/#/redeem/$redemptionToken'),
+        ),
+        redemptionToken,
+      );
+    });
+
+    test('parses a path-style pairing link', () {
+      expect(
+        extractRedemptionToken(
+          Uri.parse('https://app.nosus.foo/redeem/$redemptionToken'),
+        ),
+        redemptionToken,
+      );
+    });
+
+    test('rejects non-secret pairing values', () {
+      expect(
+        extractRedemptionToken(Uri.parse('https://app.nosus.foo/#/redeem/42')),
+        isNull,
+      );
+      expect(
+        extractRedemptionToken(
+          Uri.parse('https://app.nosus.foo/#/burn/$noteId'),
+        ),
+        isNull,
+      );
     });
   });
 }

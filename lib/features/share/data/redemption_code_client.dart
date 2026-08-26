@@ -8,26 +8,29 @@ import '../../../config/supabase_credentials.dart';
 /// session, anonymous on both ends). See
 /// supabase/migrations/20260713000000_burn_redemption_codes.sql for why
 /// this path deliberately differs from the link-based zero-knowledge
-/// guarantee: the server briefly holds the key/IV so a short code can
-/// resolve it, compensated by short expiry, single-use, and rate limiting.
+/// guarantee: the server briefly holds the key/IV. New two-digit codes are
+/// paired with an unguessable link token, so the short value is never the
+/// authorization boundary.
 class RedemptionCodeClient {
   RedemptionCodeClient._();
   static final RedemptionCodeClient instance = RedemptionCodeClient._();
 
-  static final Uri _createEndpoint =
-      Uri.parse('${SupabaseCredentials.url}/functions/v1/create-redemption-code');
-  static final Uri _redeemEndpoint =
-      Uri.parse('${SupabaseCredentials.url}/functions/v1/redeem-code');
+  static final Uri _createEndpoint = Uri.parse(
+    '${SupabaseCredentials.url}/functions/v1/create-redemption-code',
+  );
+  static final Uri _redeemEndpoint = Uri.parse(
+    '${SupabaseCredentials.url}/functions/v1/redeem-code',
+  );
 
   Map<String, String> get _headers => {
-        'Content-Type': 'application/json',
-        'apikey': SupabaseCredentials.anonKey,
-      };
+    'Content-Type': 'application/json',
+    'apikey': SupabaseCredentials.anonKey,
+  };
 
-  /// Sender side: mints a short code pointing at the same key/IV already
-  /// embedded in the share link, so either can be used to retrieve it.
+  /// Sender side: mints a two-digit pairing code and an unguessable redeem
+  /// token. Both are required for the alternate retrieval path.
   /// [targetKind] is `'note'` or `'file'`.
-  Future<({String code, DateTime expiresAt})> createCode({
+  Future<({String code, String redeemToken, DateTime expiresAt})> createCode({
     required String targetKind,
     required String targetId,
     required String keyHex,
@@ -45,28 +48,34 @@ class RedemptionCodeClient {
     );
     final decoded = jsonDecode(res.body) as Map<String, dynamic>;
     if (res.statusCode != 200) {
-      throw Exception(decoded['error'] as String? ?? 'Could not create a code.');
+      throw Exception(
+        decoded['error'] as String? ?? 'Could not create a code.',
+      );
     }
     return (
       code: decoded['code'] as String,
+      redeemToken: decoded['redeem_token'] as String,
       expiresAt: DateTime.parse(decoded['expires_at'] as String),
     );
   }
 
-  /// Recipient side: atomically claims the code (single-use — a second call
-  /// with the same code always throws) and returns what's needed to proceed
-  /// through the normal viewer flow, same as parsing a share link would.
-  Future<({String targetKind, String targetId, String keyHex, String ivHex})> redeem(
-    String code,
-  ) async {
+  /// Recipient side: atomically claims a code. New two-digit pairing codes
+  /// require [redeemToken] from the secure link; the optional form only keeps
+  /// short-lived legacy eight-character codes working during rollout.
+  Future<({String targetKind, String targetId, String keyHex, String ivHex})>
+  redeem(String code, {String? redeemToken}) async {
+    final payload = <String, String>{'code': code};
+    if (redeemToken != null) payload['redeem_token'] = redeemToken;
     final res = await http.post(
       _redeemEndpoint,
       headers: _headers,
-      body: jsonEncode({'code': code}),
+      body: jsonEncode(payload),
     );
     final decoded = jsonDecode(res.body) as Map<String, dynamic>;
     if (res.statusCode != 200) {
-      throw Exception(decoded['error'] as String? ?? 'That code could not be redeemed.');
+      throw Exception(
+        decoded['error'] as String? ?? 'That code could not be redeemed.',
+      );
     }
     return (
       targetKind: decoded['target_kind'] as String,

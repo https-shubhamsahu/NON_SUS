@@ -9,7 +9,6 @@ const stack = [
   "Flutter / Dart",
   "Supabase · Postgres · RLS",
   "Deno Edge Functions",
-  "Rust · TFHE-rs",
   "AES-256 client-side crypto",
   "GitHub Actions CI/CD",
 ];

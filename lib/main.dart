@@ -3,13 +3,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:measure_flutter/measure_flutter.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:universal_html/html.dart' as html;
 
 import 'config/crash_reporting_config.dart';
-import 'config/measure_reporting_config.dart';
 import 'theme.dart';
 import 'features/profile/presentation/widgets/profile_avatar.dart';
 import 'core/providers/theme_provider.dart';
@@ -26,6 +24,7 @@ import 'features/vault/presentation/pages/study_desk_tab.dart';
 import 'features/audit/presentation/pages/audit_tab.dart';
 
 import 'services/supabase_service.dart';
+import 'services/measure_reporting.dart';
 import 'services/screenshot_guard.dart';
 import 'services/audit_service.dart';
 import 'services/device_integrity_service.dart';
@@ -53,6 +52,7 @@ import 'core/mascot/mascot_view.dart';
 
 import 'features/share/presentation/screens/burn_note_viewer_screen.dart';
 import 'features/share/presentation/screens/burn_file_viewer_screen.dart';
+import 'features/share/presentation/screens/redeem_code_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class BurnNoteToken {
@@ -210,6 +210,21 @@ List<BurnFileToken>? extractBurnFilesToken(Uri uri) {
   return tokens;
 }
 
+/// Extracts the opaque token carried by a two-digit redemption pairing link.
+/// The token is deliberately long and unguessable; the two visible digits are
+/// only a human confirmation step and must never be accepted on their own.
+String? extractRedemptionToken(Uri uri) {
+  for (final raw in [uri.fragment, uri.path]) {
+    final cleaned = raw.startsWith('/') ? raw.substring(1) : raw;
+    final match = RegExp(
+      r'^redeem/([a-f0-9]{64})(?:\?.*)?$',
+      caseSensitive: false,
+    ).firstMatch(cleaned);
+    if (match != null) return match.group(1)!.toLowerCase();
+  }
+  return null;
+}
+
 /// Extracts a SecureSend share token from a `/v/<token>` URL, checking both
 /// the fragment (default hash-based web routing, e.g. `#/v/abc123`) and the
 /// path, so the link works regardless of URL strategy. Returns null on any
@@ -307,13 +322,7 @@ void main() async {
       // start() is explicit because both MeasureConfigs are set to
       // autoStart: false — one place where collection begins, and the point a
       // consent gate would attach.
-      if (MeasureReportingConfig.isEnabled) {
-        await Measure.instance.init(
-          () {},
-          config: const MeasureConfig(autoStart: false),
-        );
-        await Measure.instance.start();
-      }
+      await initializeMeasureReporting();
 
       // Pre-load SharedPreferences synchronously before routing and app run
       final prefs = await SharedPreferences.getInstance();
@@ -328,28 +337,21 @@ void main() async {
       // AnalyticsService; it no-ops entirely in mock fallback mode.
       AnalyticsService.instance.log(AnalyticsEvent.appOpened);
 
-      // Ghost-session guard: if the device has a cached JWT for a user that was
-      // deleted from auth.users (e.g. after a dev DB wipe), every Supabase write
-      // fails with RLS errors even on permissive policies. Fix: verify the session
-      // is still valid server-side; sign out silently if not. Fire-and-forget so
-      // this network round-trip never delays first paint — a ghost session is
-      // rare and self-corrects on the first failed write either way.
-      // (Guarded: Supabase.instance throws if the SDK was never initialized,
-      // which is exactly the mock fallback mode case.)
+      // Do not probe `getUser()` and sign out during startup. Supabase Flutter
+      // v2 restores a persisted session first and refreshes it asynchronously;
+      // an expired access token or a transient network failure is normal here.
+      // Treating either as proof of a deleted account was logging real users
+      // out whenever they relaunched at the wrong moment.
+      //
+      // A genuinely invalid session emits the SDK's signed-out state, which
+      // AuthGate already handles. This keeps restore fast and non-destructive.
       if (SupabaseService.instance.isConfigured) {
         unawaited(() async {
           final cachedSession = Supabase.instance.client.auth.currentSession;
-          if (cachedSession != null) {
-            try {
-              await Supabase.instance.client.auth.getUser(
-                cachedSession.accessToken,
-              );
-            } catch (_) {
-              debugLog(
-                'NO SUS: Ghost session detected (user deleted). Signing out.',
-              );
-              await Supabase.instance.client.auth.signOut();
-            }
+          if (cachedSession?.isExpired ?? false) {
+            debugLog(
+              'NO SUS: Restoring an expired cached session; awaiting SDK refresh.',
+            );
           }
         }());
       }
@@ -422,6 +424,17 @@ void main() async {
                   .map((t) => (id: t.id, keyHex: t.keyHex, ivHex: t.ivHex))
                   .toList(),
             ),
+          ),
+        );
+        return;
+      }
+
+      final redemptionToken = extractRedemptionToken(Uri.base);
+      if (redemptionToken != null) {
+        runApp(
+          ProviderScope(
+            overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+            child: RedeemCodeScreen(redeemToken: redemptionToken),
           ),
         );
         return;
@@ -1166,8 +1179,9 @@ void _handleInAppInviteLink(String inviteCode) {
 /// **Why every shape has to be handled here.** The Android App Links filter for
 /// `app.nosus.foo` is necessarily host-wide: an intent filter cannot match on a
 /// URL fragment, and every link this app mints is fragment-shaped at path `/`
-/// (`/#/burn/<id>?k=…`, `/#/burnfile/<id>`, `/#/burnfiles/<ids>`, `/?cb=…#/v/…`,
-/// `/#/join/<code>`). So once the app is installed it intercepts *all* of them.
+/// (`/#/burn/<id>?k=…`, `/#/burnfile/<id>`, `/#/burnfiles/<ids>`,
+/// `/#/redeem/<token>`, `/?cb=…#/v/…`, `/#/join/<code>`). So once the app is
+/// installed it intercepts *all* of them.
 /// Anything not routed here is silently swallowed — the recipient lands on the
 /// home screen and a single-use link looks broken, with no browser fallback,
 /// because the system already chose the app over the web page.
@@ -1187,6 +1201,17 @@ bool _routeIncomingWebLink(Uri uri) {
   final shareToken = extractShareToken(uri);
   if (shareToken != null) {
     _handleInAppShareView(shareToken);
+    return true;
+  }
+
+  final redemptionToken = extractRedemptionToken(uri);
+  if (redemptionToken != null) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RedeemCodeScreen(redeemToken: redemptionToken),
+      ),
+    );
     return true;
   }
 
