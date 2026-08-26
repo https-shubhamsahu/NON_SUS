@@ -481,7 +481,7 @@ codebase — assume still outstanding unless you know otherwise.
 
 <!-- CHANGELOG:INSERT -->
 
-- **2026-08-26** · `b734270` · feat: simplify sharing and ship secure redemption pairing — why:
+- **2026-08-26** · `bb0e43a` · feat: simplify sharing and ship secure redemption pairing — why:
   two visible digits are a human confirmation, never an access credential; an opaque 256-bit token
   in the pairing link is required for the atomic claim. This removes the old FHE/Sealed runtime and
   source tree, fixes destructive auth restoration, and conditionally excludes Android-only Measure
