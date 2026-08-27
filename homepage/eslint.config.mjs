@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // The Eureka pitch ships a third-party minified browser bundle unchanged.
+    "public/eureka-pitch/vendor/**",
   ]),
 ]);
 
