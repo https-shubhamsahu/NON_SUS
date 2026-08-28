@@ -85,6 +85,35 @@ the user rather than chasing flaky rendering.
 
 ---
 
+## Cursor Cloud specific instructions
+
+Notes for agents running in the Cursor Cloud VM (a Linux box, **not** the Windows machine described
+in §2). The startup update script only refreshes dependencies (`flutter pub get`; `npm ci` in
+`homepage/`); everything below is already provisioned in the VM snapshot.
+
+- **Flutter SDK lives at `~/flutter`** (stable `3.44.4`, matching CI — §3). It is on `PATH` via
+  `~/.bashrc`, so `flutter`/`dart` work in a login shell. The §2 "Windows machine" `flutter.bat`
+  paths do **not** apply here. Node comes from `nvm` (v22); `cargo` is preinstalled. Standard gates
+  from §2/§0 apply unchanged: `flutter analyze` + `flutter test` for the app, `npm run lint` +
+  `npm run build` in `homepage/`.
+- **The backend is live, not mock.** `lib/config/supabase_credentials.dart` is populated with a
+  hosted Supabase project (`rxfnazmusofikwaggntb.supabase.co`), so the app **and** the homepage burn
+  tools run against a real backend by default — §4's "leave both fields empty → mock fallback" note
+  describes the *empty* state, which is not the committed state. Consequence: `flutter test` includes
+  `test/db_test.dart`, which talks to that hosted project, so the full suite **needs network access**
+  and real accounts/burn notes created during testing hit the live project.
+- **Run the app (web) for manual testing:** `flutter run -d web-server --web-hostname 0.0.0.0
+  --web-port 5000`. The `web-server` device needs no Chrome and **compiles lazily on the first HTTP
+  request** (~30 s to first paint) — a blank page right after start is normal; wait/refresh. Sign-up
+  with email+password logs in immediately (email confirmation is not enforced), so you can reach the
+  Workspace and exercise core features (e.g. Burn Notes) end-to-end without an inbox.
+- **Run the homepage:** `npm run dev` in `homepage/` (Next.js on :3000). Its hero Burn Note/File
+  tools are real and hit the same live Supabase backend.
+- **Do not build `services/fhe-compute/` unless working on FHE** — it's shelved (§8), its `target/`
+  is ~39 GB and its tests take ~14 min.
+
+---
+
 ## 3. CI & release
 
 - **`.github/workflows/gh-pages.yml`** — on push to `main`: analyze, test, build web, deploy to
@@ -589,6 +618,14 @@ codebase — assume still outstanding unless you know otherwise.
   failure on a login that succeeded.
 
 - **2026-07-25** · `6015dc3` · chore(release): bump to 1.3.0+10
+
+- **2026-08-02** · `fb01672` · docs(agents): add change log why for e562218
+
+- **2026-08-02** · `e562218` · docs(agents): add Cursor Cloud specific setup/run instructions — why:
+  the §2 "Windows machine" Flutter paths and §4 "empty creds → mock fallback" note are both untrue in
+  the Cursor Cloud Linux VM (Flutter is at `~/flutter`; `supabase_credentials.dart` ships live hosted
+  creds, so `flutter test` hits a real backend). Captured the non-obvious run caveats (lazy
+  `web-server` compile, immediate-login sign-up) so future cloud agents don't rediscover them.
 
 - **2026-07-25** · `96efcac` · ci: bump softprops/action-gh-release to v3
 
