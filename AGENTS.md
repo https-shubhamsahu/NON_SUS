@@ -62,8 +62,10 @@ Three sub-projects live in this repo:
 Homepage performance: the hero and informational sections use static HTML/CSS;
 do not reintroduce WebGL backgrounds, JS smooth-scrolling, or animation-gated
 tool states. File preparation overlaps `burn-file-init`, with the declared size
-computed from the unchanged packed/CBC wire format. `npm run test:burn` verifies
-wire vectors, ordering, failures, and the deployed pairing contract before build.
+computed from the unchanged packed/CBC wire format. Share QR codes are drawn
+in-browser (`qrcode`); never send a Burn URL to a third-party QR API — the AES
+key lives in the fragment. `npm run test:burn` verifies wire vectors, ordering,
+failures, and the deployed pairing contract before build.
 
 ---
 
@@ -486,6 +488,11 @@ codebase — assume still outstanding unless you know otherwise.
 > bottom rather than letting this section grow without bound.
 
 <!-- CHANGELOG:INSERT -->
+- **2026-09-13** · feat(homepage): show the pairing code and an in-browser share QR — why:
+  the done state only offered Copy Link, so the 2-digit confirmation was easy to miss.
+  The code is now the large bold readout; the QR is generated locally so the key-bearing
+  URL never hits a paid or third-party QR service.
+
 - **2026-09-13** · perf(homepage): ship a static landing page without animation-gated burn tools — why:
   WebGL backgrounds, Lenis, and motion-gated hero states delayed first paint and hid the working
   Burn tool. The page is now static HTML/CSS; file encrypt overlaps `burn-file-init` with a

@@ -18,6 +18,7 @@ import {
   NOTE_MAX_CHARS,
 } from "@/lib/burnApi";
 import { APP_URL } from "@/lib/links";
+import ShareQr from "./ShareQr";
 
 type Tab = "note" | "file" | "redeem";
 type Phase = "idle" | "working" | "done" | "error";
@@ -35,7 +36,7 @@ export default function BurnTool() {
   const [error, setError] = useState("");
   const [link, setLink] = useState("");
   const [code, setCode] = useState<string | null>(null);
-  const [pairingLink, setPairingLink] = useState("");
+  const [pairingSettled, setPairingSettled] = useState(false);
   const [copied, setCopied] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
   const [copyError, setCopyError] = useState("");
@@ -54,7 +55,7 @@ export default function BurnTool() {
     setError("");
     setLink("");
     setCode(null);
-    setPairingLink("");
+    setPairingSettled(false);
     setCopied(false);
     setCodeCopied(false);
     setCopyError("");
@@ -84,11 +85,10 @@ export default function BurnTool() {
       setLink(result.link);
       setNoteText("");
       setPhase("done");
-      // Arrives a moment after "done" — never blocks it.
       result.pairingPromise.then((grant) => {
-        if (generationRef.current !== generation || !grant) return;
-        setCode(grant.code);
-        setPairingLink(grant.link);
+        if (generationRef.current !== generation) return;
+        if (grant) setCode(grant.code);
+        setPairingSettled(true);
       });
     } catch (e) {
       if (generationRef.current === generation) fail(e);
@@ -114,9 +114,9 @@ export default function BurnTool() {
       setLink(result.link);
       setPhase("done");
       result.pairingPromise.then((grant) => {
-        if (generationRef.current !== generation || !grant) return;
-        setCode(grant.code);
-        setPairingLink(grant.link);
+        if (generationRef.current !== generation) return;
+        if (grant) setCode(grant.code);
+        setPairingSettled(true);
       });
     } catch (e) {
       if (generationRef.current === generation) fail(e);
@@ -160,19 +160,19 @@ export default function BurnTool() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      setCopyError("Select the link above and copy it manually.");
+      setCopyError("Clipboard blocked. Long-press the QR or copy the link from the address bar after opening it.");
     }
   };
 
   const copyCode = async () => {
     if (!code) return;
     try {
-      await navigator.clipboard.writeText(`${pairingLink}\nCode: ${code}`);
+      await navigator.clipboard.writeText(code);
       setCopyError("");
       setCodeCopied(true);
       setTimeout(() => setCodeCopied(false), 2000);
     } catch {
-      setCopyError("Clipboard unavailable. Copy the direct link above instead.");
+      setCopyError("Clipboard unavailable. Copy the code by hand.");
     }
   };
 
@@ -180,9 +180,11 @@ export default function BurnTool() {
     <div className="relative flex flex-col items-center justify-center py-6">
       {/* Keep the branded circle without continuous animation work. */}
       <div
-        className={`relative z-10 w-[min(380px,calc(100vw-32px))] h-[380px] sm:w-[440px] sm:h-[440px] rounded-[50%] border-4 border-white/80 bg-brand-black/95 text-left flex flex-col items-center justify-center p-6 shadow-[8px_8px_0px_0px_rgba(255,255,255,0.05)] transition-colors ${
-          dragOver ? "scale-105 border-white bg-white/5" : ""
-        }`}
+        className={`relative z-10 w-[min(380px,calc(100vw-32px))] sm:w-[440px] border-4 border-white/80 bg-brand-black/95 text-left flex flex-col items-center justify-center p-6 shadow-[8px_8px_0px_0px_rgba(255,255,255,0.05)] transition-colors ${
+          phase === "done"
+            ? "h-auto min-h-[380px] sm:min-h-[440px] py-8 rounded-[48px] sm:rounded-[56px]"
+            : "h-[380px] sm:h-[440px] rounded-[50%]"
+        } ${dragOver ? "scale-105 border-white bg-white/5" : ""}`}
       >
           {phase === "working" ? (
             <div
@@ -206,7 +208,7 @@ export default function BurnTool() {
             <div
               key="done"
               role="status"
-              className="flex flex-col items-center justify-center gap-3 text-center w-full"
+              className="flex flex-col items-center justify-center gap-2 text-center w-full px-3"
             >
               <div className="flex items-center gap-2 text-white">
                 <Lock className="h-4 w-4 text-green-400" />
@@ -215,39 +217,58 @@ export default function BurnTool() {
                 </span>
               </div>
 
-                  <div className="w-[85%] z-20">
-                    <input
-                      type="text"
-                      readOnly
-                      value={link}
-                      onFocus={(e) => e.target.select()}
-                      className="w-full bg-brand-black border border-white/20 px-3 py-2 text-[10px] font-mono text-brand-gray-light rounded-xl text-center focus:outline-none min-w-0"
-                    />
-                  </div>
-
+              <div className="flex flex-col items-center">
+                <span className="text-[9px] font-bold tracking-[0.28em] uppercase text-brand-gray-light">
+                  Their code
+                </span>
+                {code ? (
                   <button
-                    onClick={copyLink}
-                    className="bg-white text-black px-6 py-2.5 text-[9px] font-bold uppercase tracking-widest hover:bg-black hover:text-white border border-white transition-all rounded-full flex items-center gap-2 z-20"
+                    type="button"
+                    onClick={copyCode}
+                    aria-label={`Confirmation code ${code}`}
+                    className="text-[52px] sm:text-[60px] leading-none font-black tabular-nums tracking-[0.18em] text-white"
                   >
-                    {copied ? (
-                      <>
-                        <Check className="h-3 w-3" /> Copied
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-3 w-3" /> Copy Link
-                      </>
-                    )}
+                    {code}
                   </button>
-
-                  <p className="text-[8px] text-brand-gray-light leading-relaxed max-w-[220px]">
-                    The key lives in this URL hash<span className="text-white">.</span> We cannot recover it<span className="text-white">.</span> One-time read only<span className="text-white">.</span>
+                ) : !pairingSettled ? (
+                  <span
+                    className="text-[52px] sm:text-[60px] leading-none font-black tabular-nums tracking-[0.18em] text-white/25 animate-pulse"
+                    aria-label="Generating confirmation code"
+                  >
+                    ··
+                  </span>
+                ) : (
+                  <p className="mt-1 text-[10px] text-brand-gray-light max-w-[200px]">
+                    Share the link. A pairing code was not issued for this drop.
                   </p>
-              {code && pairingLink && (
-                <button onClick={copyCode} className="text-[9px] underline underline-offset-2 text-brand-gray-light hover:text-white">
-                  {codeCopied ? "Pairing copied" : `Or copy pairing link + code ${code}`}
-                </button>
+                )}
+                {code && (
+                  <p className="text-[8px] text-brand-gray-light">
+                    {codeCopied ? "Code copied." : "Tap the code to copy. Tell them these digits."}
+                  </p>
+                )}
+              </div>
+
+              {link && (
+                <div className="p-1.5 bg-white rounded-lg">
+                  <ShareQr value={link} size={108} />
+                </div>
               )}
+
+              <button
+                onClick={copyLink}
+                className="bg-white text-black px-6 py-2 text-[9px] font-bold uppercase tracking-widest hover:bg-black hover:text-white border border-white transition-all rounded-full flex items-center gap-2 z-20"
+              >
+                {copied ? (
+                  <>
+                    <Check className="h-3 w-3" /> Copied
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-3 w-3" /> Copy Link
+                  </>
+                )}
+              </button>
               {copyError && <p className="text-[10px] text-brand-gray-light" role="alert">{copyError}</p>}
               <button
                 onClick={reset}
