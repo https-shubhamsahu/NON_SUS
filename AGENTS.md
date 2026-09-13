@@ -500,7 +500,15 @@ codebase — assume still outstanding unless you know otherwise.
 > bottom rather than letting this section grow without bound.
 
 <!-- CHANGELOG:INSERT -->
-- **2026-09-14** · feat(homepage): add Cloudflare Web Analytics behind the legacy-link shim — why:
+- **2026-09-14** · docs(privacy): disclose in-app usage events — why: `analytics_events` has
+  recorded activation-funnel events since 1.4.0 — including anonymous `app_opened` for signed-out
+  users and link recipients — but `web/privacy.html` never mentioned them, and account deletion
+  only detaches those rows (`ON DELETE SET NULL`), which neither the policy nor
+  `account-deletion.html` said. `store_listing/data_safety_answers.md` had pre-rename migration
+  filenames and listed events the app does not send (sign-in started, tours, help) while omitting
+  `intent_resumed`. The live Play Console Data Safety form is not touched by this commit.
+
+- **2026-09-14** · `c7460e1` · feat(homepage): add Cloudflare Web Analytics behind the legacy-link shim — why:
   every legacy nosus.foo link and auth callback carries secrets in the URL fragment, and
   Cloudflare does not document fragment handling, so the beacon is loaded from the shim that
   already decides whether a URL is key-bearing rather than as an independent script tag. The

@@ -28,15 +28,25 @@ Answer **No** to sharing for every data type.
 | App activity → **App interactions** (audit ledger: file opens, shares, membership changes, screenshot attempts; plus the activation-funnel analytics described below) | Yes | No | No | Required | App functionality, Analytics, Fraud prevention, security and compliance |
 | Device or other IDs (device identifier in the device-integrity ledger; FCM push token when the user enables notifications) | Yes | No | No | Required | App functionality, Fraud prevention, security and compliance |
 
-### Product analytics — added 2026-07-27, **this is a change to the declaration**
+### Product analytics — shipped in 1.4.0, **this is a change to the declaration**
 
-`public.analytics_events` (migration `20260727010000_analytics_events.sql`) plus
+`public.analytics_events` (migration `20260730112308_analytics_events.sql`) plus
 `lib/features/analytics/data/analytics_service.dart` record a fixed set of
-activation-funnel events: app opened, welcome surface viewed, guest tool opened,
-auth wall hit, signup/sign-in started and completed, onboarding
-started/skipped/completed, group create/join started and completed, first
-document uploaded and first document viewed, notification permission
-prompted/granted/denied, tour steps, help topics opened.
+activation-funnel events. Sent today (verified against call sites, 2026-09-14):
+app opened, welcome surface viewed, guest tool opened, auth wall hit, signup
+started and completed, sign-in completed, onboarding
+started/skipped/completed, pending intent resumed after sign-in, group
+create/join started and completed, first document uploaded and first document
+viewed, notification permission prompted/granted/denied. The allowlist also
+permits burn note/file created, tour step shown/skipped and help topic opened,
+but no code sends those yet — if one is wired up, re-check this sheet.
+
+Each row carries `event`, `properties` (only fixed identifiers today: which
+guest tool, which auth-walled action, which resumed intent), `app_version`,
+`platform`, `created_at`, and `user_id` when signed in. **App opened fires on
+every launch, including when a share/burn link recipient opens the app or
+app.nosus.foo** — anonymous (null `user_id`) unless that device is signed in.
+There is no in-app opt-out, so the data type stays **Required**.
 
 This is why **Analytics** is now ticked as a purpose under App interactions.
 Points a reviewer may ask about, all enforced by the schema rather than by
@@ -53,13 +63,16 @@ client discipline:
   `authenticated` and `anon` roles, so an anonymous caller cannot forge
   attribution to someone else).
 - Clients are write-only. There is no SELECT policy for ordinary users; reads
-  are admin-only. Deleting an account sets `user_id` to null rather than
-  blocking the delete.
+  are admin-only. Deleting an account sets `user_id` to null (`ON DELETE SET
+  NULL`): the rows are detached from the account, **not deleted**. This is
+  disclosed in `web/privacy.html` §1/§5 and `web/account-deletion.html` "What is
+  retained". No retention/cleanup job for this table exists in this repo, so
+  detached rows are kept indefinitely unless one is added live.
 - No advertising or cross-app identifiers are involved, and nothing is shared
   with a third party.
 
 Device push tokens (`public.device_tokens`, migration
-`20260727030000_notifications.sql`) are declared under **Device or other IDs**
+`20260730112523_notifications.sql`) are declared under **Device or other IDs**
 below — they exist solely to deliver notifications to the user's own device and
 are deleted on sign-out.
 
