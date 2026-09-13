@@ -1,7 +1,7 @@
-"use client";
+
 
 import Image from "next/image";
-import { motion } from "framer-motion";
+
 import { Mail, ArrowUpRight } from "lucide-react";
 import { DEVELOPER, GITHUB_URL } from "@/lib/links";
 
@@ -27,11 +27,7 @@ export default function DeveloperSection() {
           </h2>
         </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
+        <div
           className="border border-brand-gray bg-brand-gray-dark/40 rounded paper-card p-8 md:p-10 grid grid-cols-1 md:grid-cols-12 gap-8 items-center"
         >
           {/* Portrait */}
@@ -123,7 +119,7 @@ export default function DeveloperSection() {
               ))}
             </div>
           </div>
-        </motion.div>
+        </div>
       </div>
     </section>
   );

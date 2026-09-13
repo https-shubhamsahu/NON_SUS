@@ -1,26 +1,13 @@
 // Supabase Edge Function: create-redemption-code
 //
-// Mints a short, human-typeable code as an ALTERNATE way to retrieve the
-// key/IV for an existing Burn Note or Burn File — the link-based path (key/
-// IV in the URL fragment, never touching the server) is unaffected and
-// keeps its zero-knowledge guarantee. This is a deliberate, informed
-// exception for this one path: the server temporarily holds the key,
-// indexed by a hash of the code, for a short window.
-// See supabase/migrations/20260713000000_burn_redemption_codes.sql for the
-// full design rationale.
+// Mints a pairing record for an existing Burn Note or Burn File.
+// The client sends SHA-256 lookup hashes plus client-side encrypted key
+// material. The service never receives a pairing secret or a Burn key.
 //
-// POST { target_kind: 'note'|'file', target_id, key_hex, iv_hex } ->
-//   { code, expires_at }
+// POST { target_kind: 'note'|'file', target_id, token_hash, pin_hash,
+//        key_material_ciphertext, key_material_iv_hex } -> { expires_at }
 //
-// Responsibilities:
-//   1. Check the burn_redemption_codes_enabled kill-switch.
-//   2. Verify the target actually exists and hasn't already been
-//      consumed/expired — no point minting a code for dead content.
-//   3. Generate an 8-character code (same 32-symbol alphabet already used
-//      for group invite codes — one consistent "type this into NO SUS"
-//      style app-wide), hash it, and store the row with expiry capped to
-//      the underlying content's own expiry.
-//   4. Return the plaintext code once — it is never stored.
+// Older clients retain the documented, server-held-key 8-character path.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8";
 
@@ -30,11 +17,8 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-// Same alphabet as groups_screen.dart's _generateInviteCode — excludes
-// 0/O/1/I/L to avoid ambiguity when a code is read aloud or handwritten.
+const MAX_INSERT_ATTEMPTS = 5;
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-const CODE_LENGTH = 8;
-const MAX_INSERT_ATTEMPTS = 5; // collision odds are ~1-in-1.1-trillion; this just guards the freak case
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -55,8 +39,8 @@ async function hmacHex(message: string, secret: string): Promise<string> {
   return Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-function generateCode(): string {
-  const bytes = new Uint8Array(CODE_LENGTH);
+function generateLegacyCode(): string {
+  const bytes = new Uint8Array(8);
   crypto.getRandomValues(bytes);
   return Array.from(bytes, (b) => CODE_ALPHABET[b % CODE_ALPHABET.length]).join("");
 }
@@ -82,13 +66,22 @@ Deno.serve(async (req: Request) => {
 
   const targetKind = String(body.target_kind ?? "");
   const targetId = String(body.target_id ?? "").trim();
-  const keyHex = String(body.key_hex ?? "").trim();
-  const ivHex = String(body.iv_hex ?? "").trim();
+  const tokenHash = String(body.token_hash ?? "").trim().toLowerCase();
+  const pinHash = String(body.pin_hash ?? "").trim().toLowerCase();
+  const keyMaterialCiphertext = String(body.key_material_ciphertext ?? "").trim().toLowerCase();
+  const keyMaterialIvHex = String(body.key_material_iv_hex ?? "").trim().toLowerCase();
+  const legacyKeyHex = String(body.key_hex ?? "").trim();
+  const legacyIvHex = String(body.iv_hex ?? "").trim();
+  const pairingRequest =
+    /^[a-f0-9]{64}$/.test(tokenHash) && /^[a-f0-9]{64}$/.test(pinHash) &&
+    /^[a-f0-9]+$/.test(keyMaterialCiphertext) && keyMaterialCiphertext.length % 2 === 0 &&
+    /^[a-f0-9]{32}$/.test(keyMaterialIvHex);
+  const legacyRequest = legacyKeyHex.length > 0 && legacyIvHex.length > 0;
   if (targetKind !== "note" && targetKind !== "file") {
     return json({ error: "target_kind must be 'note' or 'file'" }, 400);
   }
-  if (!targetId || !keyHex || !ivHex) {
-    return json({ error: "Missing target_id, key_hex, or iv_hex" }, 400);
+  if (!targetId || (!pairingRequest && !legacyRequest)) {
+    return json({ error: "Missing pairing envelope" }, 400);
   }
 
   const { data: flag } = await admin
@@ -106,8 +99,6 @@ Deno.serve(async (req: Request) => {
     .eq("config_key", "redeem_code_ttl_minutes");
   const ttlMinutes = configRows?.length ? Number(configRows[0].config_value) : 20;
 
-  // Verify the target still exists and hasn't already been consumed/expired
-  // — a code for dead content would just be a confusing dead end.
   let targetExpiresAt: string | null = null;
   if (targetKind === "file") {
     const { data: fileRow } = await admin
@@ -136,28 +127,36 @@ Deno.serve(async (req: Request) => {
   const expiresAt = (ttlExpiry < targetExpiry ? ttlExpiry : targetExpiry).toISOString();
 
   for (let attempt = 0; attempt < MAX_INSERT_ATTEMPTS; attempt++) {
-    const code = generateCode();
-    const codeHash = await hmacHex(code, codeSalt);
-
-    const { error: insertErr } = await admin.from("burn_redemption_codes").insert({
-      code_hash: codeHash,
-      target_kind: targetKind,
-      target_id: targetId,
-      key_hex: keyHex,
-      iv_hex: ivHex,
-      expires_at: expiresAt,
-    });
+    const legacyCode = pairingRequest ? null : generateLegacyCode();
+    const row = pairingRequest
+      ? {
+          code_hash: tokenHash,
+          pin_hash: pinHash,
+          target_kind: targetKind,
+          target_id: targetId,
+          key_material_ciphertext: keyMaterialCiphertext,
+          key_material_iv_hex: keyMaterialIvHex,
+          expires_at: expiresAt,
+        }
+      : {
+          code_hash: await hmacHex(legacyCode!, codeSalt),
+          target_kind: targetKind,
+          target_id: targetId,
+          key_hex: legacyKeyHex,
+          iv_hex: legacyIvHex,
+          expires_at: expiresAt,
+        };
+    const { error: insertErr } = await admin.from("burn_redemption_codes").insert(row);
 
     if (!insertErr) {
-      return json({ code, expires_at: expiresAt });
+      return json(pairingRequest ? { expires_at: expiresAt } : { code: legacyCode, expires_at: expiresAt });
     }
-    // 23505 = unique_violation on code_hash — vanishingly unlikely, just retry with a new code.
     if (insertErr.code !== "23505") {
       console.error("create-redemption-code: failed to insert row", insertErr);
       return json({ error: "Could not create a redemption code" }, 502);
     }
   }
 
-  console.error("create-redemption-code: exhausted retries on code collision");
+  console.error("create-redemption-code: exhausted retries on token collision");
   return json({ error: "Could not create a redemption code" }, 502);
 });

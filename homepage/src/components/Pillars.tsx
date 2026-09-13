@@ -1,6 +1,6 @@
-"use client";
 
-import { motion } from "framer-motion";
+
+
 import { Shield, Radar, Fingerprint } from "lucide-react";
 
 const pillars = [
@@ -33,18 +33,14 @@ export default function Pillars() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-brand-gray/60 border border-brand-gray/60 rounded overflow-hidden">
           {pillars.map((p, idx) => (
-            <motion.div
+            <div
               key={p.name}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: idx * 0.1 }}
               className="bg-brand-black p-10 flex flex-col gap-5"
             >
               <p.icon className="h-8 w-8 text-white stroke-[1.5]" />
               <h3 className="text-2xl font-black uppercase tracking-tight text-white">{p.name}</h3>
               <p className="text-sm text-brand-gray-light leading-relaxed font-medium">{p.desc}</p>
-            </motion.div>
+            </div>
           ))}
         </div>
       </div>

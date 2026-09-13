@@ -1,70 +1,84 @@
-// Backend calls for the landing page's real burn tools. Mirrors the Flutter
-// clients exactly:
-//   notes → direct anonymous REST insert into burn_notes
-//           (burn_note_creator_screen.dart)
-//   files → burn-file-init → PUT ciphertext to signed URL → burn-file-confirm
-//           (burn_file_client.dart / burn_file_creator_screen.dart)
-//   codes → create-redemption-code / redeem-code
-//           (redemption_code_client.dart) — see
-//           supabase/migrations/20260713000000_burn_redemption_codes.sql for
-//           why this path trades zero-knowledge for a short, typeable code:
-//           the server briefly holds the key/IV, compensated by a short
-//           expiry, single-use, and rate limiting. The link stays untouched
-//           and keeps its original guarantee.
 import { APP_URL, SUPABASE_ANON_KEY, SUPABASE_URL } from "./links";
 import {
   bytesToHex,
+  burnFileCiphertextSize,
   encryptFilePayload,
   encryptNote,
   generateKeyMaterial,
   packBurnFilePayload,
 } from "./burnCrypto";
 
+const subtle = globalThis.crypto.subtle;
+
 export const NOTE_MAX_CHARS = 10000;
-// Kept in sync with remote_configs.burn_files_max_size_bytes (server is the
-// authoritative enforcement point — this is only the client-side pre-flight
-// check, so the browser fails fast instead of encrypting/uploading a file
-// the server will reject anyway). The Flutter app additionally supports
-// sharing multiple files under one 25MB combined link — this landing-page
-// tool is still single-file only.
 export const FILE_MAX_BYTES = 25 * 1024 * 1024;
 
-export type BurnResult = { link: string; codePromise: Promise<string | null> };
+export type RedeemGrant = { claimToken: string; pin: string; claimUrl: string };
+export type BurnResult = { link: string; grantPromise: Promise<RedeemGrant | null> };
+
+const PIN_HASH_PREFIX = "no-sus:redemption:pin:v1:";
+const WRAP_KEY_PREFIX = "no-sus:redemption:wrap:v1:";
 
 function shareLink(kind: "burn" | "burnfile", id: string, key: Uint8Array, iv: Uint8Array): string {
-  // Key + IV live in the fragment — never transmitted to any server.
   return `${APP_URL}#/${kind}/${id}?k=${bytesToHex(key)}&v=${bytesToHex(iv)}`;
 }
 
-/** Best-effort: mints a short redemption code for an already-created note/file.
- * Never throws — the link already works on its own, so a hiccup here should
- * just leave the code section hidden, not fail the whole operation. */
-async function mintCode(
+function claimUrl(token: string): string {
+  return `${APP_URL}#/r/${token}`;
+}
+
+async function mintGrant(
   targetKind: "note" | "file",
   targetId: string,
   keyHex: string,
   ivHex: string,
-): Promise<string | null> {
+): Promise<RedeemGrant | null> {
   try {
+    const tokenBytes = new Uint8Array(16);
+    const pinBytes = new Uint8Array(1);
+    const wrappingIv = new Uint8Array(16);
+    globalThis.crypto.getRandomValues(tokenBytes);
+    globalThis.crypto.getRandomValues(pinBytes);
+    globalThis.crypto.getRandomValues(wrappingIv);
+    const token = bytesToHex(tokenBytes);
+    const pin = (pinBytes[0] % 100).toString().padStart(2, "0");
+    const encode = (value: string) => new TextEncoder().encode(value);
+    const hash = async (value: string) => bytesToHex(new Uint8Array(await subtle.digest("SHA-256", encode(value))));
+    const wrappingKey = await subtle.importKey(
+      "raw",
+      new Uint8Array(await subtle.digest("SHA-256", encode(`${WRAP_KEY_PREFIX}${token}:${pin}`))) as BufferSource,
+      { name: "AES-CBC" },
+      false,
+      ["encrypt"],
+    );
+    const encryptedMaterial = new Uint8Array(await subtle.encrypt(
+      { name: "AES-CBC", iv: wrappingIv as BufferSource },
+      wrappingKey,
+      encode(JSON.stringify({ key_hex: keyHex, iv_hex: ivHex })) as BufferSource,
+    ));
     const res = await fetch(`${SUPABASE_URL}/functions/v1/create-redemption-code`, {
       method: "POST",
       headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY },
       body: JSON.stringify({
-        target_kind: targetKind,
-        target_id: targetId,
-        key_hex: keyHex,
-        iv_hex: ivHex,
+          target_kind: targetKind,
+          target_id: targetId,
+          token_hash: await hash(token),
+          pin_hash: await hash(`${PIN_HASH_PREFIX}${token}:${pin}`),
+          key_material_ciphertext: bytesToHex(encryptedMaterial),
+          key_material_iv_hex: bytesToHex(wrappingIv),
       }),
     });
     if (!res.ok) return null;
-    const data = await res.json();
-    return typeof data.code === "string" ? data.code : null;
+    return {
+      claimToken: token,
+      pin,
+      claimUrl: claimUrl(token),
+    };
   } catch {
     return null;
   }
 }
 
-/** Creates a real self-destructing note; returns the one-time link + a short redemption code. */
 export async function createBurnNote(text: string): Promise<BurnResult> {
   const { key, iv } = generateKeyMaterial();
   const ciphertext = await encryptNote(text, key, iv);
@@ -86,11 +100,10 @@ export async function createBurnNote(text: string): Promise<BurnResult> {
 
   const keyHex = bytesToHex(key);
   const ivHex = bytesToHex(iv);
-  // Not awaited: the link is the actual deliverable and is already ready.
-  // The code is a secondary convenience — let it arrive whenever it arrives
-  // instead of making every share wait on a 4th network round trip.
-  const codePromise = mintCode("note", noteId, keyHex, ivHex);
-  return { link: shareLink("burn", noteId, key, iv), codePromise };
+  return {
+    link: shareLink("burn", noteId, key, iv),
+    grantPromise: mintGrant("note", noteId, keyHex, ivHex),
+  };
 }
 
 export type BurnFileProgress =
@@ -98,7 +111,6 @@ export type BurnFileProgress =
   | { phase: "uploading" }
   | { phase: "sealing" };
 
-/** Encrypts + uploads a real one-time file drop; returns the one-time link + a short redemption code. */
 export async function createBurnFile(
   file: File,
   expiryHours: number,
@@ -111,32 +123,34 @@ export async function createBurnFile(
 
   onProgress({ phase: "encrypting" });
   const { key, iv } = generateKeyMaterial();
-  const packed = packBurnFilePayload(
-    file.name,
-    file.type || "application/octet-stream",
-    new Uint8Array(await file.arrayBuffer()),
-  );
-  const ciphertext = await encryptFilePayload(packed, key, iv);
-
+  const mimeType = file.type || "application/octet-stream";
   const headers = {
     "Content-Type": "application/json",
     apikey: SUPABASE_ANON_KEY,
   };
 
-  onProgress({ phase: "uploading" });
-  const initRes = await fetch(`${SUPABASE_URL}/functions/v1/burn-file-init`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({
-      declared_size_bytes: ciphertext.length,
-      expiry_hours: expiryHours,
-    }),
-  });
-  const init = await initRes.json();
-  if (!initRes.ok) {
-    throw new Error(init.error ?? "Could not start this upload.");
-  }
+  // Overlap file preparation with server setup; observe failures on both branches.
+  const [ciphertext, init] = await Promise.all([
+    (async () => {
+      const packed = packBurnFilePayload(file.name, mimeType, new Uint8Array(await file.arrayBuffer()));
+      return encryptFilePayload(packed, key, iv);
+    })(),
+    (async () => {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/burn-file-init`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          declared_size_bytes: burnFileCiphertextSize(file.name, mimeType, file.size),
+          expiry_hours: expiryHours,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Could not start this upload.");
+      return data;
+    })(),
+  ]);
 
+  onProgress({ phase: "uploading" });
   const uploadRes = await fetch(init.signed_upload_url, {
     method: "PUT",
     headers: { "Content-Type": "application/octet-stream" },
@@ -162,14 +176,57 @@ export async function createBurnFile(
 
   const keyHex = bytesToHex(key);
   const ivHex = bytesToHex(iv);
-  // Same as createBurnNote: not awaited, arrives after the "done" state.
-  const codePromise = mintCode("file", init.file_id, keyHex, ivHex);
-  return { link: shareLink("burnfile", init.file_id, key, iv), codePromise };
+  return {
+    link: shareLink("burnfile", init.file_id, key, iv),
+    grantPromise: mintGrant("file", init.file_id, keyHex, ivHex),
+  };
 }
 
-/** Recipient side: resolves a short redemption code into the same kind of
- * link a sender would share, so the existing app viewer handles the rest —
- * no need to duplicate note/file viewing here. */
+export async function redeemWithPin(claimToken: string, pin: string): Promise<string> {
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/redeem-code`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY },
+    body: JSON.stringify({ token: claimToken, pin }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error ?? "That code could not be redeemed.");
+  }
+  const kind = data.target_kind === "file" ? "burnfile" : "burn";
+  let keyHex = data.key_hex;
+  let ivHex = data.iv_hex;
+  if (typeof data.key_material_ciphertext === "string" && typeof data.key_material_iv_hex === "string") {
+    const decodeHex = (hex: string) => {
+      const bytes = new Uint8Array(hex.length / 2);
+      for (let i = 0; i < bytes.length; i++) {
+        bytes[i] = Number.parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+      }
+      return bytes;
+    };
+    const encode = (value: string) => new TextEncoder().encode(value);
+    const wrappingKey = await subtle.importKey(
+      "raw",
+      await subtle.digest("SHA-256", encode(`${WRAP_KEY_PREFIX}${claimToken}:${pin}`)),
+      { name: "AES-CBC" },
+      false,
+      ["decrypt"],
+    );
+    const plaintext = await subtle.decrypt(
+      { name: "AES-CBC", iv: decodeHex(data.key_material_iv_hex) },
+      wrappingKey,
+      decodeHex(data.key_material_ciphertext),
+    );
+    const material = JSON.parse(new TextDecoder().decode(plaintext)) as { key_hex?: string; iv_hex?: string };
+    keyHex = material.key_hex;
+    ivHex = material.iv_hex;
+  }
+  if (typeof keyHex !== "string" || typeof ivHex !== "string") {
+    throw new Error("That pairing could not be opened.");
+  }
+  return `${APP_URL}#/${kind}/${data.target_id}?k=${keyHex}&v=${ivHex}`;
+}
+
+/** Legacy 8-character codes still in the wild. */
 export async function redeemCode(code: string): Promise<string> {
   const trimmed = code.trim();
   if (!trimmed) throw new Error("Enter a code first.");

@@ -44,6 +44,9 @@ import 'core/mascot/mascot_view.dart';
 
 import 'features/share/presentation/screens/burn_note_viewer_screen.dart';
 import 'features/share/presentation/screens/burn_file_viewer_screen.dart';
+import 'features/share/presentation/screens/redeem_pin_screen.dart';
+import 'core/layout/app_breakpoints.dart';
+import 'core/constants/app_constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class BurnNoteToken {
@@ -214,6 +217,21 @@ String? extractInviteToken(Uri uri) {
   return null;
 }
 
+/// Pairing-link token from `/#/r/<32-hex>`. The pin is entered separately.
+String? extractRedeemToken(Uri uri) {
+  for (final raw in [uri.fragment, uri.path]) {
+    final cleaned = raw.startsWith('/') ? raw.substring(1) : raw;
+    final parts = cleaned.split('/');
+    if (parts.length >= 2 && parts[0] == 'r' && parts[1].isNotEmpty) {
+      final token = parts[1].split('?').first;
+      if (RegExp(r'^[a-f0-9]{32}$', caseSensitive: false).hasMatch(token)) {
+        return token.toLowerCase();
+      }
+    }
+  }
+  return null;
+}
+
 void main() async {
   await runZonedGuarded(
     () async {
@@ -247,31 +265,29 @@ void main() async {
       // Initialize Supabase immediately so all early routing screens can access the client
       await SupabaseService.instance.initialize();
 
-      // Ghost-session guard: if the device has a cached JWT for a user that was
-      // deleted from auth.users (e.g. after a dev DB wipe), every Supabase write
-      // fails with RLS errors even on permissive policies. Fix: verify the session
-      // is still valid server-side; sign out silently if not. Fire-and-forget so
-      // this network round-trip never delays first paint — a ghost session is
-      // rare and self-corrects on the first failed write either way.
-      // (Guarded: Supabase.instance throws if the SDK was never initialized,
-      // which is exactly the mock fallback mode case.)
-      if (SupabaseService.instance.isConfigured) {
-        unawaited(() async {
-          final cachedSession = Supabase.instance.client.auth.currentSession;
-          if (cachedSession != null) {
-            try {
-              await Supabase.instance.client.auth.getUser(cachedSession.accessToken);
-            } catch (_) {
-              debugLog('NO SUS: Ghost session detected (user deleted). Signing out.');
-              await Supabase.instance.client.auth.signOut();
-            }
-          }
-        }());
-      }
+      // Session recovery (refresh expired access tokens, sign out only when
+      // the refresh token is actually dead) runs inside SupabaseBootstrap.
 
       // SecureSend anonymous path: a share-link recipient may have no NO SUS
       // account at all, so this branch skips Supabase/auth entirely and never
       // rejoins the normal app below.
+      final redeemToken = extractRedeemToken(Uri.base);
+      if (redeemToken != null) {
+        runApp(ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+          ],
+          child: MaterialApp(
+            title: 'NO SUS',
+            debugShowCheckedModeBanner: false,
+            theme: NoSusTheme.lightTheme,
+            darkTheme: NoSusTheme.darkTheme,
+            home: RedeemPinScreen(accessToken: redeemToken),
+          ),
+        ));
+        return;
+      }
+
       final shareToken = extractShareToken(Uri.base);
       if (shareToken != null) {
         // ProviderScope here is only so the mascot system (Riverpod) works on
@@ -368,10 +384,10 @@ void main() async {
         }
       });
 
-      // Handle initial link if app was closed
-      try {
-        final initialUri = await appLinks.getInitialLink();
-        if (initialUri != null) {
+      unawaited(() async {
+        try {
+          final initialUri = await appLinks.getInitialLink();
+          if (initialUri == null) return;
           final inviteCode = extractInviteToken(initialUri);
           if (inviteCode != null) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -387,18 +403,13 @@ void main() async {
               });
             }
           }
+        } catch (e) {
+          debugLog('NO SUS: Error reading initial deep link: $e');
         }
-      } catch (e) {
-        debugLog('NO SUS: Error reading initial deep link: $e');
-      }
+      }());
 
-      // Initialize security audit logging service
       AuditService.instance.init();
-      // 2. Block screenshots (FLAG_SECURE on Android) + funny popup on attempt
-      await ScreenshotGuard.instance.initialize();
-      // 3. Device-integrity scan (root/Frida/Xposed) — fire-and-forget so a
-      // 150ms socket probe never delays first paint; findings land in the
-      // device_integrity_events ledger asynchronously.
+      unawaited(ScreenshotGuard.instance.initialize());
       unawaited(DeviceIntegrityService.instance.runStartupChecks());
 
       // Initialize remote config and feature flags. Fire-and-forget — flags/
@@ -460,12 +471,6 @@ class MyApp extends ConsumerWidget {
           ? GroupInviteLandingScreen(inviteCode: inviteToken)
           : const AuthGate(child: WorkspaceHome()),
       onGenerateRoute: (settings) {
-        // Web OAuth (Google/GitHub) redirects land on e.g. "/?code=..." — not
-        // exactly "/", so Flutter treats it as a distinct route instead of
-        // falling back to `home`. By the time this builds, Supabase has
-        // already exchanged the code for a session (handled in main() before
-        // runApp), so just show the same real entry point `home` would —
-        // AuthGate reacts to the now-signed-in state normally.
         if (settings.name != null && settings.name!.contains('code=')) {
           return PageRouteBuilder(
             pageBuilder: (context, _, _) => const AuthGate(child: WorkspaceHome()),
@@ -584,11 +589,11 @@ class _WorkspaceHomeState extends ConsumerState<WorkspaceHome> {
             ),
             const SizedBox(height: 2),
             Text(
-              'SILENT SECURITY WORKSPACE',
+              AppConstants.appTagline,
               style: theme.textTheme.labelLarge?.copyWith(
                 fontSize: 10,
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                letterSpacing: 1.5,
+                letterSpacing: 1.2,
               ),
             ),
           ],
@@ -743,55 +748,107 @@ class _WorkspaceHomeState extends ConsumerState<WorkspaceHome> {
     final themeMode = ref.watch(themeModeProvider);
     final isDark = themeMode == ThemeMode.dark;
 
-    return Scaffold(
-      body: SafeArea(
-        // On desktop/web the phone-first layout would stretch edge to edge;
-        // constraining the whole shell keeps content (and the floating nav,
-        // which lives in the same Stack) in a centered readable column.
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 760),
-            child: Stack(
-          children: [
-            // Main Content Area with thin border framing
-            Padding(
-              padding: const EdgeInsets.only(
-                left: NoSusTheme.s24,
-                right: NoSusTheme.s24,
-                top: NoSusTheme.s16,
-                bottom: 110.0, // Space for floating bottom nav
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // App Bar (Calm Monochrome UI Style)
-                  _buildHeader(context, isDark),
-                  const SizedBox(height: NoSusTheme.s24),
+    final expanded = AppBreakpoints.isExpanded(context);
+    final pages = [
+      const WorkspaceTab(),
+      VaultTab(onRevealRequested: _navigateToDesk),
+      StudyDeskTab(initialFileId: _deskFileId),
+      const AuditTab(),
+      const GroupsScreen(key: ValueKey('groups_tab')),
+    ];
 
-                  // Animated Screen Content — using PageView to preserve states properly
-                  Expanded(
-                    child: PageView(
-                      controller: _pageController,
-                      physics: const NeverScrollableScrollPhysics(), // Prevent swipe
-                      children: [
-                        const WorkspaceTab(),
-                        VaultTab(onRevealRequested: _navigateToDesk),
-                        StudyDeskTab(initialFileId: _deskFileId),
-                        const AuditTab(),
-                        const GroupsScreen(key: ValueKey('groups_tab')),
-                      ],
-                    ),
+    final content = Padding(
+      padding: EdgeInsets.only(
+        left: expanded ? NoSusTheme.s32 : NoSusTheme.s24,
+        right: expanded ? NoSusTheme.s32 : NoSusTheme.s24,
+        top: NoSusTheme.s16,
+        bottom: expanded ? NoSusTheme.s24 : 110.0,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildHeader(context, isDark),
+          const SizedBox(height: NoSusTheme.s24),
+          Expanded(
+            child: PageView(
+              controller: _pageController,
+              physics: const NeverScrollableScrollPhysics(),
+              children: pages,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (expanded) {
+      return Scaffold(
+        body: SafeArea(
+          child: Row(
+            children: [
+              NavigationRail(
+                selectedIndex: _currentTab,
+                onDestinationSelected: _onTabTapped,
+                labelType: NavigationRailLabelType.all,
+                destinations: const [
+                  NavigationRailDestination(
+                    icon: Icon(Icons.dashboard_outlined),
+                    selectedIcon: Icon(Icons.dashboard),
+                    label: Text('Home'),
+                  ),
+                  NavigationRailDestination(
+                    icon: Icon(Icons.folder_outlined),
+                    selectedIcon: Icon(Icons.folder),
+                    label: Text('Files'),
+                  ),
+                  NavigationRailDestination(
+                    icon: Icon(Icons.visibility_outlined),
+                    selectedIcon: Icon(Icons.visibility),
+                    label: Text('Viewer'),
+                  ),
+                  NavigationRailDestination(
+                    icon: Icon(Icons.history_outlined),
+                    selectedIcon: Icon(Icons.history),
+                    label: Text('Activity'),
+                  ),
+                  NavigationRailDestination(
+                    icon: Icon(Icons.group_outlined),
+                    selectedIcon: Icon(Icons.group),
+                    label: Text('Groups'),
                   ),
                 ],
               ),
-            ),
+              const VerticalDivider(width: 1),
+              Expanded(
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: AppBreakpoints.contentMaxExpanded,
+                    ),
+                    child: content,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
-            // Floating bottom navigation
-            FloatingNav(
-              currentIndex: _currentTab,
-              onTap: _onTabTapped,
+    return Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth: AppBreakpoints.contentMaxCompact,
             ),
-          ],
+            child: Stack(
+              children: [
+                content,
+                FloatingNav(
+                  currentIndex: _currentTab,
+                  onTap: _onTabTapped,
+                ),
+              ],
             ),
           ),
         ),

@@ -11,11 +11,12 @@ class SupabaseAuthService {
 
   Stream<User?> watchUser() async* {
     yield currentUser;
-    _client.auth.onAuthStateChange.listen((state) {
-      debugLog('NO SUS Auth State Changed: event=${state.event}, hasSession=${state.session != null}, user=${state.session?.user.email}');
+    yield* _client.auth.onAuthStateChange.map((state) {
+      debugLog(
+        'NO SUS Auth State Changed: event=${state.event}, hasSession=${state.session != null}, user=${state.session?.user.email}',
+      );
+      return state.session?.user;
     });
-    yield* _client.auth.onAuthStateChange
-        .map((state) => state.session?.user);
   }
 
   Future<User> signIn({required String email, required String password}) async {

@@ -1,14 +1,10 @@
 /// Crash reporting configuration (Sentry).
 ///
 /// Off by default — [sentryDsn] is empty until explicitly provided via
-/// `--dart-define=SENTRY_DSN=...` (or a `.env` picked up by
-/// `--dart-define-from-file`), mirroring [FheConfig]'s "disabled unless
-/// configured" pattern. To turn this on:
-///   1. Create a free project at sentry.io (Flutter platform).
-///   2. Copy its DSN.
-///   3. Add `SENTRY_DSN=https://...` to your `.env` / CI secret and pass it
-///      through `--dart-define-from-file`.
-///   4. Update `store_listing/data_safety_answers.md` — enabling this adds a
+/// `--dart-define=SENTRY_DSN=...`. To turn this on:
+///   1. Create a Sentry Flutter project and copy its DSN.
+///   2. Add `SENTRY_DSN=https://...` to `.env` / CI and pass `--dart-define-from-file`.
+///   3. Update `store_listing/data_safety_answers.md` — enabling this adds a
 ///      new third-party data flow (crash/error metadata to Sentry) that the
 ///      Play Console Data Safety form does not currently disclose.
 ///

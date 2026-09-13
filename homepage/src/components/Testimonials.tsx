@@ -1,6 +1,6 @@
-"use client";
 
-import { motion } from "framer-motion";
+
+
 
 export default function Testimonials() {
   // Honest scenario cards — what the product is built for, not invented
@@ -38,12 +38,8 @@ export default function Testimonials() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {scenarios.map((item, idx) => (
-            <motion.div
+            <div
               key={idx}
-              initial={{ opacity: 0, y: 15 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: idx * 0.1 }}
               className="border border-brand-gray p-8 bg-brand-black flex flex-col justify-between min-h-[220px] rounded relative paper-card"
             >
               <p className="text-xs text-brand-gray-light leading-relaxed font-medium">
@@ -58,7 +54,7 @@ export default function Testimonials() {
                   {item.role}
                 </span>
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
 

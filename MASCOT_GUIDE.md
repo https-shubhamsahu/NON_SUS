@@ -16,7 +16,7 @@
 * **Visual Theme**: Dark-aligned monochrome, sharp outlines.
 
 ### Duo (The Composition)
-* **Role**: Reserved for scarce bookend moments, such as session logins, app splash screens, and logs summaries.
+* **Role**: Reserved for scarce bookend moments, such as session logins and logs summaries. The opening surface is intentionally mascot-free so the NO SUS wordmark remains the only brand signal.
 * **Visual Asset**: Falls back to `assets/icon/LuxandNox.png` when the `.riv` asset is absent.
 
 ---

@@ -73,14 +73,22 @@ export async function encryptNote(
 }
 
 /** Mirrors packBurnFilePayload in lib/services/burn_file_crypto.dart. */
+function fileHeader(fileName: string, mimeType: string, size: number): Uint8Array {
+  return new TextEncoder().encode(JSON.stringify({ name: fileName, type: mimeType, size }));
+}
+
+/** Exact existing wire size, including the mandatory CBC padding block. */
+export function burnFileCiphertextSize(fileName: string, mimeType: string, size: number): number {
+  const packedSize = 4 + fileHeader(fileName, mimeType, size).length + size;
+  return (Math.floor(packedSize / 16) + 1) * 16;
+}
+
 export function packBurnFilePayload(
   fileName: string,
   mimeType: string,
   fileBytes: Uint8Array,
 ): Uint8Array {
-  const header = new TextEncoder().encode(
-    JSON.stringify({ name: fileName, type: mimeType, size: fileBytes.length }),
-  );
+  const header = fileHeader(fileName, mimeType, fileBytes.length);
   const packed = new Uint8Array(4 + header.length + fileBytes.length);
   new DataView(packed.buffer).setUint32(0, header.length, false);
   packed.set(header, 4);

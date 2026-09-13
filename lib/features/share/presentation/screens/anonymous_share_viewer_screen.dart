@@ -6,8 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:pdfrx/pdfrx.dart';
 import 'package:universal_html/html.dart' as html;
-import 'package:google_fonts/google_fonts.dart';
-
 import '../../../../components/secure_viewer/models/viewer_config.dart';
 import '../../../../components/secure_viewer/models/watermark_config.dart';
 import '../../../../components/secure_viewer/secure_document_viewer.dart';
@@ -214,9 +212,9 @@ class _AnonymousShareViewerScreenState
             children: [
               const Icon(Icons.security_outlined, size: 54, color: Colors.white70),
               const SizedBox(height: 24),
-              Text(
+              const Text(
                 'NO SUS // SECURE GATEWAY',
-                style: GoogleFonts.vt323(
+                style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 2.0,
@@ -247,9 +245,9 @@ class _AnonymousShareViewerScreenState
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
                   icon: const Icon(Icons.open_in_new, size: 16),
-                  label: Text(
+                  label: const Text(
                     'OPEN IN APP',
-                    style: GoogleFonts.vt323(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1.0),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1.0),
                   ),
                 ),
               ),
@@ -265,24 +263,24 @@ class _AnonymousShareViewerScreenState
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
                   icon: const Icon(Icons.download, size: 16),
-                  label: Text(
+                  label: const Text(
                     'DOWNLOAD APK',
-                    style: GoogleFonts.vt323(fontSize: 18, letterSpacing: 1.0),
+                    style: TextStyle(fontSize: 18, letterSpacing: 1.0),
                   ),
                 ),
               ),
               const SizedBox(height: 28),
-              Row(
+              const Row(
                 children: [
-                  const Expanded(child: Divider(color: Colors.white12)),
+                  Expanded(child: Divider(color: Colors.white12)),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: EdgeInsets.symmetric(horizontal: 16),
                     child: Text(
                       'OR',
-                      style: GoogleFonts.vt323(fontSize: 14, color: Colors.white38),
+                      style: TextStyle(fontSize: 14, color: Colors.white38),
                     ),
                   ),
-                  const Expanded(child: Divider(color: Colors.white12)),
+                  Expanded(child: Divider(color: Colors.white12)),
                 ],
               ),
               const SizedBox(height: 16),
@@ -292,9 +290,9 @@ class _AnonymousShareViewerScreenState
                     _stage = _Stage.emailGate;
                   });
                 },
-                child: Text(
+                child: const Text(
                   'CONTINUE IN BROWSER',
-                  style: GoogleFonts.vt323(
+                  style: TextStyle(
                     fontSize: 16,
                     color: Colors.grey,
                     decoration: TextDecoration.underline,
@@ -324,9 +322,9 @@ class _AnonymousShareViewerScreenState
                 fallback: Icon(Icons.lock_outline, size: 36, color: Colors.white70),
               ),
               const SizedBox(height: 16),
-              Text(
+              const Text(
                 'RECIPROCITY VERIFICATION',
-                style: GoogleFonts.vt323(
+                style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
@@ -348,13 +346,13 @@ class _AnonymousShareViewerScreenState
                 controller: _emailController,
                 autofocus: true,
                 keyboardType: TextInputType.emailAddress,
-                style: GoogleFonts.vt323(fontSize: 18, color: Colors.white),
+                style: const TextStyle(fontSize: 18, color: Colors.white),
                 onSubmitted: (_) => _submit(),
                 decoration: InputDecoration(
                   hintText: 'you@example.com',
                   hintStyle: const TextStyle(color: Colors.white30, fontFamily: 'monospace', fontSize: 13),
                   errorText: _errorMessage,
-                  errorStyle: GoogleFonts.vt323(color: Colors.redAccent, fontSize: 14),
+                  errorStyle: const TextStyle(color: Colors.redAccent, fontSize: 14),
                   border: const OutlineInputBorder(
                     borderRadius: BorderRadius.zero,
                     borderSide: BorderSide(color: Colors.white38),
@@ -381,9 +379,9 @@ class _AnonymousShareViewerScreenState
                     shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
-                  child: Text(
+                  child: const Text(
                     'VIEW DOCUMENT',
-                    style: GoogleFonts.vt323(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1.0),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1.0),
                   ),
                 ),
               ),
@@ -395,11 +393,11 @@ class _AnonymousShareViewerScreenState
   }
 
   Widget _buildLoading() {
-    return Center(
+    return const Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const SizedBox(
+          SizedBox(
             width: 32,
             height: 32,
             child: CircularProgressIndicator(
@@ -407,10 +405,10 @@ class _AnonymousShareViewerScreenState
               valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
             ),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           Text(
             'DECRYPTING SECURE LEDGER...',
-            style: GoogleFonts.vt323(fontSize: 16, letterSpacing: 1.0, color: Colors.white70),
+            style: TextStyle(fontSize: 16, letterSpacing: 1.0, color: Colors.white70),
           ),
         ],
       ),
@@ -433,7 +431,7 @@ class _AnonymousShareViewerScreenState
             Text(
               _errorMessage ?? 'ACCESS DENIED OR EXPIRED.',
               textAlign: TextAlign.center,
-              style: GoogleFonts.vt323(fontSize: 16, color: Colors.redAccent, letterSpacing: 1.0),
+              style: const TextStyle(fontSize: 16, color: Colors.redAccent, letterSpacing: 1.0),
             ),
             const SizedBox(height: 24),
             OutlinedButton(
@@ -447,9 +445,9 @@ class _AnonymousShareViewerScreenState
                 shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
-              child: Text(
+              child: const Text(
                 'TRY AGAIN',
-                style: GoogleFonts.vt323(fontSize: 16, letterSpacing: 1.0),
+                style: TextStyle(fontSize: 16, letterSpacing: 1.0),
               ),
             ),
           ],
@@ -508,13 +506,13 @@ class _AnonymousShareViewerScreenState
               Expanded(
                 child: Text(
                   result.fileName,
-                  style: GoogleFonts.vt323(fontSize: 14, color: Colors.white),
+                  style: const TextStyle(fontSize: 14, color: Colors.white),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
               Text(
                 '${result.watermarkEnforced ? "WATERMARKED" : "NO WATERMARK"} · VIEW LOGGED',
-                style: GoogleFonts.vt323(fontSize: 11, color: Colors.white54, letterSpacing: 0.5),
+                style: const TextStyle(fontSize: 11, color: Colors.white54, letterSpacing: 0.5),
               ),
             ],
           ),

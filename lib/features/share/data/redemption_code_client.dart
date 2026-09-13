@@ -1,78 +1,118 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 
 import '../../../config/supabase_credentials.dart';
+import '../../../services/redemption_envelope.dart';
+import '../../../services/burn_file_crypto.dart' show bytesToHex;
+import 'package:encrypt/encrypt.dart' as enc;
 
-/// Calls the "create-redemption-code" / "redeem-code" Edge Functions —
-/// matches [BurnFileClient]'s pattern exactly (no Supabase client, no
-/// session, anonymous on both ends). See
-/// supabase/migrations/20260713000000_burn_redemption_codes.sql for why
-/// this path deliberately differs from the link-based zero-knowledge
-/// guarantee: the server briefly holds the key/IV so a short code can
-/// resolve it, compensated by short expiry, single-use, and rate limiting.
 class RedemptionCodeClient {
   RedemptionCodeClient._();
   static final RedemptionCodeClient instance = RedemptionCodeClient._();
 
-  static final Uri _createEndpoint =
-      Uri.parse('${SupabaseCredentials.url}/functions/v1/create-redemption-code');
-  static final Uri _redeemEndpoint =
-      Uri.parse('${SupabaseCredentials.url}/functions/v1/redeem-code');
+  static final Uri _createEndpoint = Uri.parse(
+    '${SupabaseCredentials.url}/functions/v1/create-redemption-code',
+  );
+  static final Uri _redeemEndpoint = Uri.parse(
+    '${SupabaseCredentials.url}/functions/v1/redeem-code',
+  );
 
   Map<String, String> get _headers => {
-        'Content-Type': 'application/json',
-        'apikey': SupabaseCredentials.anonKey,
-      };
+    'Content-Type': 'application/json',
+    'apikey': SupabaseCredentials.anonKey,
+  };
 
-  /// Sender side: mints a short code pointing at the same key/IV already
-  /// embedded in the share link, so either can be used to retrieve it.
-  /// [targetKind] is `'note'` or `'file'`.
-  Future<({String code, DateTime expiresAt})> createCode({
+  /// Mints a pairing record. [pin] is the two-digit confirmation; [token]
+  /// is the unguessable secret that belongs in `/#/r/<token>`.
+  Future<({String token, String pin, DateTime expiresAt})> createCode({
     required String targetKind,
     required String targetId,
     required String keyHex,
     required String ivHex,
   }) async {
+    final token = bytesToHex(
+      Uint8List.fromList(enc.Key.fromSecureRandom(16).bytes),
+    );
+    final pin = (enc.IV.fromSecureRandom(1).bytes.first % 100)
+        .toString()
+        .padLeft(2, '0');
+    final envelope = RedemptionEnvelope.seal(
+      token: token,
+      pin: pin,
+      keyHex: keyHex,
+      contentIvHex: ivHex,
+    );
     final res = await http.post(
       _createEndpoint,
       headers: _headers,
       body: jsonEncode({
         'target_kind': targetKind,
         'target_id': targetId,
-        'key_hex': keyHex,
-        'iv_hex': ivHex,
+        'token_hash': RedemptionEnvelope.tokenHash(token),
+        'pin_hash': RedemptionEnvelope.pinHash(token, pin),
+        'key_material_ciphertext': envelope.ciphertextHex,
+        'key_material_iv_hex': envelope.ivHex,
       }),
     );
     final decoded = jsonDecode(res.body) as Map<String, dynamic>;
     if (res.statusCode != 200) {
-      throw Exception(decoded['error'] as String? ?? 'Could not create a code.');
+      throw Exception(
+        decoded['error'] as String? ?? 'Could not create a code.',
+      );
     }
     return (
-      code: decoded['code'] as String,
+      token: token,
+      pin: pin,
       expiresAt: DateTime.parse(decoded['expires_at'] as String),
     );
   }
 
-  /// Recipient side: atomically claims the code (single-use — a second call
-  /// with the same code always throws) and returns what's needed to proceed
-  /// through the normal viewer flow, same as parsing a share link would.
-  Future<({String targetKind, String targetId, String keyHex, String ivHex})> redeem(
-    String code,
-  ) async {
+  /// [token]+[pin] is the current path. [code] is the legacy 8-character path.
+  Future<({String targetKind, String targetId, String keyHex, String ivHex})>
+  redeem({String? code, String? token, String? pin}) async {
+    final body = <String, String>{};
+    if (token != null && pin != null) {
+      body['token'] = token;
+      body['pin'] = pin;
+    } else if (code != null) {
+      body['code'] = code;
+    } else {
+      throw Exception(
+        'Open the link you were sent, then enter the 2-digit code.',
+      );
+    }
+
     final res = await http.post(
       _redeemEndpoint,
       headers: _headers,
-      body: jsonEncode({'code': code}),
+      body: jsonEncode(body),
     );
     final decoded = jsonDecode(res.body) as Map<String, dynamic>;
     if (res.statusCode != 200) {
-      throw Exception(decoded['error'] as String? ?? 'That code could not be redeemed.');
+      throw Exception(
+        decoded['error'] as String? ?? 'That code could not be redeemed.',
+      );
     }
+    final isEnvelope =
+        decoded['key_material_ciphertext'] is String &&
+        decoded['key_material_iv_hex'] is String;
+    final material = isEnvelope
+        ? RedemptionEnvelope.open(
+            token: token!,
+            pin: pin!,
+            ciphertextHex: decoded['key_material_ciphertext'] as String,
+            envelopeIvHex: decoded['key_material_iv_hex'] as String,
+          )
+        : (
+            keyHex: decoded['key_hex'] as String,
+            ivHex: decoded['iv_hex'] as String,
+          );
     return (
       targetKind: decoded['target_kind'] as String,
       targetId: decoded['target_id'] as String,
-      keyHex: decoded['key_hex'] as String,
-      ivHex: decoded['iv_hex'] as String,
+      keyHex: material.keyHex,
+      ivHex: material.ivHex,
     );
   }
 }

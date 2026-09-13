@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../config/supabase_credentials.dart';
+import '../auth/session_recovery.dart';
 
 /// Owns the one-time Supabase SDK initialization for the application.
 final class SupabaseBootstrap {
@@ -18,6 +19,12 @@ final class SupabaseBootstrap {
     await Supabase.initialize(
       url: SupabaseCredentials.url,
       publishableKey: SupabaseCredentials.anonKey,
+      authOptions: const FlutterAuthClientOptions(
+        authFlowType: AuthFlowType.pkce,
+        autoRefreshToken: true,
+        detectSessionInUri: true,
+      ),
     );
+    await SessionRecovery.recoverIfNeeded(Supabase.instance.client.auth);
   }
 }

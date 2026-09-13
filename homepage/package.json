@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:burn": "node --test scripts/burn-performance.test.cjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",

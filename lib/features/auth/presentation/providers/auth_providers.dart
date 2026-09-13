@@ -30,6 +30,12 @@ final authStateProvider = StreamProvider<AuthenticatedUser?>((ref) {
   return ref.watch(authRepositoryProvider).watchAuthState();
 });
 
+/// Cached once per signed-in user. Empty map is a new profile, not a logout.
+final sessionProfileProvider = FutureProvider<Map<String, dynamic>>((ref) async {
+  final user = await ref.watch(authStateProvider.future);
+  if (user == null) return {};
+  return SupabaseService.instance.fetchProfile(user.id);
+});
 
 final signInUseCaseProvider = Provider<SignInUseCase>((ref) {
   return SignInUseCase(ref.watch(authRepositoryProvider));

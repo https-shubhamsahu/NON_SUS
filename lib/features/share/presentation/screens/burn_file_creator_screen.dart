@@ -2,18 +2,16 @@ import 'package:encrypt/encrypt.dart' as enc;
 import 'package:file_picker/file_picker.dart' as fp;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/mascot/mascot_controller.dart';
 import '../../../../core/mascot/mascot_state.dart';
-import '../../../../core/mascot/mascot_view.dart';
 import '../../../../core/utils/web_links.dart';
 import '../../../../services/burn_file_crypto.dart';
 import '../../data/burn_file_client.dart';
 import '../../data/redemption_code_client.dart';
+import '../widgets/share_ready_panel.dart';
 
 /// "Burn Files" creator — file.io-style anonymous upload. No login on
 /// either end (product decision): the sender doesn't need an account, and
@@ -88,7 +86,8 @@ class _BurnFileCreatorScreenState extends ConsumerState<BurnFileCreatorScreen> {
   bool _isProcessing = false;
   String? _statusLabel;
   String? _generatedLink;
-  String? _generatedCode;
+  String? _generatedPin;
+  String? _pairingLink;
   int _filesDoneCount = 0;
 
   @override
@@ -183,7 +182,8 @@ class _BurnFileCreatorScreenState extends ConsumerState<BurnFileCreatorScreen> {
 
       final (:origin, :basePath) = webShareLinkBase();
       final String link;
-      String? code;
+      String? pin;
+      String? pairing;
       if (triples.length == 1) {
         // Exactly the original single-file link shape — unchanged so every
         // burn-file link already shared into the wild keeps working, and so
@@ -197,9 +197,11 @@ class _BurnFileCreatorScreenState extends ConsumerState<BurnFileCreatorScreen> {
             keyHex: t.keyHex,
             ivHex: t.ivHex,
           );
-          code = codeResult.code;
+          pin = codeResult.pin;
+          pairing = '$origin$basePath/#/r/${codeResult.token}';
         } catch (_) {
-          code = null;
+          pin = null;
+          pairing = null;
         }
       } else {
         // New multi-file shape. Redemption codes stay single-target only
@@ -209,12 +211,14 @@ class _BurnFileCreatorScreenState extends ConsumerState<BurnFileCreatorScreen> {
         final keys = triples.map((t) => t.keyHex).join(',');
         final ivs = triples.map((t) => t.ivHex).join(',');
         link = '$origin$basePath/#/burnfiles/$ids?k=$keys&v=$ivs';
-        code = null;
+        pin = null;
+        pairing = null;
       }
 
       setState(() {
         _generatedLink = link;
-        _generatedCode = code;
+        _generatedPin = pin;
+        _pairingLink = pairing;
         _isProcessing = false;
         _statusLabel = null;
       });
@@ -248,37 +252,6 @@ class _BurnFileCreatorScreenState extends ConsumerState<BurnFileCreatorScreen> {
       default:
         return 'application/octet-stream';
     }
-  }
-
-  void _copyToClipboard() {
-    if (_generatedLink == null) return;
-    Clipboard.setData(ClipboardData(text: _generatedLink!));
-    HapticFeedback.mediumImpact();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Burn Files link copied to clipboard!'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
-  void _shareLink() {
-    if (_generatedLink == null) return;
-    SharePlus.instance.share(
-      ShareParams(text: 'Here\'s a file — it self-destructs after one download: $_generatedLink'),
-    );
-  }
-
-  void _copyCodeToClipboard() {
-    if (_generatedCode == null) return;
-    Clipboard.setData(ClipboardData(text: _generatedCode!));
-    HapticFeedback.mediumImpact();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Code copied to clipboard!'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
   }
 
   String _formatSize(int bytes) {
@@ -444,116 +417,23 @@ class _BurnFileCreatorScreenState extends ConsumerState<BurnFileCreatorScreen> {
                     ),
                   ),
                 ] else ...[
-                  Center(
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 20),
-                        const MascotView(
-                          character: MascotCharacter.nox,
-                          size: 48,
-                          fallback: Icon(Icons.verified_user_outlined, size: 48, color: Colors.green),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          _selectedFiles.length > 1 ? '${_selectedFiles.length} FILES SEALED' : 'FILE SEALED',
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1.0),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          _selectedFiles.length > 1
-                              ? 'Your files are encrypted. The keys live only in this link — the server cannot read them, and each is deleted permanently the moment it\'s downloaded.'
-                              : 'Your file is encrypted. The key lives only in this link — the server cannot read it, and it\'s deleted permanently the moment it\'s downloaded.',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 12, color: Colors.white70),
-                        ),
-                        const SizedBox(height: 32),
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF161616) : Colors.black.withValues(alpha: 0.03),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
-                          ),
-                          child: Text(
-                            _generatedLink!,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(fontSize: 12, color: Colors.green),
-                          ),
-                        ),
-                        if (_generatedCode != null) ...[
-                          const SizedBox(height: 20),
-                          Text(
-                            'OR SHARE THIS CODE',
-                            style: TextStyle(fontSize: 10, letterSpacing: 1.0, color: fg.withValues(alpha: 0.4), fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
-                            decoration: BoxDecoration(
-                              color: isDark ? const Color(0xFF161616) : Colors.black.withValues(alpha: 0.03),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.lightBlueAccent.withValues(alpha: 0.3)),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  _generatedCode!,
-                                  style: const TextStyle(fontSize: 20, letterSpacing: 4, fontWeight: FontWeight.bold, color: Colors.lightBlueAccent),
-                                ),
-                                const SizedBox(width: 12),
-                                IconButton(
-                                  onPressed: _copyCodeToClipboard,
-                                  tooltip: 'Copy code',
-                                  icon: const Icon(Icons.copy_rounded, size: 16, color: Colors.lightBlueAccent),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Expires in ~20 min, one-time use — anyone with this code can open the file.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 10.5, color: fg.withValues(alpha: 0.4)),
-                          ),
-                        ],
-                        const SizedBox(height: 32),
-                        SizedBox(
-                          width: double.infinity,
-                          child: FilledButton.icon(
-                            style: FilledButton.styleFrom(
-                              backgroundColor: Colors.green,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                            ),
-                            onPressed: _copyToClipboard,
-                            icon: const Icon(Icons.copy_rounded, size: 16),
-                            label: const Text('COPY LINK', style: TextStyle(fontWeight: FontWeight.bold)),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
-                            onPressed: _shareLink,
-                            icon: const Icon(Icons.ios_share_rounded, size: 16),
-                            label: const Text('SHARE LINK', style: TextStyle(fontWeight: FontWeight.bold)),
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        TextButton(
-                          onPressed: () {
-                            setState(() {
-                              _generatedLink = null;
-                              _generatedCode = null;
-                              _selectedFiles.clear();
-                            });
-                          },
-                          child: const Text('BURN MORE FILES', style: TextStyle(color: Colors.grey, fontSize: 11)),
-                        ),
-                      ],
-                    ),
+                  ShareReadyPanel(
+                    title: _selectedFiles.length > 1
+                        ? '${_selectedFiles.length} files ready'
+                        : 'File ready',
+                    body: 'It disappears after download. Send the link, then tell them the 2-digit code.',
+                    link: _generatedLink!,
+                    pin: _generatedPin,
+                    pairingLink: _pairingLink,
+                    resetLabel: 'Send another',
+                    onReset: () {
+                      setState(() {
+                        _generatedLink = null;
+                        _generatedPin = null;
+                        _pairingLink = null;
+                        _selectedFiles.clear();
+                      });
+                    },
                   ),
                 ],
               ],

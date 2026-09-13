@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState, DragEvent } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import {
   FileUp,
   Lock,
@@ -18,7 +17,7 @@ import {
   FILE_MAX_BYTES,
   NOTE_MAX_CHARS,
 } from "@/lib/burnApi";
-import { BorderTrail } from "@/components/ui/border-trail";
+import { APP_URL } from "@/lib/links";
 
 type Tab = "note" | "file" | "redeem";
 type Phase = "idle" | "working" | "done" | "error";
@@ -36,12 +35,13 @@ export default function BurnTool() {
   const [error, setError] = useState("");
   const [link, setLink] = useState("");
   const [code, setCode] = useState<string | null>(null);
+  const [pairingLink, setPairingLink] = useState("");
   const [copied, setCopied] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
+  const [copyError, setCopyError] = useState("");
   const [noteText, setNoteText] = useState("");
   const [expiryHours, setExpiryHours] = useState(24);
   const [dragOver, setDragOver] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
   const [redeemInput, setRedeemInput] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Bumped on every new create + on reset, so a slow redemption-code mint
@@ -54,8 +54,10 @@ export default function BurnTool() {
     setError("");
     setLink("");
     setCode(null);
+    setPairingLink("");
     setCopied(false);
     setCodeCopied(false);
+    setCopyError("");
     setStatusLabel("");
     setRedeemInput("");
   };
@@ -72,21 +74,24 @@ export default function BurnTool() {
 
   const handleCreateNote = async () => {
     const text = noteText.trim();
-    if (!text) return;
+    if (!text || phase === "working") return;
     const generation = ++generationRef.current;
     setPhase("working");
     setStatusLabel("ENCRYPTING IN BROWSER…");
     try {
       const result = await createBurnNote(text);
+      if (generationRef.current !== generation) return;
       setLink(result.link);
       setNoteText("");
       setPhase("done");
       // Arrives a moment after "done" — never blocks it.
-      result.codePromise.then((code) => {
-        if (generationRef.current === generation) setCode(code);
+      result.grantPromise.then((grant) => {
+        if (generationRef.current !== generation || !grant) return;
+        setCode(grant.pin);
+        setPairingLink(grant.claimUrl);
       });
     } catch (e) {
-      fail(e);
+      if (generationRef.current === generation) fail(e);
     }
   };
 
@@ -96,6 +101,7 @@ export default function BurnTool() {
     setPhase("working");
     try {
       const result = await createBurnFile(file, expiryHours, (p) => {
+        if (generationRef.current !== generation) return;
         setStatusLabel(
           p.phase === "encrypting"
             ? "ENCRYPTING IN BROWSER…"
@@ -104,13 +110,16 @@ export default function BurnTool() {
               : "SEALING…",
         );
       });
+      if (generationRef.current !== generation) return;
       setLink(result.link);
       setPhase("done");
-      result.codePromise.then((code) => {
-        if (generationRef.current === generation) setCode(code);
+      result.grantPromise.then((grant) => {
+        if (generationRef.current !== generation || !grant) return;
+        setCode(grant.pin);
+        setPairingLink(grant.claimUrl);
       });
     } catch (e) {
-      fail(e);
+      if (generationRef.current === generation) fail(e);
     }
   };
 
@@ -122,10 +131,21 @@ export default function BurnTool() {
 
   const handleRedeem = async () => {
     if (phase === "working") return;
+    const raw = redeemInput.trim();
+    const tokenMatch = raw.match(/[#/]r\/([a-fA-F0-9]{32})/i) ?? raw.match(/^([a-fA-F0-9]{32})$/);
+    if (tokenMatch) {
+      window.location.href = `${APP_URL}#/r/${tokenMatch[1].toLowerCase()}`;
+      return;
+    }
+    if (/^\d{2}$/.test(raw)) {
+      setError("Open the share link first, then type the 2-digit code.");
+      setPhase("error");
+      return;
+    }
     setPhase("working");
     setStatusLabel("LOOKING UP CODE…");
     try {
-      const url = await redeemCode(redeemInput);
+      const url = await redeemCode(raw);
       setStatusLabel("UNLOCKED · OPENING…");
       window.location.href = url;
     } catch (e) {
@@ -134,94 +154,45 @@ export default function BurnTool() {
   };
 
   const copyLink = async () => {
-    await navigator.clipboard.writeText(link);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopyError("");
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopyError("Select the link above and copy it manually.");
+    }
   };
 
   const copyCode = async () => {
     if (!code) return;
-    await navigator.clipboard.writeText(code);
-    setCodeCopied(true);
-    setTimeout(() => setCodeCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(`${pairingLink}\nCode: ${code}`);
+      setCopyError("");
+      setCodeCopied(true);
+      setTimeout(() => setCodeCopied(false), 2000);
+    } catch {
+      setCopyError("Clipboard unavailable. Copy the direct link above instead.");
+    }
   };
 
   return (
     <div className="relative flex flex-col items-center justify-center py-6">
-      {/* Dynamic Keyframes for morphing liquid shape */}
-      <style>{`
-        @keyframes morph-blob {
-          0%, 100% { border-radius: 50% 50% 50% 50%; }
-          33% { border-radius: 46% 54% 44% 56% / 53% 45% 55% 47%; }
-          66% { border-radius: 54% 46% 56% 44% / 45% 55% 45% 55%; }
-        }
-        .liquid-blob {
-          animation: morph-blob 8s ease-in-out infinite;
-        }
-        .liquid-blob:hover {
-          animation-duration: 4s;
-        }
-      `}</style>
-
-      {/* Interactive Waves / concentric rings leaving the circle */}
-      {isHovered && (
-        <>
-          <motion.div
-            className="absolute w-[390px] h-[390px] sm:w-[450px] sm:h-[450px] rounded-full border-2 border-white/20 pointer-events-none z-0"
-            initial={{ scale: 1, opacity: 0.6 }}
-            animate={{ scale: 1.35, opacity: 0 }}
-            transition={{ repeat: Infinity, duration: 2.2, ease: "easeOut" }}
-          />
-          <motion.div
-            className="absolute w-[390px] h-[390px] sm:w-[450px] sm:h-[450px] rounded-full border-2 border-white/10 pointer-events-none z-0"
-            initial={{ scale: 1, opacity: 0.6 }}
-            animate={{ scale: 1.6, opacity: 0 }}
-            transition={{ repeat: Infinity, duration: 2.2, delay: 0.7, ease: "easeOut" }}
-          />
-          <motion.div
-            className="absolute w-[390px] h-[390px] sm:w-[450px] sm:h-[450px] rounded-full border border-dashed border-white/5 pointer-events-none z-0"
-            initial={{ scale: 1, opacity: 0.4 }}
-            animate={{ scale: 1.95, opacity: 0 }}
-            transition={{ repeat: Infinity, duration: 2.2, delay: 1.4, ease: "easeOut" }}
-          />
-        </>
-      )}
-
-      {/* Main Morphing Circle Box */}
+      {/* Keep the branded circle without continuous animation work. */}
       <div
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        className={`relative z-10 w-[380px] h-[380px] sm:w-[440px] sm:h-[440px] border-4 border-white/80 bg-brand-black/95 text-left flex flex-col items-center justify-center p-6 shadow-[8px_8px_0px_0px_rgba(255,255,255,0.05)] transition-all duration-300 liquid-blob ${
+        className={`relative z-10 w-[min(380px,calc(100vw-32px))] h-[380px] sm:w-[440px] sm:h-[440px] rounded-[50%] border-4 border-white/80 bg-brand-black/95 text-left flex flex-col items-center justify-center p-6 shadow-[8px_8px_0px_0px_rgba(255,255,255,0.05)] transition-colors ${
           dragOver ? "scale-105 border-white bg-white/5" : ""
         }`}
       >
-        <BorderTrail
-          className="bg-white/80"
-          style={{
-            boxShadow:
-              "0px 0px 40px 20px rgb(255 255 255 / 80%), 0 0 80px 40px rgb(255 255 255 / 40%)",
-          }}
-          size={140}
-          transition={{
-            repeat: Infinity,
-            duration: 6,
-            ease: "linear",
-          }}
-        />
-        <AnimatePresence mode="wait">
           {phase === "working" ? (
-            <motion.div
+            <div
               key="working"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
+              role="status"
               className="flex flex-col items-center justify-center gap-4 text-center"
             >
               <div className="relative">
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                  className="w-16 h-16 border-2 border-dashed border-white rounded-full flex items-center justify-center"
+                <div
+                  className="w-16 h-16 border-2 border-dashed border-white rounded-full flex items-center justify-center animate-spin motion-reduce:animate-none"
                 />
                 <div className="absolute inset-0 flex items-center justify-center">
                   <Lock className="h-5 w-5 text-white" />
@@ -230,13 +201,11 @@ export default function BurnTool() {
               <span className="text-[10px] font-mono tracking-widest text-brand-gray-light animate-pulse text-center max-w-[200px] uppercase">
                 {statusLabel}
               </span>
-            </motion.div>
+            </div>
           ) : phase === "done" ? (
-            <motion.div
+            <div
               key="done"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
+              role="status"
               className="flex flex-col items-center justify-center gap-3 text-center w-full"
             >
               <div className="flex items-center gap-2 text-white">
@@ -246,43 +215,6 @@ export default function BurnTool() {
                 </span>
               </div>
 
-              {code ? (
-                <>
-                  <span className="text-[7px] font-mono tracking-widest text-brand-gray-light uppercase">
-                    Share this code
-                  </span>
-                  <span className="font-mono text-2xl font-bold tracking-[0.35em] text-white">
-                    {code}
-                  </span>
-
-                  <button
-                    onClick={copyCode}
-                    className="bg-white text-black px-6 py-2.5 text-[9px] font-bold uppercase tracking-widest hover:bg-black hover:text-white border border-white transition-all rounded-full flex items-center gap-2 z-20"
-                  >
-                    {codeCopied ? (
-                      <>
-                        <Check className="h-3 w-3" /> Copied
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-3 w-3" /> Copy Code
-                      </>
-                    )}
-                  </button>
-
-                  <button
-                    onClick={copyLink}
-                    className="text-[8px] font-mono uppercase tracking-wider text-brand-gray-light hover:text-white transition-colors underline underline-offset-2 z-20"
-                  >
-                    {copied ? "Link copied" : "or copy the full link"}
-                  </button>
-
-                  <p className="text-[7px] text-brand-gray-light leading-relaxed max-w-[230px]">
-                    Code: ~20 min, one-time use, easy to text or read aloud<span className="text-white">.</span> Link: true zero-knowledge, the key never touches our server<span className="text-white">.</span>
-                  </p>
-                </>
-              ) : (
-                <>
                   <div className="w-[85%] z-20">
                     <input
                       type="text"
@@ -311,22 +243,23 @@ export default function BurnTool() {
                   <p className="text-[8px] text-brand-gray-light leading-relaxed max-w-[220px]">
                     The key lives in this URL hash<span className="text-white">.</span> We cannot recover it<span className="text-white">.</span> One-time read only<span className="text-white">.</span>
                   </p>
-                </>
+              {code && pairingLink && (
+                <button onClick={copyCode} className="text-[9px] underline underline-offset-2 text-brand-gray-light hover:text-white">
+                  {codeCopied ? "Pairing copied" : `Or copy pairing link + code ${code}`}
+                </button>
               )}
-
+              {copyError && <p className="text-[10px] text-brand-gray-light" role="alert">{copyError}</p>}
               <button
                 onClick={reset}
                 className="inline-flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-widest text-brand-gray-light hover:text-white transition-colors z-20"
               >
                 <RotateCcw className="h-3 w-3" /> Burn another
               </button>
-            </motion.div>
+            </div>
           ) : phase === "error" ? (
-            <motion.div
+            <div
               key="error"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              role="alert"
               className="flex flex-col items-center justify-center gap-4 text-center w-full p-4"
             >
               <AlertTriangle className="h-8 w-8 text-white" />
@@ -339,13 +272,10 @@ export default function BurnTool() {
               >
                 <RotateCcw className="h-3 w-3" /> Try again
               </button>
-            </motion.div>
+            </div>
           ) : (
-            <motion.div
+            <div
               key="form"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
               className="flex flex-col items-center justify-center w-full h-full text-center relative z-20"
             >
               {/* Tabs Capsule */}
@@ -463,16 +393,16 @@ export default function BurnTool() {
                   <input
                     type="text"
                     value={redeemInput}
-                    onChange={(e) => setRedeemInput(e.target.value.toUpperCase().slice(0, 8))}
+                    onChange={(e) => setRedeemInput(e.target.value.slice(0, 200))}
                     onKeyDown={(e) => { if (e.key === "Enter") handleRedeem(); }}
-                    placeholder="ABCD1234"
+                    placeholder="Paste the link"
                     autoCapitalize="characters"
                     autoCorrect="off"
                     spellCheck={false}
                     className="w-[70%] bg-brand-black/50 border border-white/10 hover:border-white/30 focus:border-white focus:outline-none py-3 text-center text-lg font-mono tracking-[0.35em] text-white rounded-xl uppercase"
                   />
                   <p className="text-[7.5px] font-mono text-brand-gray-light mt-3 uppercase text-center max-w-[220px] leading-relaxed">
-                    Got a short code instead of a link? Enter it here to open the note or file.
+                    Got a link? Open it, then type the 2-digit code here. Older 8-character codes still work.
                   </p>
                   <button
                     onClick={handleRedeem}
@@ -487,9 +417,8 @@ export default function BurnTool() {
                   </button>
                 </div>
               )}
-            </motion.div>
+            </div>
           )}
-        </AnimatePresence>
       </div>
     </div>
   );

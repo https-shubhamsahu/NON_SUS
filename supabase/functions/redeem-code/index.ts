@@ -1,20 +1,10 @@
 // Supabase Edge Function: redeem-code
 //
-// The recipient's entry point for the short-code retrieval path — see
-// create-redemption-code and
-// supabase/migrations/20260713000000_burn_redemption_codes.sql for the full
-// design. Public on purpose (verify_jwt: false), same anonymous posture as
-// burn-file-fetch/read_and_burn_note — a recipient never needs an account.
+// New path: POST { token, pin } — token is the unguessable secret, pin is
+// a 2-digit confirmation. Legacy path: POST { code } with an 8-character
+// code still works for rows minted before the token+pin change.
 //
-// POST { code } -> { target_kind, target_id, key_hex, iv_hex }
-//                 | 410 if invalid/expired/already-used (one generic error —
-//                   deliberately not distinguishing wrong-vs-expired-vs-used,
-//                   so a guesser gets no oracle signal)
-//
-// Rate-limited by a salted hash of the request IP (never the raw IP),
-// mirroring burn-file-init's limiter — defense-in-depth against a
-// scripted/distributed brute-force attempt, on top of the code's own
-// ~1.1-trillion-combination entropy.
+// Pin-only redemption is rejected on purpose (100 combinations).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8";
 
@@ -43,6 +33,11 @@ async function hmacHex(message: string, secret: string): Promise<string> {
   return Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+async function sha256Hex(message: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(message));
+  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
@@ -63,8 +58,18 @@ Deno.serve(async (req: Request) => {
     return json({ error: "Invalid JSON body" }, 400);
   }
 
-  const code = String(body.code ?? "").trim().toUpperCase();
-  if (!code) return json({ error: "Missing code" }, 400);
+  const token = String(body.token ?? "").trim().toLowerCase();
+  const pin = String(body.pin ?? "").trim();
+  const legacyCode = String(body.code ?? "").trim().toUpperCase();
+
+  const usingTokenPin = token.length === 32 && /^\d{2}$/.test(pin);
+  const usingLegacy = !usingTokenPin && legacyCode.length >= 6;
+
+  if (!usingTokenPin && !usingLegacy) {
+    return json({
+      error: "Open the link you were sent, then enter the 2-digit code.",
+    }, 400);
+  }
 
   const { data: flag } = await admin
     .from("feature_flags")
@@ -80,7 +85,7 @@ Deno.serve(async (req: Request) => {
     .select("config_key, config_value")
     .in("config_key", ["redeem_rate_limit_per_hour", "redeem_rate_limit_window_minutes"]);
   const cfg = (key: string, fallback: number): number => {
-    const row = configRows?.find((r: any) => r.config_key === key);
+    const row = configRows?.find((r: { config_key: string; config_value: unknown }) => r.config_key === key);
     return row ? Number(row.config_value) : fallback;
   };
   const rateLimitPerHour = cfg("redeem_rate_limit_per_hour", 10);
@@ -102,14 +107,31 @@ Deno.serve(async (req: Request) => {
     return json({ error: "Too many attempts from this network. Please try again later." }, 429);
   }
 
-  const codeHash = await hmacHex(code, codeSalt);
-  const { data: claimed, error: claimErr } = await admin.rpc("claim_redemption_code", {
-    p_code_hash: codeHash,
-  });
-  if (claimErr) {
-    console.error("redeem-code: claim RPC failed", claimErr);
-    return json({ error: "Could not process this code" }, 500);
+  let claimed: Record<string, unknown> | null = null;
+  if (usingTokenPin) {
+    const tokenHash = await sha256Hex(token);
+    const pinHash = await sha256Hex(`no-sus:redemption:pin:v1:${token}:${pin}`);
+    const { data, error } = await admin.rpc("claim_redemption_token", {
+      p_token_hash: tokenHash,
+      p_pin_hash: pinHash,
+    });
+    if (error) {
+      console.error("redeem-code: token claim RPC failed", error);
+      return json({ error: "Could not process this code" }, 500);
+    }
+    claimed = data;
+  } else {
+    const codeHash = await hmacHex(legacyCode, codeSalt);
+    const { data, error } = await admin.rpc("claim_redemption_code", {
+      p_code_hash: codeHash,
+    });
+    if (error) {
+      console.error("redeem-code: claim RPC failed", error);
+      return json({ error: "Could not process this code" }, 500);
+    }
+    claimed = data;
   }
+
   if (!claimed?.id) {
     return json({ error: "Invalid or expired code" }, 410);
   }
@@ -119,5 +141,7 @@ Deno.serve(async (req: Request) => {
     target_id: claimed.target_id,
     key_hex: claimed.key_hex,
     iv_hex: claimed.iv_hex,
+    key_material_ciphertext: claimed.key_material_ciphertext,
+    key_material_iv_hex: claimed.key_material_iv_hex,
   });
 });

@@ -76,105 +76,17 @@ class AuthGate extends ConsumerWidget {
           );
         }
 
-        return FutureBuilder<Map<String, dynamic>>(
-          future: SupabaseService.instance.fetchProfile(user.id).then((profile) async {
-            if (profile.isEmpty && SupabaseService.instance.isReachable) {
-              try {
-                // Verify the user actually still exists on the server
-                await Supabase.instance.client.auth.getUser();
-              } catch (e) {
-                // Session invalid (e.g. user was deleted from DB but local token remains)
-                await Supabase.instance.client.auth.signOut();
-                return <String, dynamic>{};
-              }
-            }
-            return profile;
-          }),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const BrandSplash();
-            }
+        final localCompleted = ref.watch(onboardingCompletedProvider);
+        if (localCompleted) return child;
 
-            final theme = Theme.of(context);
-            final isDark = theme.brightness == Brightness.dark;
-            final fg = isDark ? NoSusTheme.dText : NoSusTheme.lText;
-
-            if (snapshot.hasError) {
-              return Scaffold(
-                body: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.error_outline,
-                          color: Colors.redAccent,
-                          size: 48,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'SESSION ERROR',
-                          style: theme.textTheme.labelLarge?.copyWith(
-                            color: Colors.redAccent,
-                            letterSpacing: 2.0,
-                            fontSize: 11,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          snapshot.error.toString().replaceAll('Exception: ', ''),
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: fg.withValues(alpha: 0.6),
-                            fontSize: 13,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        Semantics(
-                          button: true,
-                          label: 'Retry',
-                          child: GestureDetector(
-                            onTap: () {
-                              ref.invalidate(authStateProvider);
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 12,
-                                horizontal: 24,
-                              ),
-                              decoration: BoxDecoration(
-                                color: fg,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                'RETRY',
-                                style: TextStyle(
-                                  color: isDark ? Colors.black : Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            }
-
-            final profileData = snapshot.data ?? {};
-            final hasCompletedRemoteOnboarding = profileData['onboarding_completed'] == true;
-            final localCompleted = ref.watch(onboardingCompletedProvider);
-
-            if (!hasCompletedRemoteOnboarding && !localCompleted) {
-              return const OnboardingScreen();
-            }
-
-            return child;
+        final profileAsync = ref.watch(sessionProfileProvider);
+        return profileAsync.when(
+          data: (profileData) {
+            if (profileData['onboarding_completed'] == true) return child;
+            return const OnboardingScreen();
           },
+          loading: () => const BrandSplash(),
+          error: (_, _) => child,
         );
       },
       loading: () => const BrandSplash(),

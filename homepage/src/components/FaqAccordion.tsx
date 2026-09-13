@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Plus, Minus } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+
 
 export default function FaqAccordion() {
   const [openIdx, setOpenIdx] = useState<number | null>(null);
@@ -96,20 +96,16 @@ export default function FaqAccordion() {
                   {isOpen ? <Minus className="h-4 w-4 shrink-0" /> : <Plus className="h-4 w-4 shrink-0" />}
                 </button>
 
-                <AnimatePresence initial={false}>
+                <>
                   {isOpen && (
-                    <motion.div
-                      initial={{ height: 0 }}
-                      animate={{ height: "auto" }}
-                      exit={{ height: 0 }}
-                      transition={{ duration: 0.25, ease: "easeInOut" }}
+                    <div
                     >
                       <div className="px-6 pb-6 pt-1 text-xs text-brand-gray-light leading-relaxed border-t border-brand-gray/40 font-medium">
                         {faq.a}
                       </div>
-                    </motion.div>
+                    </div>
                   )}
-                </AnimatePresence>
+                </>
               </div>
             );
           })}

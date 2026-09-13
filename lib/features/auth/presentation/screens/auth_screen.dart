@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../theme.dart';
 import '../controllers/auth_controller.dart';
 import '../providers/auth_providers.dart';
@@ -215,7 +216,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         ),
                         const SizedBox(height: NoSusTheme.s8),
                         Text(
-                          'SILENT SECURITY WORKSPACE',
+                          AppConstants.appTagline,
                           style: theme.textTheme.labelLarge?.copyWith(
                             fontSize: 10,
                             color: fg.withValues(alpha: 0.5),

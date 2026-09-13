@@ -1,16 +1,29 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/constants/app_constants.dart';
+import '../../../../core/providers/theme_provider.dart';
+
 class OnboardingNotifier extends Notifier<bool> {
   @override
   bool build() {
-    return false;
+    try {
+      return ref.watch(sharedPreferencesProvider).getBool(AppConstants.kOnboardingKey) ?? false;
+    } catch (_) {
+      return false;
+    }
   }
 
   void complete() {
+    try {
+      ref.read(sharedPreferencesProvider).setBool(AppConstants.kOnboardingKey, true);
+    } catch (_) {}
     state = true;
   }
 
   void reset() {
+    try {
+      ref.read(sharedPreferencesProvider).setBool(AppConstants.kOnboardingKey, false);
+    } catch (_) {}
     state = false;
   }
 }

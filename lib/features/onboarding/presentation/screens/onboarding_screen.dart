@@ -172,11 +172,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                           onTap: () {
                             HapticFeedback.lightImpact();
                             if (currentIndex == 0) {
-                              _pageController.animateToPage(
-                                3,
-                                duration: const Duration(milliseconds: 600),
-                                curve: Curves.easeInOut,
-                              );
+                              ref.read(onboardingCompletedProvider.notifier).complete();
                             } else {
                               _pageController.previousPage(
                                 duration: const Duration(milliseconds: 450),

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#050505" />
+    <title>NO SUS. — Remote</title>
+    <style>
+      :root{--bg:#050505;--fg:#f3f3f0;--muted:#858585;--line:#292929;--active:#f3f3f0}*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--fg);font-family:Geist,Inter,system-ui,-apple-system,Segoe UI,sans-serif;-webkit-font-smoothing:antialiased}body{padding:24px 18px 30px;max-width:680px;margin:auto}button{font:inherit;color:inherit;background:#111;border:1px solid var(--line);border-radius:8px;min-height:54px;touch-action:manipulation}button:active{transform:scale(.97);background:#222}.brand{font-size:19px;font-weight:800;letter-spacing:-.09em}.brand i{font-style:normal;color:#808080}.eyebrow{margin:40px 0 8px;color:var(--muted);font-size:11px;letter-spacing:.18em;text-transform:uppercase}.status{display:flex;align-items:end;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:18px}.scene-no{font-size:clamp(60px,18vw,110px);line-height:.8;letter-spacing:-.1em;font-weight:700}.scene-label{text-align:right;color:var(--muted);font-size:13px;letter-spacing:.04em;max-width:45%}.connection{display:flex;align-items:center;gap:8px;margin:16px 0 22px;color:var(--muted);font-size:12px}.dot{width:7px;height:7px;border-radius:50%;background:#777}.online .dot{background:#e9e9e6}.transport{display:grid;grid-template-columns:1fr 1.4fr 1fr;gap:8px;margin:0 0 16px}.transport button{font-size:13px;letter-spacing:.1em}.transport .next{background:var(--fg);color:#050505;border-color:var(--fg);font-weight:700}.row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:28px}.row button{font-size:12px;letter-spacing:.1em;color:var(--muted)}h2{font-size:12px;letter-spacing:.16em;color:var(--muted);font-weight:500;margin:0 0 12px;text-transform:uppercase}.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}.grid button{min-height:42px;border-radius:5px;font-size:12px;color:var(--muted)}.grid button.active{background:var(--fg);color:var(--bg);border-color:var(--fg);font-weight:700}.help{margin-top:28px;border-top:1px solid var(--line);padding-top:18px;color:#666;font-size:12px;line-height:1.45}@media(min-width:560px){body{padding-top:48px}.transport{max-width:500px}.row{max-width:500px}}
+    </style>
+  </head>
+  <body>
+    <div class="brand">NO SUS<i>.</i></div>
+    <p class="eyebrow">Presentation remote</p>
+    <div class="status"><div class="scene-no" id="sceneNo">01</div><div class="scene-label" id="sceneLabel">The question</div></div>
+    <div class="connection" id="connection"><i class="dot"></i><span>Connecting to presentation…</span></div>
+    <div class="transport"><button type="button" data-cmd="prev">← PREV</button><button type="button" class="next" data-cmd="next">NEXT →</button><button type="button" data-cmd="next">NEXT ↗</button></div>
+    <div class="row"><button type="button" data-cmd="first">FIRST</button><button type="button" data-cmd="last">LAST</button></div>
+    <h2>Jump to scene</h2>
+    <div class="grid" id="grid"></div>
+    <p class="help">Keep this page open on your phone. It works over the same Wi‑Fi as the presentation laptop. If the connection drops, reconnect to the laptop’s local address and tap again.</p>
+    <script>
+      const labels=["The question","The send","The gap","A different layer","NO SUS","The product","The core loop","The belief","It’s live","Document Passport","After AI","Not enough","A capability","Private AI","Access lifecycle","The layer","Permissions","Where it expands","The difference","The founder","What are they allowed"];
+      const sceneNo=document.querySelector('#sceneNo'),sceneLabel=document.querySelector('#sceneLabel'),grid=document.querySelector('#grid'),connection=document.querySelector('#connection');let current=0;
+      labels.forEach((label,i)=>{const b=document.createElement('button');b.textContent=String(i+1).padStart(2,'0');b.title=label;b.dataset.index=i;b.addEventListener('click',()=>send({type:'goto',index:i}));grid.appendChild(b)});
+      const fileMode=location.protocol==='file:';
+      function render(state){current=Math.max(0,Math.min(labels.length-1,Number(state.index)||0));sceneNo.textContent=String(current+1).padStart(2,'0');sceneLabel.textContent=labels[current];grid.querySelectorAll('button').forEach((b,i)=>b.classList.toggle('active',i===current));connection.classList.toggle('online',true);connection.querySelector('span').textContent='Connected to presentation';}
+      async function state(){try{const r=await fetch('/api/state',{cache:'no-store'});if(r.ok)render(await r.json());}catch(_){connection.classList.remove('online');connection.querySelector('span').textContent='Waiting for presentation laptop…';}}
+      async function send(command){try{const r=await fetch('/api/command',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(command)});if(r.ok)render(await r.json());if(navigator.vibrate)navigator.vibrate(10);}catch(_){connection.classList.remove('online');connection.querySelector('span').textContent='Reconnect to presentation laptop';}}
+      document.querySelectorAll('[data-cmd]').forEach(b=>b.addEventListener('click',()=>send({type:b.dataset.cmd})));
+      if(fileMode){connection.classList.remove('online');connection.querySelector('span').textContent='Offline file — open the printed Phone URL from node server.mjs';document.querySelectorAll('button').forEach(b=>b.disabled=true);}
+      else {state();setInterval(state,500);}
+    </script>
+  </body>
+</html>

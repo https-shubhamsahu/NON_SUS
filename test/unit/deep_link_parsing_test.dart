@@ -213,4 +213,22 @@ void main() {
       expect(extractBurnFilesToken(Uri.parse('file:///')), isNull);
     });
   });
+
+  group('extractRedeemToken', () {
+    test('parses a 32-hex pairing token from the hash', () {
+      const token = '0123456789abcdef0123456789abcdef';
+      expect(
+        extractRedeemToken(Uri.parse('https://app.nosus.foo/#/r/$token')),
+        token,
+      );
+    });
+
+    test('rejects a two-digit pin used as a path secret', () {
+      expect(extractRedeemToken(Uri.parse('https://app.nosus.foo/#/r/47')), isNull);
+    });
+
+    test('does not collide with /v/ share tokens', () {
+      expect(extractRedeemToken(Uri.parse('https://app.nosus.foo/#/v/abc123')), isNull);
+    });
+  });
 }

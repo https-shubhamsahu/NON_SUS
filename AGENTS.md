@@ -17,7 +17,6 @@ the code wins — fix this file in the same commit.
    See §11 for the exact protocol.
 2. **Verification gates.** Do not claim a task is done until the relevant gate is clean:
    - Flutter: `flutter analyze` **and** `flutter test`
-   - Rust (`services/fhe-compute/`): `cargo build && cargo test`
    - Homepage: `npm run build` in `homepage/`
    Report failures with the actual output. Never describe an unrun command as passing.
 3. **Cryptographic honesty (load-bearing).** Copy, marketing, and UI must never outrun the actual
@@ -34,26 +33,25 @@ the code wins — fix this file in the same commit.
 
 ## 1. What this project is
 
-**NO SUS** — a secure study-group workspace (file sharing, watermarked viewing, burn notes/files,
-audit logging) built with Flutter on a Supabase backend. Ships to web (GitHub Pages) and Android
-(Play Store).
+**NO SUS** — send a sensitive document and still see who opened it. Flutter app
+(web + Android) on a Supabase backend. Current version: **`1.3.0+10`**.
 
-Current version: **`1.3.0+10`** (`pubspec.yaml`). Latest migration: `20260725000000_hardware_backed_device_id.sql`.
+Core product: tracked document shares, Burn notes/files, pairing links (`/#/r/<token>` +
+2-digit confirmation pin), groups/vault. Optional AI is compiled in via
+`INTELLIGENCE_PROVIDER` (`disabled` / `gemini` / `local`) and is not required.
+
+**FHE / Sealed is removed from the active product.** Do not reintroduce it.
+Historical SQL migrations remain append-only. Edge functions `fhe-proxy`,
+`sealed-api`, and `pact-matcher` are leftover deploy artifacts, not product code.
+
+Latest Flutter-relevant migration for redemption: `20260826000000_redeem_token_pin.sql`.
 
 Four sub-projects live in this repo:
 
 - **Root** — the Flutter app (`lib/`, `test/`, `android/`, `web/`).
-- **`supabase/`** — Postgres migrations + Deno Edge Functions (15 of them: `burn-file-{init,confirm,fetch}`,
-  `share-fetch`, `share-heartbeat`, `create-redemption-code`, `redeem-code`, `storage-router`,
-  `drive-proxy`, `account-manager`, `cleanup-burn-files`, `verify-play-integrity`, plus the shelved
-  `fhe-proxy`, `sealed-api`, `pact-matcher`).
-- **`services/fhe-compute/`** — isolated Rust (TFHE-rs) homomorphic-compute service. Not V1 (§8).
+- **`supabase/`** — Postgres migrations + Deno Edge Functions for burn files, share fetch/heartbeat, redemption, storage, and optional `document-intelligence`.
 - **`homepage/`** — Next.js marketing landing page, statically exported (`output: "export"`), served
-  at the **`nosus.foo` root**. The Flutter web app lives at **`app.nosus.foo`** (deployed to a
-  separate `nosus-app` repo). `.github/workflows/gh-pages.yml` has two independent jobs: `landing`
-  (this repo's gh-pages) and `app` (needs `APP_DEPLOY_TOKEN`). A pre-paint shim in
-  `homepage/src/app/layout.tsx` forwards legacy `nosus.foo/#/burn|burnfile|v|join/…` links and
-  Supabase auth callbacks to the app subdomain (fragment preserved — **the AES key lives there**).
+  at the **`nosus.foo` root**. The Flutter web app lives at **`app.nosus.foo`**.
   The hero has REAL working Burn Note/File tools; their WebCrypto (`homepage/src/lib/burnCrypto.ts`)
   is kept byte-compatible with the Dart app by `test/unit/burn_crypto_web_compat_test.dart` — never
   change one side without the other. Cross-product URLs + dev identity live in
@@ -259,15 +257,10 @@ free) rather than a hand-wrapped `GestureDetector`+`Icon`.
 
 ## 8. Subsystems that are scaffolded, shelved, or off
 
-**FHE / Sealed — long-term vision, not V1.** FHE (`lib/features/fhe/`, `services/fhe-compute/`,
-`supabase/functions/fhe-proxy/`) is long-term-vision infrastructure per `PROJECT_CONSTITUTION.md` §4
-— not V1 scope, not the active product. `lib/features/sealed/` and the `sealed-api`/`pact-matcher`
-edge functions specifically are **shelved** (kept in the repo, not shipped — `SHIELD.md` documents
-the architecture). Detailed guardrails live in `.claude/rules/no-sus-fhe.md` (mirrors
-`.cursor/rules/no-sus-fhe.mdc`), which loads automatically when touching FHE files. Summary:
-additive only, off by default behind granular flags in `lib/config/fhe_config.dart` (never a single
-global switch), Flutter never talks to TFHE directly (app → `FheTransport` → `fhe-proxy` → Rust),
-never log or persist key material.
+**FHE / Sealed — removed from the active product.** Do not rebuild TFHE, Sealed, or
+`services/fhe-compute` into the app. Optional intelligence lives in
+`lib/features/intelligence/` and stays off unless `INTELLIGENCE_PROVIDER` is set.
+
 
 **Crash reporting (Sentry) — off by default.** `lib/config/crash_reporting_config.dart` (`SENTRY_DSN`
 empty). Wired into `FlutterError.onError` and the `runZonedGuarded` handler in `lib/main.dart` via
@@ -348,10 +341,11 @@ codebase — assume still outstanding unless you know otherwise.
 
 | Doc | Trust |
 |---|---|
-| **This file** | ✅ Kept current every session |
-| `PROJECT_CONSTITUTION.md` | ✅ Authoritative for product vision, honesty rules, non-negotiables |
-| `RELEASE_REPORT.md` | ✅ Release-readiness audit (10–11 July 2026); §12 checklist still useful |
-| `SHIELD.md` | ✅ Architecture of the shelved Sealed/FHE subsystem |
+| **This file** | ✅ Kept current |
+| `README.md` | ✅ Current product identity |
+| `PROJECT_CONSTITUTION.md` | ✅ Honesty rules; some product-vision sentences are historical |
+| `SHIELD.md` | ❌ Historical Sealed/FHE architecture — not active |
+| `docs/archive/*` | ❌ Historical snapshots |
 | `MASCOT_GUIDE.md` | ✅ Mascot mood table |
 | `homepage/CLAUDE.md`, `homepage/AGENTS.md` | ✅ Scoped to the Next.js landing page |
 | `.claude/rules/no-sus-fhe.md` | ✅ FHE guardrails (auto-loads) |
@@ -376,7 +370,6 @@ codebase — assume still outstanding unless you know otherwise.
 > bottom rather than letting this section grow without bound.
 
 <!-- CHANGELOG:INSERT -->
-- **2026-08-27** · `c4fd779` · feat(loading): streamline NO SUS splash wordmark — why: replaces the timed, animated boot sequence with the canonical responsive wordmark and a square gray stop. It starts no work and adds no wait, so it never delays the real app.
 
 - **2026-07-25** · `96efcac` · ci: bump softprops/action-gh-release to v3
 
