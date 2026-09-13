@@ -27,6 +27,7 @@
     <li><b>Feedback:</b> messages you submit through Help &amp; Feedback, with your app version.</li>
     <li><b>Website visits:</b> our website, nosus.foo, uses Cloudflare Web Analytics to count visits. It sets no cookies and, according to Cloudflare, does not collect visitors' personal data; we see aggregate figures such as pages viewed, referring sites, browser and device types, countries, and page-load speed. It never loads on a link that carries a share key or sign-in data, and it is not part of the NO SUS app.</li>
     <li><b>Device security signals:</b> on sign-in and periodically during use, the app checks the device for indicators of tampering (root access, known instrumentation/hooking frameworks, active screen mirroring). Findings are written to a tamper-evident security ledger tied to your account — never sold or shared with third parties — and used only to flag your own account as higher-risk (e.g. requiring re-authentication) if serious tampering is detected.</li>
+    <li><b>App usage events:</b> the app records a small, fixed set of events so we can see where people get stuck — for example: the app was opened; the welcome screen was viewed; a no-account tool was opened; someone reached a feature that needs an account; sign-up was started or completed, or sign-in completed; onboarding was started, skipped, or completed; creating or joining a group was started or completed; a first document was uploaded or viewed; or a notification permission prompt was shown, accepted, or declined. Each event carries the app version, the platform (such as web or Android), your account ID if you are signed in, and at most a short fixed label such as which tool or action it concerns. Events are recorded whether or not you are signed in — including when someone opens a shared link in the app — and carry no account ID when no one is signed in. They never include document or file names, group names, file contents, invite codes, or share-link keys. They are stored in our own Supabase database, readable only by NO SUS administrators, and are not sold or shared. There is currently no setting to turn them off.</li>
   </ul>
 
   <h2>2. Burn notes &amp; burn files</h2>
@@ -43,7 +44,7 @@
   <p>Data is stored on Supabase (managed Postgres, storage, and authentication). Transport is encrypted with TLS. Access is enforced with row-level security so users can only reach rows their membership allows.</p>
 
   <h2>5. Data deletion</h2>
-  <p>You can delete your account at any time from Profile → Danger Zone → Delete User Account. This permanently removes your profile, group memberships, uploaded files, and auth record. See <a href="account-deletion.html">account deletion</a> for details.</p>
+  <p>You can delete your account at any time from Profile → Danger Zone → Delete User Account. This permanently removes your profile, group memberships, uploaded files, and auth record. App usage events are not deleted: your account ID is removed from them, detaching them from your account, and the rest of each event is kept. See <a href="account-deletion.html">account deletion</a> for details.</p>
 
   <h2>6. Contact</h2>
   <p>Questions or requests: <a href="mailto:shubhamsahu9372580326@gmail.com">shubhamsahu9372580326@gmail.com</a></p>
