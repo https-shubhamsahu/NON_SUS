@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+
 import { Eye, ShieldAlert, Ban, CheckCircle, RefreshCw, Smartphone } from "lucide-react";
 
 export default function LivePreview() {
@@ -196,13 +196,10 @@ export default function LivePreview() {
             {/* Screen Content mock viewport */}
             <div className="flex-1 flex items-center justify-center relative bg-brand-black border border-brand-gray/50 rounded overflow-hidden p-6 min-h-[300px]">
               
-              <AnimatePresence mode="wait">
+              <>
                 {activeTab === "watermark" && (
-                  <motion.div
+                  <div
                     key="watermark"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
                     className="w-full max-w-md bg-brand-gray-dark border border-brand-gray p-6 flex flex-col gap-4 relative rounded"
                   >
                     {/* Watermark Diagonal Overlay grid */}
@@ -221,15 +218,12 @@ export default function LivePreview() {
                     <p className="text-[10px] text-brand-gray-light leading-relaxed font-medium">
                       Unit 4: Signals &amp; Systems. Sampling theorem: a band-limited signal can be perfectly reconstructed when sampled above the Nyquist rate. Aliasing occurs below it; anti-aliasing filters must precede the sampler. See worked examples 4.2-4.6 before Friday&apos;s review session.
                     </p>
-                  </motion.div>
+                  </div>
                 )}
 
                 {activeTab === "revoke" && (
-                  <motion.div
+                  <div
                     key="revoke"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
                     className="w-full flex flex-col items-center text-center p-6"
                   >
                     {accessStatus === "secured" ? (
@@ -253,15 +247,12 @@ export default function LivePreview() {
                         </p>
                       </div>
                     )}
-                  </motion.div>
+                  </div>
                 )}
 
                 {activeTab === "audit" && (
-                  <motion.div
+                  <div
                     key="audit"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
                     className="w-full max-w-lg"
                   >
                     <table className="w-full text-left font-mono text-[10px]">
@@ -286,15 +277,12 @@ export default function LivePreview() {
                         ))}
                       </tbody>
                     </table>
-                  </motion.div>
+                  </div>
                 )}
 
                 {activeTab === "device" && (
-                  <motion.div
+                  <div
                     key="device"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
                     className="w-full max-w-sm text-center flex flex-col items-center"
                   >
                     {deviceScanState === "scanning" && (
@@ -317,9 +305,9 @@ export default function LivePreview() {
                         </p>
                       </div>
                     )}
-                  </motion.div>
+                  </div>
                 )}
-              </AnimatePresence>
+              </>
 
             </div>
 

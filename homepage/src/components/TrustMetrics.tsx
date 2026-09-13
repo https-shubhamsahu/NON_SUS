@@ -1,36 +1,4 @@
-"use client";
-
-import { useEffect, useState, useRef } from "react";
 import { Shield, EyeOff, Key, Share2, GraduationCap, Compass, Users } from "lucide-react";
-import { useInView } from "framer-motion";
-
-function AnimatedNumber({ value }: { value: number }) {
-  const [current, setCurrent] = useState(0);
-  const ref = useRef<HTMLSpanElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-100px" });
-
-  useEffect(() => {
-    if (!isInView) return;
-    
-    let start = 0;
-    const duration = 1500; // ms
-    const increment = value / (duration / 16); // ~60fps
-    
-    const timer = setInterval(() => {
-      start += increment;
-      if (start >= value) {
-        setCurrent(value);
-        clearInterval(timer);
-      } else {
-        setCurrent(Math.floor(start));
-      }
-    }, 16);
-
-    return () => clearInterval(timer);
-  }, [value, isInView]);
-
-  return <span ref={ref}>{current.toLocaleString()}</span>;
-}
 
 export default function TrustMetrics() {
   const trustItems = [
@@ -93,7 +61,7 @@ export default function TrustMetrics() {
           {stats.map((stat, idx) => (
             <div key={idx} className="flex flex-col gap-1">
               <span className="text-3xl md:text-5xl font-black font-mono tracking-tighter text-white">
-                <AnimatedNumber value={stat.number} />
+                {stat.number}
               </span>
               <span className="text-[9px] font-bold uppercase tracking-widest text-brand-gray-light">
                 {stat.label}

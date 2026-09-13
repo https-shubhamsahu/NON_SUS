@@ -1,12 +1,6 @@
-"use client";
-
-import { useState } from "react";
-import { motion } from "framer-motion";
 import { Share2, Users, Eye, History, ShieldCheck, WifiOff, ListCollapse, Zap } from "lucide-react";
 
 export default function FeaturesGrid() {
-  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
-
   const features = [
     {
       icon: Share2,
@@ -63,14 +57,9 @@ export default function FeaturesGrid() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {features.map((feat, idx) => (
-            <motion.div
+            <div
               key={idx}
-              onMouseEnter={() => setHoveredIdx(idx)}
-              onMouseLeave={() => setHoveredIdx(null)}
-              className="relative border border-brand-gray p-8 bg-brand-black flex flex-col justify-between min-h-[250px] transition-colors rounded overflow-hidden group cursor-default"
-              style={{
-                borderColor: hoveredIdx === idx ? "#ffffff" : "#1e1e1e",
-              }}
+              className="relative border border-brand-gray hover:border-white p-8 bg-brand-black flex flex-col justify-between min-h-[250px] transition-colors rounded overflow-hidden group cursor-default"
             >
               {/* Geometric floating accent SVG inside card */}
               <div className="absolute right-[-20px] bottom-[-20px] w-24 h-24 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity duration-300 pointer-events-none">
@@ -95,7 +84,7 @@ export default function FeaturesGrid() {
               
               {/* Custom Pixel Accent trim at the bottom */}
               <div className="absolute bottom-0 left-0 right-0 h-1 bg-white scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300" />
-            </motion.div>
+            </div>
           ))}
         </div>
 

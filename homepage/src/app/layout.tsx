@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import LenisProvider from "@/components/ui/LenisProvider";
-import TextureBg from "@/components/ui/TextureBg";
+import { SUPABASE_URL } from "@/lib/links";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -89,6 +88,10 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
     >
+      <head>
+        <link rel="preconnect" href={SUPABASE_URL} crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href={SUPABASE_URL} />
+      </head>
       <body className="min-h-full flex flex-col bg-brand-black text-white">
         {/* Legacy-link shim — MUST run before anything paints. The Flutter
             app used to live at this root; burn/share/invite links in the
@@ -142,10 +145,7 @@ if(appHash||appPath||authCb){window.location.replace("https://app.nosus.foo"+(ap
             }),
           }}
         />
-        <LenisProvider>
-          <TextureBg />
-          {children}
-        </LenisProvider>
+        {children}
       </body>
     </html>
   );

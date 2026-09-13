@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useState } from "react";
-import { motion } from "framer-motion";
+
 import { Sun, Moon } from "lucide-react";
 
 /**
@@ -49,9 +49,7 @@ export default function LuxNoxSection() {
               {/* Slow-orbiting dashed ring — pixel-lab instrument vibe */}
               <div className="absolute inset-[-28px] rounded-full border border-dashed border-white/15 luxnox-ring motion-reduce:animate-none" />
               <div className="absolute inset-[-14px] rounded-full border border-white/5" />
-              <motion.div
-                animate={awake ? { scale: 1.06 } : { scale: 1 }}
-                transition={{ type: "spring", stiffness: 260, damping: 18 }}
+              <div
                 className="luxnox-breathe motion-reduce:animate-none rounded-full overflow-hidden bg-white"
               >
                 <Image
@@ -61,7 +59,7 @@ export default function LuxNoxSection() {
                   height={230}
                   priority={false}
                 />
-              </motion.div>
+              </div>
             </div>
             <span className="text-[9px] font-mono text-brand-gray-light uppercase tracking-widest">
               {awake ? "MOOD 02 · WAKE" : "MOOD 00 · IDLE (BREATHING)"}
@@ -84,12 +82,8 @@ export default function LuxNoxSection() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               {characters.map((c) => (
-                <motion.div
+                <div
                   key={c.name}
-                  initial={{ opacity: 0, y: 15 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.5 }}
                   className="border border-brand-gray bg-brand-black p-6 rounded paper-card flex flex-col gap-3"
                 >
                   <div className="flex items-center gap-2.5">
@@ -119,7 +113,7 @@ export default function LuxNoxSection() {
                       </span>
                     ))}
                   </div>
-                </motion.div>
+                </div>
               ))}
             </div>
           </div>

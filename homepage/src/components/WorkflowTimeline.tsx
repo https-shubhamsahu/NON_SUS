@@ -1,18 +1,6 @@
-"use client";
-
-import { useRef } from "react";
-import { motion, useScroll, useTransform } from "framer-motion";
 import { Upload, Shield, Share2, Users, Eye, Ban } from "lucide-react";
 
 export default function WorkflowTimeline() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-  });
-
-  // Translate horizontal track based on vertical scroll progress
-  const x = useTransform(scrollYProgress, [0, 1], ["0%", "-60%"]);
-
   const steps = [
     {
       icon: Upload,
@@ -53,9 +41,8 @@ export default function WorkflowTimeline() {
   ];
 
   return (
-    <div ref={containerRef} id="how-it-works" className="relative h-[250vh] bg-brand-black">
-      {/* Sticky screen container */}
-      <div className="sticky top-0 h-screen overflow-hidden flex flex-col justify-center">
+    <section id="how-it-works" className="relative py-24 bg-brand-black">
+      <div className="flex flex-col justify-center">
         
         <div className="mx-auto max-w-7xl w-full px-6 md:px-8 mb-12">
           <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tight text-white leading-none">
@@ -63,19 +50,14 @@ export default function WorkflowTimeline() {
           </h2>
         </div>
 
-        {/* Horizontal scroll track */}
-        <div className="relative w-full flex items-center">
-          <motion.div style={{ x }} className="flex gap-8 px-6 md:px-12 w-[160vw] md:w-[130vw]">
+        {/* Native responsive layout: every step is reachable without scroll JS. */}
+        <div className="mx-auto max-w-7xl w-full px-6 md:px-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {steps.map((step, idx) => (
               <div
                 key={idx}
-                className="w-[280px] md:w-[350px] shrink-0 border border-brand-gray bg-brand-gray-dark/50 p-8 rounded flex flex-col justify-between min-h-[300px] relative"
+                className="border border-brand-gray bg-brand-gray-dark/50 p-8 rounded flex flex-col justify-between min-h-[300px] relative"
               >
-                {/* Connector dotted line */}
-                {idx < steps.length - 1 && (
-                  <div className="absolute top-[52px] right-[-32px] w-8 border-t border-dashed border-brand-gray/60 z-0 hidden md:block" />
-                )}
-
                 <div className="flex justify-between items-start">
                   <div className="w-12 h-12 border border-brand-gray flex items-center justify-center bg-brand-black rounded">
                     <step.icon className="h-5 w-5 text-white stroke-[1.5]" />
@@ -95,22 +77,10 @@ export default function WorkflowTimeline() {
                 </div>
               </div>
             ))}
-          </motion.div>
-        </div>
-
-        {/* Scroll indicator overlay */}
-        <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1">
-          <span className="text-[9px] font-bold tracking-widest uppercase text-brand-gray-light">
-            Scroll down to advance
-          </span>
-          <motion.div
-            animate={{ y: [0, 5, 0] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-            className="w-1 h-3 bg-brand-gray-light rounded-full"
-          />
+          </div>
         </div>
 
       </div>
-    </div>
+    </section>
   );
 }

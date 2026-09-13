@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, MouseEvent, ReactNode } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+
 import { Smartphone, Download, Globe, X } from "lucide-react";
 import { APP_URL, RELEASES_URL } from "@/lib/links";
 import { isAndroid, launchAndroidApp } from "@/lib/appLaunch";
@@ -44,24 +44,17 @@ export default function AppLink({
         {children}
       </a>
 
-      <AnimatePresence>
+      <>
         {sheetOpen && (
           <>
             {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+            <div
               onClick={close}
               className="fixed inset-0 z-[90] bg-black/70 backdrop-blur-sm"
             />
 
             {/* Bottom sheet */}
-            <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", stiffness: 320, damping: 32 }}
+            <div
               className="fixed bottom-0 left-0 right-0 z-[100] bg-brand-black border-t-2 border-white/80 rounded-t-2xl p-6 pb-8 flex flex-col gap-3"
             >
               <div className="flex items-center justify-between mb-1">
@@ -112,10 +105,10 @@ export default function AppLink({
                 Links you receive always open in any browser. Recipients never
                 need the app.
               </p>
-            </motion.div>
+            </div>
           </>
         )}
-      </AnimatePresence>
+      </>
     </>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+
 import { Key, Cpu, ChevronRight, HelpCircle } from "lucide-react";
 
 export default function SecurityEditorial() {
@@ -60,13 +60,10 @@ export default function SecurityEditorial() {
           <div className="lg:col-span-6 border border-brand-gray bg-brand-gray-dark/40 rounded p-8 min-h-[380px] flex flex-col justify-between relative overflow-hidden">
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.01)_0%,transparent_70%)] pointer-events-none" />
 
-            <AnimatePresence mode="wait">
+            <>
               {!showTechnicalSpecs ? (
-                <motion.div
+                <div
                   key="ethos-card"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
                   className="flex flex-col justify-between h-full gap-8"
                 >
                   <div className="flex items-center gap-2 border-b border-brand-gray pb-3">
@@ -84,13 +81,10 @@ export default function SecurityEditorial() {
                     <span>ALGORITHM: AES-256-CBC</span>
                     <span>KEY SIZE: 256 BITS</span>
                   </div>
-                </motion.div>
+                </div>
               ) : (
-                <motion.div
+                <div
                   key="tech-blueprint"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
                   className="flex flex-col justify-between h-full gap-6 font-mono text-[10px]"
                 >
                   <div className="flex items-center gap-2 border-b border-brand-gray pb-3">
@@ -125,9 +119,9 @@ export default function SecurityEditorial() {
                       Keys are parsed locally by JavaScript `window.location.hash`. Browsers do not transmit this token to servers during normal HTTP operations.
                     </span>
                   </div>
-                </motion.div>
+                </div>
               )}
-            </AnimatePresence>
+            </>
             
           </div>
 
