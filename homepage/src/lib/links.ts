@@ -16,6 +16,12 @@ export const SUPABASE_URL = "https://rxfnazmusofikwaggntb.supabase.co";
 export const SUPABASE_ANON_KEY =
   "sb_publishable_4Gi8cVhWyKPcBEu69tEFrQ_Elq-uRzM";
 
+// Cloudflare Web Analytics site token for nosus.foo — public by design (it
+// ships in every page). Empty turns analytics off. Loaded only by the
+// legacy-link shim (src/lib/legacyLinkShim.ts), never on key-bearing URLs, and
+// never in the app (app.nosus.foo / Android). Disclosed in web/privacy.html.
+export const CLOUDFLARE_WEB_ANALYTICS_TOKEN = "a55650161a204c4eb063047566b2fc0e";
+
 // ── Developer identity (About-the-Developer section) ────────────────────────
 export const DEVELOPER = {
   name: "Shubham Sahu",

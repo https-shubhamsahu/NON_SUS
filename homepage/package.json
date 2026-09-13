@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:burn": "node --test scripts/burn-performance.test.cjs"
+    "test:burn": "node --test scripts/burn-performance.test.cjs scripts/legacy-link-shim.test.cjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",

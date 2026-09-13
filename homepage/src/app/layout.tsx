@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { SUPABASE_URL } from "@/lib/links";
+import { CLOUDFLARE_WEB_ANALYTICS_TOKEN, SUPABASE_URL } from "@/lib/links";
+import { legacyLinkShim } from "@/lib/legacyLinkShim";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -93,21 +94,14 @@ export default function RootLayout({
         <link rel="dns-prefetch" href={SUPABASE_URL} />
       </head>
       <body className="min-h-full flex flex-col bg-brand-black text-white">
-        {/* Legacy-link shim — MUST run before anything paints. The Flutter
-            app used to live at this root; burn/share/invite links in the
-            wild (and Supabase auth callbacks) resolve against it. Key
-            material rides in the hash fragment, which never reaches any
-            server, so only a client-side redirect can preserve it. This
-            layout also wraps 404.html, covering path-style legacy links. */}
+        {/* Legacy-link shim + analytics gate — MUST run before anything
+            paints. Forwards legacy app links (key material in the fragment)
+            to app.nosus.foo, and is the only place Cloudflare Web Analytics
+            loads, so the beacon never runs on a key-bearing URL. See
+            src/lib/legacyLinkShim.ts. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{
-var h=window.location.hash||"",p=window.location.pathname||"/",s=window.location.search||"";
-var appHash=/^#\\/?(burn|burnfiles|burnfile|redeem|v|join)\\//.test(h);
-var appPath=/^\\/(burn|burnfiles|burnfile|redeem|v|join)\\//.test(p);
-var authCb=/(access_token|refresh_token|error_description|type=recovery)/.test(h)||/[?&]code=/.test(s);
-if(appHash||appPath||authCb){window.location.replace("https://app.nosus.foo"+(appPath?p:"/")+s+h);}
-}catch(e){}})();`,
+            __html: legacyLinkShim(CLOUDFLARE_WEB_ANALYTICS_TOKEN),
           }}
         />
         {/* Structured Data / JSON-LD for Search & AI Engines */}

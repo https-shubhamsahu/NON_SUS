@@ -57,7 +57,8 @@ export default function DeveloperSection() {
               NO SUS is designed, built, and operated end-to-end by one developer:
               the Flutter client, the Postgres schema and its row-level-security
               policies, the edge functions, the cryptography, the CI pipeline, and
-              this page. No growth team, no tracking SDKs, no investors to please.
+              this page. No growth team, no ad trackers (just cookieless visit
+              counts on this site), no investors to please.
             </p>
             <p className="text-xs text-brand-gray-light leading-relaxed font-medium">
               The architecture is deliberately zero-budget: everything rides on

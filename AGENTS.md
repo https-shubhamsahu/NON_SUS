@@ -67,6 +67,18 @@ in-browser (`qrcode`); never send a Burn URL to a third-party QR API — the AES
 key lives in the fragment. `npm run test:burn` verifies wire vectors, ordering,
 failures, and the deployed pairing contract before build.
 
+Homepage analytics: Cloudflare Web Analytics, website only. The site token is
+`CLOUDFLARE_WEB_ANALYTICS_TOKEN` in `homepage/src/lib/links.ts` (public; empty =
+off). The beacon is injected **only** by the legacy-link shim
+(`homepage/src/lib/legacyLinkShim.ts`, pinned by
+`homepage/scripts/legacy-link-shim.test.cjs`): never when the page forwards,
+never when the fragment is anything but a plain `#anchor`, with `"spa": false`,
+and a key link arriving later is stripped from the URL before forwarding.
+Cloudflare documents that query strings are not logged but not how fragments are
+handled, so do not load it any other way (no `next/script`, no second tag), and
+never add it — or any session replay/heatmap tool — to app.nosus.foo or the
+Flutter app. It is disclosed in `web/privacy.html`; change both together.
+
 ---
 
 ## 2. Commands
@@ -488,6 +500,14 @@ codebase — assume still outstanding unless you know otherwise.
 > bottom rather than letting this section grow without bound.
 
 <!-- CHANGELOG:INSERT -->
+- **2026-09-14** · feat(homepage): add Cloudflare Web Analytics behind the legacy-link shim — why:
+  every legacy nosus.foo link and auth callback carries secrets in the URL fragment, and
+  Cloudflare does not document fragment handling, so the beacon is loaded from the shim that
+  already decides whether a URL is key-bearing rather than as an independent script tag. The
+  shim now also forwards key links that arrive via `hashchange` (previously a same-tab paste
+  was not forwarded) and strips them first. Privacy policy and "no tracking SDKs" copy updated
+  to disclose the counter.
+
 - **2026-09-13** · feat(homepage): show the pairing code and an in-browser share QR — why:
   the done state only offered Copy Link, so the 2-digit confirmation was easy to miss.
   The code is now the large bold readout; the QR is generated locally so the key-bearing
