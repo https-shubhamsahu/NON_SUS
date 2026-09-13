@@ -1,35 +1,8 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
 import { FileText, Lock, Shield, Eye } from "lucide-react";
 
 export default function DeviceScreenshots() {
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  // Below `sm` only the phone mock renders (laptop/tablet are hidden), so its
-  // constant +200/+80 offset (tuned for sitting beside the other two layers)
-  // would otherwise shove it almost entirely off-screen. Track the viewport
-  // and zero that base offset out when it's the only layer visible.
-  const [showTablet, setShowTablet] = useState(true);
-
-  useEffect(() => {
-    const update = () => setShowTablet(window.innerWidth >= 640);
-    update();
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
-  }, []);
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    // Normalize position relative to center: -0.5 to 0.5
-    const x = (e.clientX - rect.left) / rect.width - 0.5;
-    const y = (e.clientY - rect.top) / rect.height - 0.5;
-    setMousePos({ x, y });
-  };
-
   return (
     <section
-      onMouseMove={handleMouseMove}
       className="py-32 bg-brand-black border-b border-brand-gray/80 relative overflow-hidden flex flex-col items-center"
     >
       <div className="mx-auto max-w-7xl px-6 md:px-8 w-full">
@@ -50,11 +23,7 @@ export default function DeviceScreenshots() {
         <div className="relative h-[480px] w-full max-w-4xl mx-auto flex items-center justify-center">
           
           {/* Laptop Frame (MacBook Mock) - Background layer */}
-          <motion.div
-            style={{
-              x: mousePos.x * 20,
-              y: mousePos.y * 20,
-            }}
+          <div
             className="absolute z-10 w-[550px] h-[320px] border border-brand-gray bg-brand-gray-dark rounded shadow-2xl overflow-hidden hidden md:block"
           >
             {/* Screen topbar */}
@@ -92,14 +61,11 @@ export default function DeviceScreenshots() {
                 </div>
               </div>
             </div>
-          </motion.div>
+          </div>
 
           {/* Tablet Frame (iPad Mock) - Midground layer offset left */}
-          <motion.div
-            style={{
-              x: mousePos.x * 40 - 150,
-              y: mousePos.y * 40 + 50,
-            }}
+          <div
+            style={{ transform: "translate(-150px, 50px)" }}
             className="absolute z-20 w-[280px] h-[380px] border-4 border-black bg-brand-gray-dark rounded-[16px] shadow-2xl overflow-hidden hidden sm:block"
           >
             {/* Tablet Topbar */}
@@ -126,15 +92,11 @@ export default function DeviceScreenshots() {
                 ))}
               </div>
             </div>
-          </motion.div>
+          </div>
 
           {/* Phone Frame (iPhone Mock) - Foreground layer offset right */}
-          <motion.div
-            style={{
-              x: mousePos.x * 60 + (showTablet ? 200 : 0),
-              y: mousePos.y * 60 + (showTablet ? 80 : 0),
-            }}
-            className="absolute z-30 w-[170px] h-[320px] border-[6px] border-black bg-brand-gray-dark rounded-[24px] shadow-2xl overflow-hidden"
+          <div
+            className="absolute z-30 w-[170px] h-[320px] border-[6px] border-black bg-brand-gray-dark rounded-[24px] shadow-2xl overflow-hidden sm:translate-x-[200px] sm:translate-y-[80px]"
           >
             {/* Dynamic island mock */}
             <div className="absolute top-2 left-1/2 -translate-x-1/2 w-14 h-3 bg-black rounded-full z-40" />
@@ -159,7 +121,7 @@ export default function DeviceScreenshots() {
                 Open Secure Desk
               </div>
             </div>
-          </motion.div>
+          </div>
 
         </div>
 

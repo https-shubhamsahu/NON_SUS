@@ -59,6 +59,12 @@ Three sub-projects live in this repo:
   writing code there. Keep its content honest: no invented testimonials, usage stats, or APIs that
   don't exist.
 
+Homepage performance: the hero and informational sections use static HTML/CSS;
+do not reintroduce WebGL backgrounds, JS smooth-scrolling, or animation-gated
+tool states. File preparation overlaps `burn-file-init`, with the declared size
+computed from the unchanged packed/CBC wire format. `npm run test:burn` verifies
+wire vectors, ordering, failures, and the deployed pairing contract before build.
+
 ---
 
 ## 2. Commands
@@ -480,6 +486,12 @@ codebase — assume still outstanding unless you know otherwise.
 > bottom rather than letting this section grow without bound.
 
 <!-- CHANGELOG:INSERT -->
+- **2026-09-13** · perf(homepage): ship a static landing page without animation-gated burn tools — why:
+  WebGL backgrounds, Lenis, and motion-gated hero states delayed first paint and hid the working
+  Burn tool. The page is now static HTML/CSS; file encrypt overlaps `burn-file-init` with a
+  predicted CBC size from the unchanged packed wire format. Pairing stays the deployed
+  `#/redeem/<token>` contract. `npm run test:burn` is a landing CI gate.
+
 - **2026-08-27** · `54a905d` · fix: keep tips and group tabs inside the phone viewport — why:
   the notepad tip was anchored to a target below the fold, so the bubble sat on the Android
   home indicator with DONE clipped off. Placement now uses the visible safe rectangle (including

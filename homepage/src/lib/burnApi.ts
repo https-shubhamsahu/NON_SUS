@@ -14,6 +14,7 @@
 import { APP_URL, SUPABASE_ANON_KEY, SUPABASE_URL } from "./links";
 import {
   bytesToHex,
+  burnFileCiphertextSize,
   encryptFilePayload,
   encryptNote,
   generateKeyMaterial,
@@ -118,32 +119,34 @@ export async function createBurnFile(
 
   onProgress({ phase: "encrypting" });
   const { key, iv } = generateKeyMaterial();
-  const packed = packBurnFilePayload(
-    file.name,
-    file.type || "application/octet-stream",
-    new Uint8Array(await file.arrayBuffer()),
-  );
-  const ciphertext = await encryptFilePayload(packed, key, iv);
-
+  const mimeType = file.type || "application/octet-stream";
   const headers = {
     "Content-Type": "application/json",
     apikey: SUPABASE_ANON_KEY,
   };
 
-  onProgress({ phase: "uploading" });
-  const initRes = await fetch(`${SUPABASE_URL}/functions/v1/burn-file-init`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({
-      declared_size_bytes: ciphertext.length,
-      expiry_hours: expiryHours,
-    }),
-  });
-  const init = await initRes.json();
-  if (!initRes.ok) {
-    throw new Error(init.error ?? "Could not start this upload.");
-  }
+  // Overlap file preparation with server setup; observe failures on both branches.
+  const [ciphertext, init] = await Promise.all([
+    (async () => {
+      const packed = packBurnFilePayload(file.name, mimeType, new Uint8Array(await file.arrayBuffer()));
+      return encryptFilePayload(packed, key, iv);
+    })(),
+    (async () => {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/burn-file-init`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          declared_size_bytes: burnFileCiphertextSize(file.name, mimeType, file.size),
+          expiry_hours: expiryHours,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Could not start this upload.");
+      return data;
+    })(),
+  ]);
 
+  onProgress({ phase: "uploading" });
   const uploadRes = await fetch(init.signed_upload_url, {
     method: "PUT",
     headers: { "Content-Type": "application/octet-stream" },

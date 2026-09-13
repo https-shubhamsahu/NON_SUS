@@ -76,6 +76,12 @@ body {
 }
 
 /* Accessibility Keyboard Focus Styles */
+/* Skip offscreen section layout/paint without removing content from HTML. */
+main > section:not(:first-child) {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 800px;
+}
+
 *:focus-visible {
   outline: 2px dashed #ffffff;
   outline-offset: 4px;

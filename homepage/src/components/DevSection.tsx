@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Link2, Flame, ListTree } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+
 import { GITHUB_URL } from "@/lib/links";
 
 export default function DevSection() {
@@ -117,18 +117,14 @@ entry_hash = sha256(
               <div className="absolute right-4 top-4 text-[9px] text-brand-gray/40 select-none uppercase font-bold">
                 {activeTab} block
               </div>
-              <AnimatePresence mode="wait">
-                <motion.pre
+              <>
+                <pre
                   key={activeTab}
-                  initial={{ opacity: 0, x: 5 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -5 }}
-                  transition={{ duration: 0.15 }}
                   className="whitespace-pre"
                 >
                   <code>{codeBlocks[activeTab]}</code>
-                </motion.pre>
-              </AnimatePresence>
+                </pre>
+              </>
             </div>
 
           </div>
