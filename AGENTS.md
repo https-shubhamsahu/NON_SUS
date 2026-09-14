@@ -505,6 +505,8 @@ codebase — assume still outstanding unless you know otherwise.
 
 <!-- CHANGELOG:INSERT -->
 
+- **2026-09-14** · `94169fa` · feat(ads): add NO SUS lockup banners — why: social/GitHub stills need the Lux/Nox mark (white square knocked out) next to the canonical **NO SUS** wordmark with the gray square stop, not a period glyph. The renderer is stills-only; it does not change Burn-link or pairing contracts.
+
 - **2026-09-14** · `6f132fe` · docs(agents): add why for the silent Burn ad cut
 
 - **2026-09-14** · `b38d412` · feat(ads): re-export silent Burn ad videos without supers — why: the previous mp4s still had baked TTS and caption supers; this cut is video-only so a live mix can be laid on later.
