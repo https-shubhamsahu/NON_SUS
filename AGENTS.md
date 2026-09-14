@@ -499,6 +499,8 @@ codebase — assume still outstanding unless you know otherwise.
 > bottom rather than letting this section grow without bound.
 
 <!-- CHANGELOG:INSERT -->
+- **2026-09-14** · `902c8bd` · feat: integrate current app and intelligence updates — why: preserves the production Burn-link and pairing contract while adding the independently deployable app updates. Runtime Google Fonts were removed so startup no longer depends on an external font package or fetch.
+
 - **2026-09-14** · docs(privacy): disclose in-app usage events — why: `analytics_events` has
   recorded activation-funnel events since 1.4.0 — including anonymous `app_opened` for signed-out
   users and link recipients — but `web/privacy.html` never mentioned them, and account deletion
