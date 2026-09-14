@@ -4,7 +4,6 @@ import { ArrowUpRight, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import {
   APP_URL,
-  FOUNDING_PATH,
   GITHUB_URL,
   PRIVACY_URL,
   TERMS_URL,
@@ -19,23 +18,22 @@ export default function Footer() {
 
   const footerLinks = {
     Product: [
-      { name: "SecureSend", href: "/#features" },
-      { name: "Burn Notes", href: "/#features" },
-      { name: "Burn Files", href: "/#features" },
+      { name: "SecureSend", href: "#features" },
+      { name: "Burn Notes", href: "#features" },
+      { name: "Burn Files", href: "#features" },
       { name: "Open the App", href: APP_URL },
       { name: "Android APK", href: RELEASES_URL },
     ],
     Resources: [
-      { name: "How It Works", href: "/#how-it-works" },
-      { name: "Security Spec", href: "/#security" },
-      { name: "Under the Hood", href: "/#developers" },
-      { name: "Meet Lux & Nox", href: "/#mascots" },
+      { name: "How It Works", href: "#how-it-works" },
+      { name: "Security Spec", href: "#security" },
+      { name: "Under the Hood", href: "#developers" },
+      { name: "Meet Lux & Nox", href: "#mascots" },
     ],
     Developers: [
       { name: "GitHub Source", href: GITHUB_URL },
       { name: "Report an Issue", href: `${GITHUB_URL}/issues` },
-      { name: "About the Developer", href: "/#developer" },
-      { name: "Founding team", href: FOUNDING_PATH },
+      { name: "About the Developer", href: "#developer" },
     ],
     Company: [
       { name: "Privacy Policy", href: PRIVACY_URL },

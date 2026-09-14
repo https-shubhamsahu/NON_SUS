@@ -2,9 +2,8 @@
 
 import Image from "next/image";
 
-import Link from "next/link";
 import { Mail, ArrowUpRight } from "lucide-react";
-import { DEVELOPER, FOUNDING_PATH, GITHUB_URL } from "@/lib/links";
+import { DEVELOPER, GITHUB_URL } from "@/lib/links";
 
 const stack = [
   "Flutter / Dart",
@@ -59,9 +58,7 @@ export default function DeveloperSection() {
               the Flutter client, the Postgres schema and its row-level-security
               policies, the edge functions, the cryptography, the CI pipeline, and
               this page. No growth team, no ad trackers (just cookieless visit
-              counts on this site), no investors to please. That one-person
-              operation is still the truth; the founding form is a search for
-              collaborators, not a claim that a team already exists.
+              counts on this site), no investors to please.
             </p>
             <p className="text-xs text-brand-gray-light leading-relaxed font-medium">
               The architecture is deliberately zero-budget: everything rides on
@@ -120,24 +117,6 @@ export default function DeveloperSection() {
                   {s.label} <ArrowUpRight className="h-3.5 w-3.5" />
                 </a>
               ))}
-            </div>
-
-            <div className="border border-brand-gray/80 bg-brand-black/50 p-5 flex flex-col gap-3">
-              <h3 className="text-sm font-black uppercase tracking-widest text-white">
-                Looking for founding team
-              </h3>
-              <p className="text-xs text-brand-gray-light leading-relaxed font-medium">
-                If you want to help build this — engineering, design, growth, or
-                operations — say so. The form opens an email draft to{" "}
-                {DEVELOPER.email}. Nothing is stored in our database; the note
-                arrives only if you send it.
-              </p>
-              <Link
-                href={FOUNDING_PATH}
-                className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-white hover:text-brand-gray-light transition-colors w-fit"
-              >
-                Open the founding form <ArrowUpRight className="h-3.5 w-3.5" />
-              </Link>
             </div>
           </div>
         </div>

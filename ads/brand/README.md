@@ -25,5 +25,4 @@ and Google Chrome. Outputs:
 - `out/nosus_linktree_founding_thumb.png` — Linktree form thumbnail
 - `out/nosus_linktree_founding_preview.png` — phone mock of the button + form
 
-Linktree founding-team contact form copy: `linktree-founding-team.md`
-(optional paste sheet). The public form is `https://nosus.foo/founding`.
+Linktree founding-team contact form copy: `linktree-founding-team.md`.

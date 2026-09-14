@@ -8,7 +8,6 @@ export const RELEASES_URL = `${GITHUB_URL}/releases/latest`;
 export const PRIVACY_URL = "/privacy.html";
 export const TERMS_URL = "/terms.html";
 export const ACCOUNT_DELETION_URL = "/account-deletion.html";
-export const FOUNDING_PATH = "/founding";
 
 // Supabase publishable credentials — safe to embed by design (access control
 // is enforced server-side via RLS + edge functions). Must match

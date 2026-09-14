@@ -48,7 +48,7 @@ Four sub-projects live in this repo:
   - `ads/burn/` — 30s launch motion ad (1920×1080 and 1080×1920), silent, no supers. Frame-accurate HTML renderer;
     rebuild with `npm run all` in that folder. Outputs `out/burn_ad_1920x1080.mp4` and
     `out/burn_ad_1080x1920.mp4`. The on-screen share URL is a dummy (`#/burn/7f3a9c2e`) with no live key.
-  - `ads/brand/` — Lux/Nox yin-yang mark + canonical **NO SUS** wordmark banners (Geist Black, `#808080` square stop, `#080808` field). Rebuild with `node scripts/render.mjs` (uses the Playwright install from `ads/burn/`). Optional Linktree paste copy: `ads/brand/linktree-founding-team.md`. The public form is `homepage/` `/founding` (mailto).
+  - `ads/brand/` — Lux/Nox yin-yang mark + canonical **NO SUS** wordmark banners (Geist Black, `#808080` square stop, `#080808` field). Rebuild with `node scripts/render.mjs` (uses the Playwright install from `ads/burn/`). Founding-team recruiting copy for a Linktree Contact Form lives in `ads/brand/linktree-founding-team.md` — submissions stay in Linktree, not the app.
 - **`homepage/`** — Next.js marketing landing page, statically exported (`output: "export"`), served
   at the **`nosus.foo` root**. The Flutter web app lives at **`app.nosus.foo`** (deployed to a
   separate `nosus-app` repo). `.github/workflows/gh-pages.yml` has two independent jobs: `landing`
@@ -57,12 +57,8 @@ Four sub-projects live in this repo:
   Supabase auth callbacks to the app subdomain (fragment preserved — **the AES key lives there**).
   The hero has REAL working Burn Note/File tools; their WebCrypto (`homepage/src/lib/burnCrypto.ts`)
   is kept byte-compatible with the Dart app by `test/unit/burn_crypto_web_compat_test.dart` — never
-  change one side without the other.   Cross-product URLs + dev identity live in
-  `homepage/src/lib/links.ts`. A founding-team interest form lives at **`/founding`**: it prepares a
-  mailto draft to the developer address and does **not** insert into Supabase (no applications
-  table). Keep that honest in the UI. Optional Linktree paste copy lives in
-  `ads/brand/linktree-founding-team.md` for the Linktree profile only. The homepage has its own
-  `homepage/CLAUDE.md` / `homepage/AGENTS.md`; the
+  change one side without the other. Cross-product URLs + dev identity live in
+  `homepage/src/lib/links.ts`. It has its own `homepage/CLAUDE.md` / `homepage/AGENTS.md`; the
   vendored Next.js has breaking changes, so read `homepage/node_modules/next/dist/docs/` before
   writing code there. Keep its content honest: no invented testimonials, usage stats, or APIs that
   don't exist.
@@ -72,9 +68,8 @@ do not reintroduce WebGL backgrounds, JS smooth-scrolling, or animation-gated
 tool states. File preparation overlaps `burn-file-init`, with the declared size
 computed from the unchanged packed/CBC wire format. Share QR codes are drawn
 in-browser (`qrcode`); never send a Burn URL to a third-party QR API — the AES
-key lives in the fragment. `npm test` in `homepage/` is the landing CI gate: it
-runs the burn wire/shim tests **and** the founding-form mailto contract.
-`npm run test:burn` still runs only the burn subset.
+key lives in the fragment. `npm run test:burn` verifies wire vectors, ordering,
+failures, and the deployed pairing contract before build.
 
 Homepage analytics: Cloudflare Web Analytics, website only. The site token is
 `CLOUDFLARE_WEB_ANALYTICS_TOKEN` in `homepage/src/lib/links.ts` (public; empty =
@@ -509,12 +504,6 @@ codebase — assume still outstanding unless you know otherwise.
 > bottom rather than letting this section grow without bound.
 
 <!-- CHANGELOG:INSERT -->
-
-- **2026-09-14** · `aa8b4a8` · fix(homepage): keep founding role group valid for assistive tech
-
-- **2026-09-14** · `a6bffea` · docs(agents): add why for the founding-team homepage form
-
-- **2026-09-14** · `19b6afc` · feat(homepage): add founding-team interest form — why: recruiting needed a form a visitor can actually fill. There is no applications table (Supabase MCP is unauthenticated here, and unauthenticated INSERTs of PII would be a new backend). Submit opens a mailto draft to the existing developer address; copy still says one operator. Landing CI now runs `npm test` (burn + founding mailto contract).
 
 - **2026-09-14** · `e7ba2fc` · feat(ads): add Linktree founding-team contact form copy
 

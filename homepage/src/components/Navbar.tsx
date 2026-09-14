@@ -20,16 +20,14 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Root-relative hashes so these still land on the homepage from /founding.
   const navLinks = [
-    { name: "Features", href: "/#features" },
-    { name: "How It Works", href: "/#how-it-works" },
-    { name: "Use Cases", href: "/#use-cases" },
-    { name: "Lux & Nox", href: "/#mascots" },
-    { name: "Security", href: "/#security" },
-    { name: "Under the Hood", href: "/#developers" },
-    { name: "Developer", href: "/#developer" },
-    { name: "Founding", href: "/founding" },
+    { name: "Features", href: "#features" },
+    { name: "How It Works", href: "#how-it-works" },
+    { name: "Use Cases", href: "#use-cases" },
+    { name: "Lux & Nox", href: "#mascots" },
+    { name: "Security", href: "#security" },
+    { name: "Under the Hood", href: "#developers" },
+    { name: "Developer", href: "#developer" },
   ];
 
   return (
@@ -49,7 +47,7 @@ export default function Navbar() {
             </Link>
 
             {/* Desktop Navigation */}
-            <ul className="hidden xl:flex items-center gap-5">
+            <ul className="hidden xl:flex items-center gap-7">
               {navLinks.map((link) => (
                 <li key={link.name}>
                   <Link

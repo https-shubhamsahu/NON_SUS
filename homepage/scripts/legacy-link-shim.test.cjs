@@ -78,12 +78,6 @@ test('an ordinary visit loads the beacon once, with SPA tracking off', () => {
   assert.deepEqual(JSON.parse(page.scripts[0].attrs['data-cf-beacon']), { token: 'abc123def456', spa: false });
 });
 
-test('the founding-team page is not a legacy app route and still loads analytics', () => {
-  const page = load('https://nosus.foo/founding');
-  assert.equal(page.location.replaced, null);
-  assert.equal(page.scripts.length, 1);
-});
-
 test('plain in-page anchors still count; any other fragment skips analytics', () => {
   assert.equal(load('https://nosus.foo/#features').scripts.length, 1);
   for (const hash of ['#/r/' + 'c'.repeat(32), '#/unknown/route', '#k=' + 'a'.repeat(64), '#features?k=1']) {

@@ -1,12 +1,7 @@
-# Linktree — founding-team contact form (optional)
+# Linktree — founding-team contact form
 
-The public form a visitor can fill is on the site: `https://nosus.foo/founding`.
-That page opens a mailto draft to the developer; nothing is stored in the
-NO SUS database.
-
-This file is paste copy for a Linktree profile, if you also want a button
-there. Submissions on Linktree stay in Linktree Audience. This is recruiting
-copy, not a product API.
+Paste this into Linktree. Do not put the form on nosus.foo; submissions
+stay in Linktree Audience. This is recruiting copy, not a product API.
 
 Honesty bounds: one operator today. No invented headcount, waitlist
 size, salary, or equity. The form does not create a NO SUS account.
