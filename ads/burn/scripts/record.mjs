@@ -21,13 +21,20 @@ const SIZES = [
 
 const BEATS = [
   { t: 1.6, file: "beat_1_type", expect: "gate" },
-    { t: 4.6, file: "beat_2_reveal", expect: "BURN NOTE" },
+  { t: 4.6, file: "beat_2_reveal", expect: "BURN NOTE" },
   { t: 8.0, file: "beat_3_encrypt", expect: "ENCRYPTING" },
   { t: 12.6, file: "beat_4_ready", expect: "77" },
   { t: 17.4, file: "beat_5_open", expect: "gate code" },
   { t: 22.15, file: "beat_6_gone", expect: "app.nosus.foo" },
   { t: 25.1, file: "beat_7_file", expect: "handoff.pdf" },
   { t: 28.6, file: "beat_8_end", expect: "NO SUS" },
+];
+
+const FORBIDDEN_SUPERS = [
+  "Encrypts in your browser.",
+  "The key lives in the link.",
+  "One open. Then it's gone.",
+  "Notes or one file. No account.",
 ];
 
 const MIME = {
@@ -61,20 +68,13 @@ function serve(dir) {
 }
 
 function ffmpegPipe(outFile, w, h) {
-  const audio = path.join(OUT, "burn_ad_audio.wav");
   const args = [
     "-y",
     "-f", "image2pipe",
     "-framerate", String(FPS),
     "-c:v", "mjpeg",
     "-i", "pipe:0",
-  ];
-  if (existsSync(audio)) args.push("-i", audio);
-  args.push(
-    "-map", "0:v:0",
-  );
-  if (existsSync(audio)) args.push("-map", "1:a:0", "-c:a", "aac", "-b:a", "192k", "-shortest");
-  args.push(
+    "-an",
     "-c:v", "libx264",
     "-pix_fmt", "yuv420p",
     "-crf", "17",
@@ -83,7 +83,7 @@ function ffmpegPipe(outFile, w, h) {
     "-r", String(FPS),
     "-s", `${w}x${h}`,
     outFile,
-  );
+  ];
   const ff = spawn("ffmpeg", args, { stdio: ["pipe", "inherit", "inherit"] });
   return ff;
 }
@@ -109,10 +109,11 @@ async function grabBeats(page, prefix) {
     const body = await page.locator("body").innerText();
     const png = path.join(shots, `${prefix}_${beat.file}.png`);
     await page.screenshot({ path: png, type: "png" });
-    const ok = body.includes(beat.expect);
-    results.push({ ...beat, ok, excerpt: body.replace(/\s+/g, " ").slice(0, 180) });
+    const leaked = FORBIDDEN_SUPERS.filter((s) => body.includes(s));
+    const ok = body.includes(beat.expect) && leaked.length === 0;
+    results.push({ ...beat, ok, leaked, excerpt: body.replace(/\s+/g, " ").slice(0, 180) });
     if (!ok) {
-      console.warn(`BEAT MISS ${prefix} t=${beat.t} expected ${JSON.stringify(beat.expect)} got ${JSON.stringify(results.at(-1).excerpt)}`);
+      console.warn(`BEAT MISS ${prefix} t=${beat.t} expected ${JSON.stringify(beat.expect)} leaked ${JSON.stringify(leaked)} got ${JSON.stringify(results.at(-1).excerpt)}`);
     } else {
       console.log(`beat ok ${prefix} t=${beat.t} ${beat.file}`);
     }

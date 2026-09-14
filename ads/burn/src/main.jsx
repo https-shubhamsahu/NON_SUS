@@ -9,7 +9,7 @@ function App() {
   const record = params.get("record") === "1" || params.get("mode") === "record";
   const w = +(params.get("w") || params.get("width") || 1920);
   const h = +(params.get("h") || params.get("height") || 1080);
-  const supers = params.get("supers") !== "0";
+  const supers = params.get("supers") === "1";
   const L = layoutFor(w, h);
   const scenes = JSON.stringify(SCENES);
   const piece = <Piece L={L} supers={supers} />;

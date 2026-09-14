@@ -6,7 +6,7 @@
     "build": "esbuild src/main.jsx --bundle --outfile=public/ad.js --format=iife --jsx=automatic --legal-comments=none --minify",
     "audio": "python3 scripts/generate_audio.py",
     "record": "node scripts/record.mjs",
-    "all": "npm run build && npm run audio && npm run record"
+    "all": "npm run build && npm run record"
   },
   "devDependencies": {
     "esbuild": "^0.25.9",
