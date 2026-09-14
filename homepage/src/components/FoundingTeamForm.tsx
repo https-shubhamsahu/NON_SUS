@@ -154,7 +154,7 @@ export default function FoundingTeamForm() {
           </div>
         </div>
 
-        <fieldset>
+        <fieldset aria-invalid={Boolean(errors.roles) || undefined}>
           <legend className="text-[10px] font-bold tracking-widest uppercase text-white">
             Where you would help
           </legend>
@@ -167,7 +167,6 @@ export default function FoundingTeamForm() {
             role="group"
             tabIndex={-1}
             aria-describedby={`${formId}-roles-hint${errors.roles ? ` ${formId}-roles-error` : ""}`}
-            aria-invalid={Boolean(errors.roles)}
             className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2"
           >
             {FOUNDING_ROLES.map((role) => {
