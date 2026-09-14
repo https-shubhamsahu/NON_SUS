@@ -510,6 +510,8 @@ codebase — assume still outstanding unless you know otherwise.
 
 <!-- CHANGELOG:INSERT -->
 
+- **2026-09-14** · `aa8b4a8` · fix(homepage): keep founding role group valid for assistive tech
+
 - **2026-09-14** · `a6bffea` · docs(agents): add why for the founding-team homepage form
 
 - **2026-09-14** · `19b6afc` · feat(homepage): add founding-team interest form — why: recruiting needed a form a visitor can actually fill. There is no applications table (Supabase MCP is unauthenticated here, and unauthenticated INSERTs of PII would be a new backend). Submit opens a mailto draft to the existing developer address; copy still says one operator. Landing CI now runs `npm test` (burn + founding mailto contract).
