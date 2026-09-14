@@ -56,7 +56,7 @@ jobs:
         run: |
           npm ci
           npm run lint
-          npm run test:burn
+          npm test
           npm run build
 
       # Play Store listing + in-app links reference nosus.foo/privacy.html etc.
@@ -95,7 +95,7 @@ jobs:
               "host": "nosus.foo",
               "key": "5dffba127ad59da20b10d1eee35f8803",
               "keyLocation": "https://nosus.foo/5dffba127ad59da20b10d1eee35f8803.txt",
-              "urlList": ["https://nosus.foo/"]
+              "urlList": ["https://nosus.foo/", "https://nosus.foo/founding"]
             }'
 
   app:
