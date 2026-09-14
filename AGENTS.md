@@ -505,7 +505,9 @@ codebase — assume still outstanding unless you know otherwise.
 
 <!-- CHANGELOG:INSERT -->
 
-- **2026-09-14** · `e7ba2fc` · feat(ads): add Linktree founding-team contact form copy
+- **2026-09-14** · `3ba9d70` · revert: drop the homepage founding form — why: the operator is collecting founding-team interest on Linktree. A `/founding` mailto page plus nav/footer links would be a second recruiting surface they did not ask for, and it would make AGENTS.md describe a public form that is not the live path.
+
+- **2026-09-14** · `e7ba2fc` · feat(ads): add Linktree founding-team contact form copy — why: recruiting is happening on Linktree, not nosus.foo. The paste kit is a Contact Form (name, email, custom questions); answers stay in Linktree Audience and do not create a product account or a new table.
 
 - **2026-09-14** · `94169fa` · feat(ads): add NO SUS lockup banners — why: social/GitHub stills need the Lux/Nox mark (white square knocked out) next to the canonical **NO SUS** wordmark with the gray square stop, not a period glyph. The renderer is stills-only; it does not change Burn-link or pairing contracts.
 
