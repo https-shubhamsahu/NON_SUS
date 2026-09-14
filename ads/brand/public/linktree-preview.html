@@ -164,6 +164,27 @@
       line-height: 1.45;
       color: var(--mute);
     }
+    .note a { color: #fff; }
+    .terms {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin: 4px 0 16px;
+      font-size: 12px;
+      font-weight: 400;
+      letter-spacing: 0;
+      text-transform: none;
+      line-height: 1.45;
+      color: #c8c8c8;
+    }
+    .terms input {
+      width: 16px;
+      height: 16px;
+      margin-top: 2px;
+      flex: none;
+      accent-color: #fff;
+    }
+    .terms a { color: #fff; }
   </style>
 </head>
 <body>
@@ -180,6 +201,7 @@
         <div class="links">
           <button class="link-btn" type="button">Join the founding team</button>
           <button class="link-btn ghost" type="button">Open the product</button>
+          <button class="link-btn ghost" type="button">Terms of Service</button>
         </div>
       </div>
     </div>
@@ -214,8 +236,12 @@
             <label for="time">Time you can actually give</label>
             <input id="time" name="time" placeholder="Nights, weekends, hours per week">
           </div>
+          <label class="terms">
+            <input id="terms" name="terms" type="checkbox" required>
+            <span>I agree to the <a href="https://nosus.foo/terms.html">Terms of Service</a>.</span>
+          </label>
           <button class="submit" type="submit">Send</button>
-          <p class="note">Answers go through Linktree to the operator. This does not create a NO SUS account. No salary or equity is offered on this form.</p>
+          <p class="note">Answers go through Linktree to the operator. This does not create a NO SUS account. No salary or equity is offered on this form. T&amp;C: <a href="https://nosus.foo/terms.html">nosus.foo/terms.html</a></p>
         </form>
       </div>
     </div>

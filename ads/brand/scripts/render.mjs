@@ -121,7 +121,8 @@ async function main() {
     const previewOk =
       hay.includes("join the founding team") &&
       hay.includes("what do you want to own") &&
-      hay.includes("answers go through linktree");
+      hay.includes("answers go through linktree") &&
+      hay.includes("nosus.foo/terms.html");
     report.push({ name: "linktree-preview", outFile: previewFile, ok: previewOk, text: previewText.replace(/\s+/g, " ").slice(0, 240) });
     if (!previewOk) console.warn("preview miss", previewText.slice(0, 200));
     else console.log("wrote", previewFile);

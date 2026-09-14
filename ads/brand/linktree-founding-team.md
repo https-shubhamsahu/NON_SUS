@@ -18,11 +18,14 @@ size, salary, or equity. The form does not create a NO SUS account.
 8. Thumbnail: `out/nosus_linktree_founding_thumb.png`
 9. Put this link at the top. Prioritize it if you use that toggle.
 10. Audience Settings → turn on **Get email notifications**.
+11. **Custom T&Cs** (Pro/Premium): on, URL `https://nosus.foo/terms.html`.
+    On a free plan, keep the Terms line in the intro below so the URL is still visible.
 
 Responses live under **Audience → Manage**.
 
-Pro/Premium: Custom T&Cs can point at `https://nosus.foo/privacy.html`.
-Say in the intro that answers go through Linktree, not the app.
+Answers go through Linktree, not the app. The T&C page is the shipped
+Terms of Service (`web/terms.html`, served at that URL by the landing
+deploy). Do not point Custom T&Cs at privacy.html.
 
 ## Profile (optional)
 
@@ -38,6 +41,10 @@ Second link (ghost/normal URL, not the form):
 - Title: `Open the product`
 - URL: `https://nosus.foo`
 
+Third link:
+- Title: `Terms of Service`
+- URL: `https://nosus.foo/terms.html`
+
 ## Form copy
 
 **Link title**
@@ -47,7 +54,7 @@ Join the founding team
 
 **Intro**
 ```
-NO SUS is one person today. This is not a mailing list. Tell me what you would want to own on an encrypted-docs product.
+NO SUS is one person today. This is not a mailing list. Tell me what you would want to own on an encrypted-docs product. Terms: https://nosus.foo/terms.html
 ```
 
 **Fields**
@@ -66,6 +73,11 @@ Placeholder for “own”: `Engineering, design, growth, ops, or a specific hole
 **Thank-you**
 ```
 Got it. I'll read it. If it's a fit I'll email you.
+```
+
+**Custom T&Cs URL**
+```
+https://nosus.foo/terms.html
 ```
 
 **Submit button** (if editable): `Send`
