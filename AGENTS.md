@@ -505,6 +505,8 @@ codebase — assume still outstanding unless you know otherwise.
 
 <!-- CHANGELOG:INSERT -->
 
+- **2026-09-14** · `ce25179` · feat(ads): point the Linktree founding form at the live Terms of Service — why: Linktree Custom T&Cs had been aimed at privacy.html; the shipped T&C page is `https://nosus.foo/terms.html` (`web/terms.html`).
+
 - **2026-09-14** · `3ba9d70` · revert: drop the homepage founding form — why: the operator is collecting founding-team interest on Linktree. A `/founding` mailto page plus nav/footer links would be a second recruiting surface they did not ask for, and it would make AGENTS.md describe a public form that is not the live path.
 
 - **2026-09-14** · `e7ba2fc` · feat(ads): add Linktree founding-team contact form copy — why: recruiting is happening on Linktree, not nosus.foo. The paste kit is a Contact Form (name, email, custom questions); answers stay in Linktree Audience and do not create a product account or a new table.
