@@ -22,3 +22,7 @@ and Google Chrome. Outputs:
 - `out/nosus_banner_1500x500.png` — X / social header
 - `out/nosus_banner_1280x640.png` — GitHub social preview
 - `out/nosus_banner_1080x1080.png` — square lockup
+- `out/nosus_linktree_founding_thumb.png` — Linktree form thumbnail
+- `out/nosus_linktree_founding_preview.png` — phone mock of the button + form
+
+Linktree founding-team contact form copy: `linktree-founding-team.md`.

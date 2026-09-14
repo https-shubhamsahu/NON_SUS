@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NO SUS — Linktree founding-team form</title>
+  <link rel="stylesheet" href="fonts.css">
+  <style>
+    :root {
+      --bg: #080808;
+      --card: #141414;
+      --line: #1e1e1e;
+      --mute: #888888;
+      --white: #ffffff;
+    }
+    html, body {
+      margin: 0;
+      background: #050505;
+      color: var(--white);
+      font-family: Geist, system-ui, sans-serif;
+    }
+    .stage {
+      display: flex;
+      gap: 32px;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 40px 24px 64px;
+      box-sizing: border-box;
+    }
+    .phone {
+      width: 390px;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      overflow: hidden;
+      flex: none;
+    }
+    .phone-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--mute);
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    .col { display: flex; flex-direction: column; align-items: center; }
+    .profile {
+      padding: 36px 24px 28px;
+      text-align: center;
+    }
+    .avatar {
+      width: 96px;
+      height: 96px;
+      object-fit: contain;
+      image-rendering: pixelated;
+      margin: 0 auto 16px;
+      display: block;
+    }
+    .wordmark {
+      font-weight: 900;
+      font-size: 28px;
+      letter-spacing: -0.045em;
+      display: inline-flex;
+      align-items: baseline;
+      line-height: 1;
+    }
+    .stop {
+      display: inline-block;
+      width: 0.21em;
+      height: 0.21em;
+      background: #808080;
+      margin-left: 0.08em;
+      margin-bottom: 0.02em;
+    }
+    .handle {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--mute);
+      letter-spacing: 0.04em;
+    }
+    .bio {
+      margin: 14px auto 0;
+      max-width: 280px;
+      font-size: 13px;
+      line-height: 1.45;
+      font-weight: 400;
+      color: #c8c8c8;
+    }
+    .links { padding: 8px 20px 32px; }
+    .link-btn {
+      display: block;
+      width: 100%;
+      box-sizing: border-box;
+      text-align: center;
+      background: #fff;
+      color: #080808;
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: 0.01em;
+      border: 0;
+      border-radius: 24px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+    }
+    .link-btn.ghost {
+      background: transparent;
+      color: #fff;
+      border: 1px solid #2a2a2a;
+    }
+    .form {
+      padding: 28px 22px 36px;
+    }
+    .form h1 {
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      margin: 0 0 10px;
+      line-height: 1.1;
+    }
+    .intro {
+      font-size: 13px;
+      line-height: 1.5;
+      color: #c8c8c8;
+      margin: 0 0 22px;
+      font-weight: 400;
+    }
+    label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--mute);
+      margin: 0 0 6px;
+    }
+    .req { color: #b0b0b0; }
+    .field { margin-bottom: 16px; }
+    input, textarea, select {
+      width: 100%;
+      box-sizing: border-box;
+      background: var(--card);
+      border: 1px solid #2a2a2a;
+      border-radius: 12px;
+      color: #fff;
+      font: 500 14px Geist, system-ui, sans-serif;
+      padding: 12px 14px;
+    }
+    textarea { min-height: 110px; resize: vertical; }
+    .submit {
+      width: 100%;
+      margin-top: 8px;
+      background: #fff;
+      color: #080808;
+      border: 0;
+      border-radius: 24px;
+      font-weight: 800;
+      font-size: 14px;
+      padding: 14px;
+    }
+    .note {
+      margin-top: 14px;
+      font-size: 11px;
+      line-height: 1.45;
+      color: var(--mute);
+    }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <div class="col">
+      <div class="phone-label">Linktree button</div>
+      <div class="phone" id="profile">
+        <div class="profile">
+          <img class="avatar" src="mark.png" alt="Lux and Nox">
+          <div class="wordmark">NO SUS<span class="stop" aria-hidden="true"></span></div>
+          <div class="handle">nosus.foo</div>
+          <p class="bio">Send a sensitive document and still see who opened it. One person today. Looking for a founding team.</p>
+        </div>
+        <div class="links">
+          <button class="link-btn" type="button">Join the founding team</button>
+          <button class="link-btn ghost" type="button">Open the product</button>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="phone-label">Contact form (paste these fields)</div>
+      <div class="phone" id="form">
+        <form class="form" action="#" method="post" onsubmit="return false">
+          <h1>Join the founding team</h1>
+          <p class="intro">NO SUS is one person today. This is not a mailing list. Tell me what you would want to own on an encrypted-docs product.</p>
+
+          <div class="field">
+            <label for="name">Name <span class="req">required</span></label>
+            <input id="name" name="name" autocomplete="name" required>
+          </div>
+          <div class="field">
+            <label for="email">Email <span class="req">required</span></label>
+            <input id="email" name="email" type="email" autocomplete="email" required>
+          </div>
+          <div class="field">
+            <label for="own">What do you want to own at NO SUS?</label>
+            <input id="own" name="own" placeholder="Engineering, design, growth, ops">
+          </div>
+          <div class="field">
+            <label for="links">Links</label>
+            <input id="links" name="links" placeholder="GitHub, site, X — whatever shows the work">
+          </div>
+          <div class="field">
+            <label for="why">Why you</label>
+            <textarea id="why" name="why" placeholder="Be specific. What would you ship in the first 30 days?"></textarea>
+          </div>
+          <div class="field">
+            <label for="time">Time you can actually give</label>
+            <input id="time" name="time" placeholder="Nights, weekends, hours per week">
+          </div>
+          <button class="submit" type="submit">Send</button>
+          <p class="note">Answers go through Linktree to the operator. This does not create a NO SUS account. No salary or equity is offered on this form.</p>
+        </form>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

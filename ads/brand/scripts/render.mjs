@@ -18,6 +18,14 @@ const SIZES = [
   { name: "1500x500", w: 1500, h: 500, layout: "row" },
   { name: "1280x640", w: 1280, h: 640, layout: "row" },
   { name: "1080x1080", w: 1080, h: 1080, layout: "stack" },
+  {
+    name: "linktree_founding_thumb",
+    w: 1080,
+    h: 1080,
+    layout: "stack",
+    caption: "Founding team",
+    file: "nosus_linktree_founding_thumb.png",
+  },
 ];
 
 const MIME = {
@@ -74,14 +82,20 @@ async function main() {
         viewport: { width: size.w, height: size.h },
         deviceScaleFactor: 1,
       });
-      const url = `${origin}/banner.html?w=${size.w}&h=${size.h}&layout=${size.layout}`;
+      const qs = new URLSearchParams({
+        w: String(size.w),
+        h: String(size.h),
+        layout: size.layout,
+      });
+      if (size.caption) qs.set("caption", size.caption);
+      const url = `${origin}/banner.html?${qs}`;
       await page.goto(url, { waitUntil: "networkidle" });
       await page.evaluate(async () => {
         await document.fonts.ready;
         const img = document.querySelector("img");
         if (img) await img.decode();
       });
-      const outFile = path.join(OUT, `nosus_banner_${size.name}.png`);
+      const outFile = path.join(OUT, size.file || `nosus_banner_${size.name}.png`);
       await page.locator("#banner").screenshot({ path: outFile, type: "png" });
       const text = await page.locator("#banner").innerText();
       const ok = text.includes("NO SUS");
@@ -90,6 +104,28 @@ async function main() {
       else console.log("wrote", outFile);
       await page.close();
     }
+
+    const preview = await browser.newPage({
+      viewport: { width: 960, height: 1400 },
+      deviceScaleFactor: 1,
+    });
+    await preview.goto(`${origin}/linktree-preview.html`, { waitUntil: "networkidle" });
+    await preview.evaluate(async () => {
+      await document.fonts.ready;
+      await Promise.all([...document.images].map((img) => img.decode().catch(() => {})));
+    });
+    const previewFile = path.join(OUT, "nosus_linktree_founding_preview.png");
+    await preview.locator(".stage").screenshot({ path: previewFile, type: "png" });
+    const previewText = await preview.locator("body").innerText();
+    const hay = previewText.toLowerCase();
+    const previewOk =
+      hay.includes("join the founding team") &&
+      hay.includes("what do you want to own") &&
+      hay.includes("answers go through linktree");
+    report.push({ name: "linktree-preview", outFile: previewFile, ok: previewOk, text: previewText.replace(/\s+/g, " ").slice(0, 240) });
+    if (!previewOk) console.warn("preview miss", previewText.slice(0, 200));
+    else console.log("wrote", previewFile);
+    await preview.close();
   } finally {
     await browser.close();
     server.close();

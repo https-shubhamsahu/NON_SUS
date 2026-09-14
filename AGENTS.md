@@ -48,7 +48,7 @@ Four sub-projects live in this repo:
   - `ads/burn/` — 30s launch motion ad (1920×1080 and 1080×1920), silent, no supers. Frame-accurate HTML renderer;
     rebuild with `npm run all` in that folder. Outputs `out/burn_ad_1920x1080.mp4` and
     `out/burn_ad_1080x1920.mp4`. The on-screen share URL is a dummy (`#/burn/7f3a9c2e`) with no live key.
-  - `ads/brand/` — Lux/Nox yin-yang mark + canonical **NO SUS** wordmark banners (Geist Black, `#808080` square stop, `#080808` field). Rebuild with `node scripts/render.mjs` (uses the Playwright install from `ads/burn/`).
+  - `ads/brand/` — Lux/Nox yin-yang mark + canonical **NO SUS** wordmark banners (Geist Black, `#808080` square stop, `#080808` field). Rebuild with `node scripts/render.mjs` (uses the Playwright install from `ads/burn/`). Founding-team recruiting copy for a Linktree Contact Form lives in `ads/brand/linktree-founding-team.md` — submissions stay in Linktree, not the app.
 - **`homepage/`** — Next.js marketing landing page, statically exported (`output: "export"`), served
   at the **`nosus.foo` root**. The Flutter web app lives at **`app.nosus.foo`** (deployed to a
   separate `nosus-app` repo). `.github/workflows/gh-pages.yml` has two independent jobs: `landing`
