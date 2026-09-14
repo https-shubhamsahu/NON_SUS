@@ -502,6 +502,8 @@ codebase — assume still outstanding unless you know otherwise.
 > bottom rather than letting this section grow without bound.
 
 <!-- CHANGELOG:INSERT -->
+
+- **2026-09-14** · `e1859b4` · feat(ads): render the 30s Burn launch ad as video — why: the Design Component needs the Omelette host to export, so a standalone T-keyed renderer records the same eight beats to H.264 (16:9 and 9:16). The VO is Edge TTS as a stand-in for a human read; the on-screen `#/burn/7f3a9c2e` URL is a dummy with no live key.
 - **2026-09-14** · `902c8bd` · feat: integrate current app and intelligence updates — why: preserves the production Burn-link and pairing contract while adding the independently deployable app updates. Runtime Google Fonts were removed so startup no longer depends on an external font package or fetch.
 
 - **2026-09-14** · docs(privacy): disclose in-app usage events — why: `analytics_events` has
