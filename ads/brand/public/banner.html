@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>NO SUS banner</title>
+  <link rel="stylesheet" href="fonts.css">
+  <style>
+    html, body {
+      margin: 0;
+      background: #080808;
+      overflow: hidden;
+    }
+    #banner {
+      width: var(--w);
+      height: var(--h);
+      background: #080808;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--gap);
+      box-sizing: border-box;
+    }
+    #banner[data-layout="stack"] {
+      flex-direction: column;
+    }
+    .mark {
+      width: var(--mark);
+      height: var(--mark);
+      object-fit: contain;
+      display: block;
+      flex: none;
+      image-rendering: pixelated;
+    }
+    .wordmark {
+      font-family: Geist, system-ui, sans-serif;
+      font-weight: 900;
+      font-size: var(--type);
+      letter-spacing: -0.045em;
+      color: #fff;
+      display: inline-flex;
+      align-items: baseline;
+      white-space: nowrap;
+      user-select: none;
+      line-height: 1;
+      transform: translateY(0.03em);
+    }
+    .stop {
+      display: inline-block;
+      width: 0.21em;
+      height: 0.21em;
+      background: #808080;
+      margin-left: 0.08em;
+      margin-bottom: 0.02em;
+      flex: none;
+    }
+    .lockup {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: calc(var(--gap) * 0.45);
+    }
+    #banner[data-layout="row"] .lockup {
+      flex-direction: row;
+      align-items: center;
+    }
+    .caption {
+      display: none;
+      font-family: Geist, system-ui, sans-serif;
+      font-weight: 600;
+      font-size: calc(var(--type) * 0.28);
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: #888888;
+    }
+    #banner[data-caption="1"] .caption {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div id="banner" data-layout="row">
+    <img class="mark" src="mark.png" alt="Lux and Nox, the NO SUS lab mark">
+    <div class="lockup">
+      <span class="wordmark">NO SUS<span class="stop" aria-hidden="true"></span></span>
+      <span class="caption"></span>
+    </div>
+  </div>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const w = Number(params.get("w") || 1920);
+    const h = Number(params.get("h") || 640);
+    const layout = params.get("layout") || (h >= w ? "stack" : "row");
+    const caption = (params.get("caption") || "").trim();
+    const root = document.documentElement;
+    const mark = layout === "stack" ? (Math.min(w, h) >= 900 ? 640 : 320) : 320;
+    const type = layout === "stack" ? Math.round(w * 0.145) : Math.round(h * 0.26);
+    const gap = layout === "stack" ? Math.round(h * 0.05) : Math.round(h * 0.08);
+    root.style.setProperty("--w", w + "px");
+    root.style.setProperty("--h", h + "px");
+    root.style.setProperty("--mark", mark + "px");
+    root.style.setProperty("--type", type + "px");
+    root.style.setProperty("--gap", gap + "px");
+    const banner = document.getElementById("banner");
+    banner.dataset.layout = layout;
+    if (caption) {
+      banner.dataset.caption = "1";
+      banner.querySelector(".caption").textContent = caption;
+    }
+  </script>
+</body>
+</html>

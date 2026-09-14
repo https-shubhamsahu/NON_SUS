@@ -1,0 +1,17 @@
+{
+  "name": "nosus-burn-ad",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/main.jsx --bundle --outfile=public/ad.js --format=iife --jsx=automatic --legal-comments=none --minify",
+    "audio": "python3 scripts/generate_audio.py",
+    "record": "node scripts/record.mjs",
+    "all": "npm run build && npm run record"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.9",
+    "playwright": "^1.55.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  }
+}
