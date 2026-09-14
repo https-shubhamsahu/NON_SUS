@@ -44,7 +44,7 @@ Four sub-projects live in this repo:
 - **`supabase/`** — Postgres migrations + Deno Edge Functions (15 of them: `burn-file-{init,confirm,fetch}`,
   `share-fetch`, `share-heartbeat`, `create-redemption-code`, `redeem-code`, `storage-router`,
   `drive-proxy`, `account-manager`, `cleanup-burn-files`, `verify-play-integrity`).
-- **`ads/burn/`** — 30s launch motion ad (1920×1080 and 1080×1920). Frame-accurate HTML renderer;
+- **`ads/burn/`** — 30s launch motion ad (1920×1080 and 1080×1920), silent, no supers. Frame-accurate HTML renderer;
   rebuild with `npm run all` in that folder. Outputs `out/burn_ad_1920x1080.mp4` and
   `out/burn_ad_1080x1920.mp4`. The on-screen share URL is a dummy (`#/burn/7f3a9c2e`) with no live key.
 - **`homepage/`** — Next.js marketing landing page, statically exported (`output: "export"`), served
@@ -502,6 +502,8 @@ codebase — assume still outstanding unless you know otherwise.
 > bottom rather than letting this section grow without bound.
 
 <!-- CHANGELOG:INSERT -->
+
+- **2026-09-14** · `55f3fb7` · feat(ads): export the Burn ad silent and without supers
 
 - **2026-09-14** · `c6d8839` · docs(agents): add why for the Burn ad renderer
 

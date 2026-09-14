@@ -2,5 +2,6 @@ node_modules/
 tmp/
 out/beats/
 out/sfx_bed.wav
+out/burn_ad_audio.wav
 out/beat_report.json
 *.log
