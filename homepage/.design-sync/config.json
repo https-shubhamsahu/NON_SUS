@@ -1,0 +1,31 @@
+{
+  "pkg": "homepage",
+  "globalName": "NoSus",
+  "projectId": "1f11c8a0-1f58-43fa-b9aa-1bbea178e8af",
+  "shape": "package",
+  "buildCmd": "node .design-sync/build-css.mjs",
+  "tsconfig": "tsconfig.json",
+  "cssEntry": ".design-sync/.cache/site.css",
+  "extraFonts": [
+    ".design-sync/fonts/geist.css"
+  ],
+  "componentSrcMap": {
+    "NoSusLogo": "src/components/ui/Logo.tsx",
+    "BurnTool": "src/components/BurnTool.tsx",
+    "ShareQr": "src/components/ShareQr.tsx",
+    "AppLink": "src/components/AppLink.tsx"
+  },
+  "docsDir": ".design-sync/docs",
+  "dtsPropsFor": {
+    "NoSusLogo": "/** Extra classes on the wordmark. */ className?: string; /** Tailwind font-size classes that set the wordmark size, e.g. \"text-lg md:text-xl\". Default \"text-xl\". */ sizeClass?: string;",
+    "ShareQr": "/** The text to encode, normally the share link. Drawn in the browser; never sent anywhere. */ value: string; /** Canvas width and height in px. Default 112. */ size?: number;",
+    "AppLink": "/** Link content, usually a short uppercase label. */ children: React.ReactNode; /** Classes for the anchor; the component ships no styling of its own. */ className?: string; /** Called when the Android chooser sheet closes because the visitor navigated. */ onNavigate?: () => void;",
+    "BurnTool": "/** BurnTool takes no props. Tab, text, and share state live inside the component. */"
+  },
+  "overrides": {
+    "BurnTool": {
+      "cardMode": "column"
+    }
+  },
+  "readmeHeader": ".design-sync/conventions.md"
+}

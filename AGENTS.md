@@ -500,6 +500,14 @@ codebase — assume still outstanding unless you know otherwise.
 > bottom rather than letting this section grow without bound.
 
 <!-- CHANGELOG:INSERT -->
+- **2026-09-14** · chore(homepage): sync the Burn ad kit to Claude Design — why: ads and promo
+  frames for Burn should be built from the real site components, not lookalikes. The homepage is
+  a Next.js app with default exports and next/font, so the sync needs its own named-export entry,
+  its own Tailwind input, and a copied Geist snapshot (`homepage/.design-sync/NOTES.md`).
+  `.design-sync/` is excluded from `tsc` and eslint because previews import the synced bundle as
+  `homepage`. The Burn copy rules in the kit's docs mirror the cryptographic-honesty rule. Revisit
+  them if the pairing envelope port changes what the server holds.
+
 - **2026-09-14** · docs(privacy): disclose in-app usage events — why: `analytics_events` has
   recorded activation-funnel events since 1.4.0 — including anonymous `app_opened` for signed-out
   users and link recipients — but `web/privacy.html` never mentioned them, and account deletion

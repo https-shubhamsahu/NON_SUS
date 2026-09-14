@@ -1,0 +1,56 @@
+/* Stylesheet input for the Claude Design sync. Mirrors the tokens and base
+   styles in src/app/globals.css (keep them in step) and scans the synced
+   sources and authored previews for Tailwind v4 utilities. build-css.mjs
+   writes the result to .design-sync/.cache/site.css, the config's cssEntry. */
+@import "tailwindcss" source(none);
+@source "../src/components/BurnTool.tsx";
+@source "../src/components/ShareQr.tsx";
+@source "../src/components/AppLink.tsx";
+@source "../src/components/ui/Logo.tsx";
+@source "./previews";
+
+/* A fixed layout and type vocabulary for designs built with this kit.
+   Tailwind only compiles classes it finds, so without this list the design
+   agent's own layout classes would not exist. conventions.md names it. */
+@source inline("{,sm:,md:,lg:}{grid,flex,hidden,block,inline-flex,flex-col,flex-row,flex-wrap,items-center,items-start,items-end,justify-center,justify-between,justify-start,justify-end,text-center,text-left,text-right,relative,absolute,inset-0,overflow-hidden,w-full,h-full,mx-auto,min-h-screen,aspect-square,aspect-video}");
+@source inline("{,sm:,md:,lg:}grid-cols-{1,2,3,4}");
+@source inline("{,sm:,md:,lg:}{gap,p,px,py,pt,pb,m,mt,mb}-{0,1,2,3,4,5,6,8,10,12,16,20,24}");
+@source inline("{,sm:,md:,lg:}text-{xs,sm,base,lg,xl,2xl,3xl,4xl,5xl,6xl,7xl,8xl,9xl}");
+@source inline("max-w-{xs,sm,md,lg,xl,2xl,3xl,4xl,5xl,6xl,7xl}");
+@source inline("{bg,text,border}-{brand-black,brand-gray-dark,brand-gray,brand-gray-light,white,black}");
+@source inline("{font-sans,font-mono,font-medium,font-semibold,font-bold,font-black,uppercase,tracking-tighter,tracking-tight,tracking-wide,tracking-wider,tracking-widest,leading-none,leading-tight,leading-relaxed,tabular-nums,rounded,rounded-sm,rounded-md,rounded-lg,rounded-xl,rounded-2xl,rounded-full,border,border-2,border-4,border-dashed,text-white/50,border-white/10,border-white/20,border-white/80}");
+
+/* static: emit every brand token as a CSS variable, used or not. */
+@theme static {
+  --color-brand-black: #080808;
+  --color-brand-gray-dark: #141414;
+  --color-brand-gray: #1e1e1e;
+  --color-brand-gray-light: #888888;
+  --font-sans: "Geist", "Geist Fallback", sans-serif;
+  --font-mono: "Geist Mono", "Geist Mono Fallback", monospace;
+}
+
+/* Metric-matched Arial fallbacks, as next/font generates them for Geist. */
+@font-face{font-family:"Geist Fallback";src:local(Arial);ascent-override:95.94%;descent-override:28.16%;line-gap-override:0.0%;size-adjust:104.76%}
+@font-face{font-family:"Geist Mono Fallback";src:local(Arial);ascent-override:74.67%;descent-override:21.92%;line-gap-override:0.0%;size-adjust:134.59%}
+
+/* next/font sets these on <html> in the site; set them globally here. */
+:root {
+  --font-geist-sans: "Geist", "Geist Fallback";
+  --font-geist-mono: "Geist Mono", "Geist Mono Fallback";
+  --background: #080808;
+  --foreground: #ffffff;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+*:focus-visible {
+  outline: 2px dashed #ffffff;
+  outline-offset: 4px;
+}
