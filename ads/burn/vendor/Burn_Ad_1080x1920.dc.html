@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/no-sus-burn-ad-kit-1f11c8a0-1f58-43fa-b9aa-1bbea178e8af/styles.css">
+  <script src="_ds/no-sus-burn-ad-kit-1f11c8a0-1f58-43fa-b9aa-1bbea178e8af/_ds_bundle.js"></script>
+  <script>window.OM_SCENES = '[{"name":"Type","dur":3,"desc":"A cursor types the note in Geist Mono on black.","nat":3},{"name":"Reveal","dur":3,"desc":"The camera pulls back to the Burn circle and the BURN NOTE pill is pressed.","nat":3},{"name":"Encrypt","dur":4,"desc":"The circle clears; a dashed ring spins around a lock while it encrypts. VO: “Encrypts in your browser.”","nat":4},{"name":"Ready","dur":5,"desc":"The circle morphs into the ready card with the code, the QR and Copy Link. VO: “The key lives in the link. Tell them the two-digit code.”","nat":5},{"name":"Open","dur":6,"desc":"The link travels to a phone; the note shows once, then erases. VO: “One open, then it’s gone.”","nat":6},{"name":"Gone","dur":3,"desc":"The same link is tapped again and nothing opens.","nat":3},{"name":"File","dur":3,"desc":"Hard cut to the File tab; a file drops in and is sealed. VO: “No account.”","nat":3},{"name":"End","dur":3,"desc":"End card with the NO SUS wordmark. VO: “Try it at nosus.foo.”","nat":3}]';</script>
+  <script>window.OM_PLAYBACK = '{"mode":"loop"}';</script>
+  <script>window.OM_TWEAKS = /*EDITMODE-BEGIN*/{
+    "motionEditor": true,
+    "supers": true,
+    "sound": false
+  }/*EDITMODE-END*/;</script>
+  <style>
+    body { margin: 0; background: #080808; }
+    a { color: #ffffff; }
+    a:hover { color: #888888; }
+  </style>
+</helmet>
+<x-import component-from-global-scope="BurnAd" from="./animations-v3.jsx ./tweaks-panel.jsx ./burn-ad.jsx" width="1080" height="1920" scenes="{{ scenes }}" playback="{{ playback }}" hint-size="100%,100%"></x-import>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    return { scenes: window.OM_SCENES, playback: window.OM_PLAYBACK };
+  }
+}
+</script>
+</body>
+</html>

@@ -38,12 +38,17 @@ the code wins — fix this file in the same commit.
 
 Current version: **`1.4.0+11`** (`pubspec.yaml`). Latest migration: `20260826085740_secure_two_digit_redemption_pairing.sql`.
 
-Three sub-projects live in this repo:
+Four sub-projects live in this repo:
 
 - **Root** — the Flutter app (`lib/`, `test/`, `android/`, `web/`).
 - **`supabase/`** — Postgres migrations + Deno Edge Functions (15 of them: `burn-file-{init,confirm,fetch}`,
   `share-fetch`, `share-heartbeat`, `create-redemption-code`, `redeem-code`, `storage-router`,
   `drive-proxy`, `account-manager`, `cleanup-burn-files`, `verify-play-integrity`).
+- **`ads/`** — motion ads and brand stills.
+  - `ads/burn/` — 30s launch motion ad (1920×1080 and 1080×1920), silent, no supers. Frame-accurate HTML renderer;
+    rebuild with `npm run all` in that folder. Outputs `out/burn_ad_1920x1080.mp4` and
+    `out/burn_ad_1080x1920.mp4`. The on-screen share URL is a dummy (`#/burn/7f3a9c2e`) with no live key.
+  - `ads/brand/` — Lux/Nox yin-yang mark + canonical **NO SUS** wordmark banners (Geist Black, `#808080` square stop, `#080808` field). Rebuild with `node scripts/render.mjs` (uses the Playwright install from `ads/burn/`).
 - **`homepage/`** — Next.js marketing landing page, statically exported (`output: "export"`), served
   at the **`nosus.foo` root**. The Flutter web app lives at **`app.nosus.foo`** (deployed to a
   separate `nosus-app` repo). `.github/workflows/gh-pages.yml` has two independent jobs: `landing`
@@ -499,6 +504,18 @@ codebase — assume still outstanding unless you know otherwise.
 > bottom rather than letting this section grow without bound.
 
 <!-- CHANGELOG:INSERT -->
+
+- **2026-09-14** · `94169fa` · feat(ads): add NO SUS lockup banners — why: social/GitHub stills need the Lux/Nox mark (white square knocked out) next to the canonical **NO SUS** wordmark with the gray square stop, not a period glyph. The renderer is stills-only; it does not change Burn-link or pairing contracts.
+
+- **2026-09-14** · `6f132fe` · docs(agents): add why for the silent Burn ad cut
+
+- **2026-09-14** · `b38d412` · feat(ads): re-export silent Burn ad videos without supers — why: the previous mp4s still had baked TTS and caption supers; this cut is video-only so a live mix can be laid on later.
+
+- **2026-09-14** · `55f3fb7` · feat(ads): export the Burn ad silent and without supers — why: the VO script told the picture not to double the spoken line, and this cut is picture-only.
+
+- **2026-09-14** · `c6d8839` · docs(agents): add why for the Burn ad renderer
+
+- **2026-09-14** · `e1859b4` · feat(ads): render the 30s Burn launch ad as video — why: the Design Component needs the Omelette host to export, so a standalone T-keyed renderer records the same eight beats to H.264 (16:9 and 9:16). The VO is Edge TTS as a stand-in for a human read; the on-screen `#/burn/7f3a9c2e` URL is a dummy with no live key.
 - **2026-09-14** · `902c8bd` · feat: integrate current app and intelligence updates — why: preserves the production Burn-link and pairing contract while adding the independently deployable app updates. Runtime Google Fonts were removed so startup no longer depends on an external font package or fetch.
 
 - **2026-09-14** · docs(privacy): disclose in-app usage events — why: `analytics_events` has
