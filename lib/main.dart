@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:universal_html/html.dart' as html;
@@ -262,19 +261,6 @@ void main() async {
   await runZonedGuarded(
     () async {
       WidgetsFlutterBinding.ensureInitialized();
-
-      // Fonts resolve from assets/google_fonts/ only — never fonts.gstatic.com.
-      // Set before any runApp() below (there are several early-return ones for
-      // share/burn deep links) because google_fonts reads this flag at the
-      // moment a style is first resolved, not at package load.
-      //
-      // Two reasons this is off: a cold or network-blocked first launch used to
-      // silently fall back to a system font, and a zero-knowledge product
-      // reaching out to a Google CDN at startup undercuts the claim. The
-      // bundled weights are exactly the ones lib/theme.dart and
-      // anonymous_share_viewer_screen.dart render — adding a new weight or
-      // family means adding the .ttf too, or that style falls back silently.
-      GoogleFonts.config.allowRuntimeFetching = false;
 
       // Crash reporting — no-op unless SENTRY_DSN is supplied via
       // --dart-define (see lib/config/crash_reporting_config.dart). Used at

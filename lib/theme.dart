@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class NoSusTheme {
   // Spacing Scale
@@ -31,9 +30,54 @@ class NoSusTheme {
   static const Color dBorder = Color(0x33FFFFFF); // #FFFFFF20
   static const Color dTextSecondary = Color(0xFF999999);
 
+  static TextTheme _textTheme(Color primary, Color secondary) {
+    return TextTheme(
+      displayLarge: TextStyle(
+        fontSize: 36,
+        fontWeight: FontWeight.w800,
+        color: primary,
+        letterSpacing: -1.0,
+      ),
+      displayMedium: TextStyle(
+        fontSize: 28,
+        fontWeight: FontWeight.w800,
+        color: primary,
+        letterSpacing: -0.5,
+      ),
+      titleLarge: TextStyle(
+        fontSize: 22,
+        fontWeight: FontWeight.w700,
+        color: primary,
+        letterSpacing: -0.4,
+      ),
+      titleMedium: TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+        color: primary,
+      ),
+      bodyLarge: TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.normal,
+        color: primary,
+        height: 1.5,
+      ),
+      bodyMedium: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.normal,
+        color: secondary,
+        height: 1.4,
+      ),
+      labelLarge: TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.bold,
+        color: primary,
+        letterSpacing: 0.5,
+      ),
+    );
+  }
+
   // Light ThemeData
   static ThemeData get lightTheme {
-    final baseTextTheme = GoogleFonts.interTextTheme();
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
@@ -46,49 +90,7 @@ class NoSusTheme {
         outline: lBorder,
         outlineVariant: lBorder,
       ),
-      textTheme: baseTextTheme.copyWith(
-        displayLarge: GoogleFonts.outfit(
-          fontSize: 36,
-          fontWeight: FontWeight.bold,
-          color: lText,
-          letterSpacing: -1.0,
-        ),
-        displayMedium: GoogleFonts.outfit(
-          fontSize: 28,
-          fontWeight: FontWeight.bold,
-          color: lText,
-          letterSpacing: -0.5,
-        ),
-        titleLarge: GoogleFonts.outfit(
-          fontSize: 22,
-          fontWeight: FontWeight.w600,
-          color: lText,
-          letterSpacing: -0.5,
-        ),
-        titleMedium: GoogleFonts.inter(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          color: lText,
-        ),
-        bodyLarge: GoogleFonts.inter(
-          fontSize: 16,
-          fontWeight: FontWeight.normal,
-          color: lText,
-          height: 1.5,
-        ),
-        bodyMedium: GoogleFonts.inter(
-          fontSize: 14,
-          fontWeight: FontWeight.normal,
-          color: lTextSecondary,
-          height: 1.4,
-        ),
-        labelLarge: GoogleFonts.inter(
-          fontSize: 13,
-          fontWeight: FontWeight.bold,
-          color: lText,
-          letterSpacing: 0.5,
-        ),
-      ),
+      textTheme: _textTheme(lText, lTextSecondary),
       cardTheme: CardThemeData(
         color: lCard,
         elevation: 0,
@@ -109,7 +111,6 @@ class NoSusTheme {
 
   // Dark ThemeData
   static ThemeData get darkTheme {
-    final baseTextTheme = GoogleFonts.interTextTheme();
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
@@ -122,49 +123,7 @@ class NoSusTheme {
         outline: dBorder,
         outlineVariant: dBorder,
       ),
-      textTheme: baseTextTheme.copyWith(
-        displayLarge: GoogleFonts.outfit(
-          fontSize: 36,
-          fontWeight: FontWeight.bold,
-          color: dText,
-          letterSpacing: -1.0,
-        ),
-        displayMedium: GoogleFonts.outfit(
-          fontSize: 28,
-          fontWeight: FontWeight.bold,
-          color: dText,
-          letterSpacing: -0.5,
-        ),
-        titleLarge: GoogleFonts.outfit(
-          fontSize: 22,
-          fontWeight: FontWeight.w600,
-          color: dText,
-          letterSpacing: -0.5,
-        ),
-        titleMedium: GoogleFonts.inter(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          color: dText,
-        ),
-        bodyLarge: GoogleFonts.inter(
-          fontSize: 16,
-          fontWeight: FontWeight.normal,
-          color: dText,
-          height: 1.5,
-        ),
-        bodyMedium: GoogleFonts.inter(
-          fontSize: 14,
-          fontWeight: FontWeight.normal,
-          color: dTextSecondary,
-          height: 1.4,
-        ),
-        labelLarge: GoogleFonts.inter(
-          fontSize: 13,
-          fontWeight: FontWeight.bold,
-          color: dText,
-          letterSpacing: 0.5,
-        ),
-      ),
+      textTheme: _textTheme(dText, dTextSecondary),
       cardTheme: CardThemeData(
         color: dCard,
         elevation: 0,

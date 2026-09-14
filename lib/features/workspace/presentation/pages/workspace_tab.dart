@@ -181,9 +181,7 @@ class _WorkspaceTabState extends ConsumerState<WorkspaceTab>
                     ),
                     const SizedBox(width: NoSusTheme.s8),
                     Text(
-                      isLive
-                          ? 'Live Encrypted Workspace'
-                          : 'Offline Fallback Mode',
+                      isLive ? 'Ready to send' : 'Offline — local only',
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.colorScheme.onSurface.withValues(
                           alpha: 0.6,
@@ -634,7 +632,7 @@ class _BurnNoteTeaserCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    'Zero-knowledge encrypted self-destructing secrets.',
+                    'A one-time note. Burns after they open it.',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodyMedium?.copyWith(
@@ -708,7 +706,7 @@ class _BurnFileTeaserCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    'Anonymous file drop — self-destructs after one download.',
+                    'A file drop that disappears after one download.',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodyMedium?.copyWith(
@@ -782,7 +780,7 @@ class _RedeemCodeTeaserCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    'Got a short code instead of a link? Enter it here.',
+                    'Paste the link, then enter the 2-digit code.',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodyMedium?.copyWith(

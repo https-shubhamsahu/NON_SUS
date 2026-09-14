@@ -33,9 +33,8 @@ the code wins — fix this file in the same commit.
 
 ## 1. What this project is
 
-**NO SUS** — a secure study-group workspace (file sharing, watermarked viewing, burn notes/files,
-audit logging) built with Flutter on a Supabase backend. Ships to web (GitHub Pages) and Android
-(Play Store).
+**NO SUS** — send a sensitive document and still see who opened it. Flutter app
+(web + Android) on a Supabase backend.
 
 Current version: **`1.4.0+11`** (`pubspec.yaml`). Latest migration: `20260826085740_secure_two_digit_redemption_pairing.sql`.
 

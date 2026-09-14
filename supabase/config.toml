@@ -420,3 +420,6 @@ verify_jwt = true
 
 [functions.storage-router]
 verify_jwt = true
+
+[functions.document-insights]
+verify_jwt = true

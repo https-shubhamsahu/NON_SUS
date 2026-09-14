@@ -5,11 +5,13 @@ A document-sharing product for the moment after you hit send: share a sensitive 
 ![Flutter](https://img.shields.io/badge/Flutter-3.44-02569B?style=flat-square&logo=flutter&logoColor=white)
 ![Supabase](https://img.shields.io/badge/Supabase-Postgres_%2B_Edge_Functions-3ECF8E?style=flat-square&logo=supabase&logoColor=white)
 ![Riverpod](https://img.shields.io/badge/State-Riverpod_3-blue?style=flat-square)
-![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 
-## Overview
+## What it does
 
-NO SUS targets three use cases: professionals sharing sensitive documents with external counterparties, privacy-conscious users exchanging one-time secrets over a self-destructing channel, and researchers collaborating on sensitive data without raw exposure. The product is built for a single-developer, zero-budget operating model — leaning on generous free tiers (Supabase, Cloudflare) and avoiding operational overhead wherever possible.
+- **Tracked shares** — send a document, watermark the view, and see when it was opened
+- **Burn notes / files** — one-time encrypted drops; the key lives in the link fragment
+- **Pairing codes** — send the link, then tell them a 2-digit code. The unguessable token in `/#/r/<token>` is the real secret
+- **Groups & vault** — keep files with people you already work with
 
 The full authoritative product and engineering philosophy lives in [`PROJECT_CONSTITUTION.md`](./PROJECT_CONSTITUTION.md); this README is the practical entry point.
 
@@ -24,15 +26,13 @@ The full authoritative product and engineering philosophy lives in [`PROJECT_CON
 
 ## Architecture
 
-This is a monorepo with four parts:
-
 | Path | What it is |
 |---|---|
 | `lib/`, `test/`, `android/`, `web/` | The Flutter app (web + Android), the root of this repo |
 | `supabase/` | Postgres migrations + Deno Edge Functions (`burn-file-*`, `share-fetch`, `share-heartbeat`, `redeem-code`, …) |
 | `homepage/` | Next.js marketing landing page, statically exported, served at the `nosus.foo` root |
 
-**Deployment split:** the Flutter web app is built and deployed to a separate repo ([`nosus-app`](https://github.com/https-shubhamsahu/nosus-app)) serving `app.nosus.foo`; this repo's own `gh-pages` branch serves the `homepage/` landing site at `nosus.foo`. Legacy deep links (`nosus.foo/#/burn|burnfile|v|join/...`) are forwarded from the landing page to the app subdomain with the fragment (and therefore the encryption key) preserved.
+The Flutter web app deploys to `app.nosus.foo`. Burn links already in the wild must keep parsing — see `test/unit/deep_link_parsing_test.dart`.
 
 **Security model:**
 - Every table has Row-Level Security enabled — RLS must hold even if a client is fully compromised.
@@ -60,15 +60,17 @@ This is a monorepo with four parts:
 
 ```bash
 flutter pub get
-cp .env.example .env   # fill in Supabase URL/anon key if using a real backend
+cp .env.example .env   # Supabase URL + anon key, or leave empty for mock mode
+flutter analyze
+flutter test
+flutter build web --base-href "/"
 ```
 
-### Run
+Optional intelligence:
 
 ```bash
-flutter analyze                      # must be clean
-flutter test                         # full test suite
-flutter build web --base-href "/"    # web release build
+flutter run --dart-define=INTELLIGENCE_PROVIDER=local
+flutter run --dart-define=INTELLIGENCE_PROVIDER=gemini   # needs Edge Function + GEMINI_API_KEY
 ```
 
 ### Homepage (marketing site)

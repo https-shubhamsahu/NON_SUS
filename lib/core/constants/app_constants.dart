@@ -11,8 +11,8 @@ class AppConstants {
 
   // ─── App Identity ──────────────────────────────────────────────────────────
   static const String appName = 'NO SUS';
-  static const String appTagline = 'SILENT SECURITY WORKSPACE';
-  static const String appVersion = '1.0.0';
+  static const String appTagline = 'See who opened it';
+  static const String appVersion = '1.4.0';
 
   // ─── Avatar Colors → Asset Paths ──────────────────────────────────────────
   static const String defaultAvatarColorStart = 'FF0072FF';
@@ -89,13 +89,11 @@ class AppConstants {
 
   // ─── Default Note Content ─────────────────────────────────────────────────
   static const String defaultNoteContent =
-      "Welcome to the NO SUS Secure Workspace!\n\n"
-      "Quick Tutorial on Groups:\n"
-      "1. Open the 'Groups' tab from the bottom nav.\n"
-      "2. Tap the '+' icon to create a secure study group.\n"
-      "3. Share the invite code with classmates.\n"
-      "4. Upload notes for secure sharing.\n"
-      "5. Use 'REVEAL' to read in our screenshot-proof viewer.";
+      "Welcome to NO SUS.\n\n"
+      "Send a sensitive document and still see who opened it.\n\n"
+      "1. Share a file or a one-time Burn drop from Home.\n"
+      "2. Send the link. Tell them the 2-digit code.\n"
+      "3. Watch activity when they open it.\n";
 
   // ─── SharedPreferences Keys ───────────────────────────────────────────────
   static const String kOnboardingKey = 'nosus_onboarding_done';

@@ -28,7 +28,7 @@ void main() {
 
       // Verify essential UI elements are present
       expect(find.text('NO SUS'), findsOneWidget);
-      expect(find.text('SILENT SECURITY WORKSPACE'), findsOneWidget);
+      expect(find.text('See who opened it'), findsOneWidget);
       expect(find.byType(TextFormField), findsNWidgets(2)); // Email and Password
       expect(find.text('ENTER WORKSPACE'), findsOneWidget);
       expect(find.text('NEW TO WORKSPACE? SIGN UP'), findsOneWidget);
