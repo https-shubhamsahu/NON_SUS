@@ -38,12 +38,15 @@ the code wins — fix this file in the same commit.
 
 Current version: **`1.4.0+11`** (`pubspec.yaml`). Latest migration: `20260826085740_secure_two_digit_redemption_pairing.sql`.
 
-Three sub-projects live in this repo:
+Four sub-projects live in this repo:
 
 - **Root** — the Flutter app (`lib/`, `test/`, `android/`, `web/`).
 - **`supabase/`** — Postgres migrations + Deno Edge Functions (15 of them: `burn-file-{init,confirm,fetch}`,
   `share-fetch`, `share-heartbeat`, `create-redemption-code`, `redeem-code`, `storage-router`,
   `drive-proxy`, `account-manager`, `cleanup-burn-files`, `verify-play-integrity`).
+- **`ads/burn/`** — 30s launch motion ad (1920×1080 and 1080×1920). Frame-accurate HTML renderer;
+  rebuild with `npm run all` in that folder. Outputs `out/burn_ad_1920x1080.mp4` and
+  `out/burn_ad_1080x1920.mp4`. The on-screen share URL is a dummy (`#/burn/7f3a9c2e`) with no live key.
 - **`homepage/`** — Next.js marketing landing page, statically exported (`output: "export"`), served
   at the **`nosus.foo` root**. The Flutter web app lives at **`app.nosus.foo`** (deployed to a
   separate `nosus-app` repo). `.github/workflows/gh-pages.yml` has two independent jobs: `landing`
