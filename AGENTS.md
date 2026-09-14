@@ -44,9 +44,11 @@ Four sub-projects live in this repo:
 - **`supabase/`** — Postgres migrations + Deno Edge Functions (15 of them: `burn-file-{init,confirm,fetch}`,
   `share-fetch`, `share-heartbeat`, `create-redemption-code`, `redeem-code`, `storage-router`,
   `drive-proxy`, `account-manager`, `cleanup-burn-files`, `verify-play-integrity`).
-- **`ads/burn/`** — 30s launch motion ad (1920×1080 and 1080×1920), silent, no supers. Frame-accurate HTML renderer;
-  rebuild with `npm run all` in that folder. Outputs `out/burn_ad_1920x1080.mp4` and
-  `out/burn_ad_1080x1920.mp4`. The on-screen share URL is a dummy (`#/burn/7f3a9c2e`) with no live key.
+- **`ads/`** — motion ads and brand stills.
+  - `ads/burn/` — 30s launch motion ad (1920×1080 and 1080×1920), silent, no supers. Frame-accurate HTML renderer;
+    rebuild with `npm run all` in that folder. Outputs `out/burn_ad_1920x1080.mp4` and
+    `out/burn_ad_1080x1920.mp4`. The on-screen share URL is a dummy (`#/burn/7f3a9c2e`) with no live key.
+  - `ads/brand/` — Lux/Nox yin-yang mark + canonical **NO SUS** wordmark banners (Geist Black, `#808080` square stop, `#080808` field). Rebuild with `node scripts/render.mjs` (uses the Playwright install from `ads/burn/`).
 - **`homepage/`** — Next.js marketing landing page, statically exported (`output: "export"`), served
   at the **`nosus.foo` root**. The Flutter web app lives at **`app.nosus.foo`** (deployed to a
   separate `nosus-app` repo). `.github/workflows/gh-pages.yml` has two independent jobs: `landing`
@@ -502,6 +504,8 @@ codebase — assume still outstanding unless you know otherwise.
 > bottom rather than letting this section grow without bound.
 
 <!-- CHANGELOG:INSERT -->
+
+- **2026-09-14** · `6f132fe` · docs(agents): add why for the silent Burn ad cut
 
 - **2026-09-14** · `b38d412` · feat(ads): re-export silent Burn ad videos without supers — why: the previous mp4s still had baked TTS and caption supers; this cut is video-only so a live mix can be laid on later.
 
