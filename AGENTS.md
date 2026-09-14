@@ -503,7 +503,9 @@ codebase — assume still outstanding unless you know otherwise.
 
 <!-- CHANGELOG:INSERT -->
 
-- **2026-09-14** · `55f3fb7` · feat(ads): export the Burn ad silent and without supers
+- **2026-09-14** · `b38d412` · feat(ads): re-export silent Burn ad videos without supers — why: the previous mp4s still had baked TTS and caption supers; this cut is video-only so a live mix can be laid on later.
+
+- **2026-09-14** · `55f3fb7` · feat(ads): export the Burn ad silent and without supers — why: the VO script told the picture not to double the spoken line, and this cut is picture-only.
 
 - **2026-09-14** · `c6d8839` · docs(agents): add why for the Burn ad renderer
 
