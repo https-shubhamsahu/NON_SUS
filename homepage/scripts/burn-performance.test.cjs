@@ -104,14 +104,56 @@ test('pairing uses the deployed API and keeps the direct link stable', async (t)
     assert.equal(body.target_kind, 'note');
     assert.match(body.key_hex, /^[a-f0-9]{64}$/);
     assert.match(body.iv_hex, /^[a-f0-9]{32}$/);
-    return json({ code: '07', redeem_token: token });
+    return json({ code: '07', redeem_token: token, expires_at: '2026-09-14T12:20:00.000Z' });
   });
   const result = await api.createBurnNote('synthetic test');
   const direct = result.link;
   const pairing = await result.pairingPromise;
   assert.equal(pairing.code, '07');
   assert.ok(pairing.link.endsWith('#/redeem/' + token));
+  assert.equal(pairing.expiresAt, '2026-09-14T12:20:00.000Z');
   assert.equal(result.link, direct);
+});
+
+test('the shared link needs the code whenever a code was issued', () => {
+  const direct = 'https://app.nosus.foo/#/burn/x?k=1&v=2';
+  const pairing = { code: '07', link: 'https://app.nosus.foo/#/redeem/' + 'b'.repeat(64), expiresAt: null };
+  assert.equal(api.linkToShare(direct, pairing), pairing.link);
+  assert.equal(api.linkToShare(direct, null), direct);
+});
+
+for (const [label, body] of [
+  ['a non-numeric code', { code: 'AB', redeem_token: 'c'.repeat(64) }],
+  ['a three-digit code', { code: '123', redeem_token: 'c'.repeat(64) }],
+  ['a short token', { code: '07', redeem_token: 'c'.repeat(63) }],
+  ['a token with path characters', { code: '07', redeem_token: '../'.padEnd(64, 'c') }],
+]) {
+  test(`pairing with ${label} falls back to the direct link`, async (t) => {
+    t.mock.method(globalThis, 'fetch', async (url) => {
+      if (url.endsWith('/burn_notes')) return new Response(null, { status: 201 });
+      return json(body);
+    });
+    const result = await api.createBurnNote('synthetic test');
+    assert.equal(await result.pairingPromise, null);
+  });
+}
+
+test('Redeem tab opens pasted pairing links, bare tokens, and direct links in the app', () => {
+  const token = 'D'.repeat(64);
+  const expected = 'https://app.nosus.foo/#/redeem/' + 'd'.repeat(64);
+  assert.equal(api.appLinkFromPaste('https://app.nosus.foo/#/redeem/' + token), expected);
+  assert.equal(api.appLinkFromPaste('https://nosus.foo/#/redeem/' + token + '  '), expected);
+  assert.equal(api.appLinkFromPaste(token), expected);
+  const id = '5f0c2a9e-7d41-4b8a-9a3e-2c61d8f4b0a7';
+  const k = 'a'.repeat(64);
+  const v = 'b'.repeat(32);
+  assert.equal(
+    api.appLinkFromPaste(`https://app.nosus.foo/#/burnfile/${id}?k=${k}&v=${v}`),
+    `https://app.nosus.foo/#/burnfile/${id}?k=${k}&v=${v}`,
+  );
+  assert.equal(api.appLinkFromPaste('77'), null);
+  assert.equal(api.appLinkFromPaste('https://app.nosus.foo/#/redeem/' + 'd'.repeat(65)), null);
+  assert.equal(api.appLinkFromPaste(`https://evil.example/#/burn/${id}?k=${k.slice(1)}&v=${v}`), null);
 });
 
 for (const failingStage of ['init', 'put', 'confirm']) {

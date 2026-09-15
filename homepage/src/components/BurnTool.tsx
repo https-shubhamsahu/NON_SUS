@@ -11,17 +11,27 @@ import {
   Key,
 } from "lucide-react";
 import {
+  appLinkFromPaste,
   createBurnFile,
   createBurnNote,
+  linkToShare,
   redeemCode,
   FILE_MAX_BYTES,
   NOTE_MAX_CHARS,
+  type RedemptionPairing,
 } from "@/lib/burnApi";
-import { APP_URL } from "@/lib/links";
 import ShareQr from "./ShareQr";
 
 type Tab = "note" | "file" | "redeem";
 type Phase = "idle" | "working" | "done" | "error";
+
+/** "20 min" / "3 hours" until an ISO time, or null if unknown or past. */
+function timeLeft(expiresAt: string | null): string | null {
+  if (!expiresAt) return null;
+  const minutes = Math.round((Date.parse(expiresAt) - Date.now()) / 60000);
+  if (!Number.isFinite(minutes) || minutes <= 0) return null;
+  return minutes < 90 ? `${minutes} min` : `${Math.round(minutes / 60)} hours`;
+}
 
 const EXPIRY_CHOICES = [
   { hours: 1, label: "1 HOUR" },
@@ -34,10 +44,14 @@ export default function BurnTool() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [statusLabel, setStatusLabel] = useState("");
   const [error, setError] = useState("");
+  // Direct link (key in the fragment). What gets shared is linkToShare():
+  // the pairing link when a code was issued, so the code is really needed.
   const [link, setLink] = useState("");
-  const [code, setCode] = useState<string | null>(null);
+  const [pairing, setPairing] = useState<RedemptionPairing | null>(null);
+  const [pairingTimeLeft, setPairingTimeLeft] = useState<string | null>(null);
   const [pairingSettled, setPairingSettled] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [directCopied, setDirectCopied] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
   const [copyError, setCopyError] = useState("");
   const [noteText, setNoteText] = useState("");
@@ -54,9 +68,11 @@ export default function BurnTool() {
     setPhase("idle");
     setError("");
     setLink("");
-    setCode(null);
+    setPairing(null);
+    setPairingTimeLeft(null);
     setPairingSettled(false);
     setCopied(false);
+    setDirectCopied(false);
     setCodeCopied(false);
     setCopyError("");
     setStatusLabel("");
@@ -87,7 +103,8 @@ export default function BurnTool() {
       setPhase("done");
       result.pairingPromise.then((grant) => {
         if (generationRef.current !== generation) return;
-        if (grant) setCode(grant.code);
+        setPairing(grant);
+        setPairingTimeLeft(timeLeft(grant?.expiresAt ?? null));
         setPairingSettled(true);
       });
     } catch (e) {
@@ -115,7 +132,8 @@ export default function BurnTool() {
       setPhase("done");
       result.pairingPromise.then((grant) => {
         if (generationRef.current !== generation) return;
-        if (grant) setCode(grant.code);
+        setPairing(grant);
+        setPairingTimeLeft(timeLeft(grant?.expiresAt ?? null));
         setPairingSettled(true);
       });
     } catch (e) {
@@ -132,13 +150,13 @@ export default function BurnTool() {
   const handleRedeem = async () => {
     if (phase === "working") return;
     const raw = redeemInput.trim();
-    const tokenMatch = raw.match(/[#/]redeem\/([a-fA-F0-9]{64})/i) ?? raw.match(/^([a-fA-F0-9]{64})$/);
-    if (tokenMatch) {
-      window.location.href = `${APP_URL}#/redeem/${tokenMatch[1].toLowerCase()}`;
+    const target = appLinkFromPaste(raw);
+    if (target) {
+      window.location.href = target;
       return;
     }
     if (/^\d{2}$/.test(raw)) {
-      setError("Open the share link first, then type the 2-digit code.");
+      setError("Paste the link first. You'll type the 2 digits after it opens.");
       setPhase("error");
       return;
     }
@@ -153,21 +171,36 @@ export default function BurnTool() {
     }
   };
 
+  // Empty until pairing settles, so nobody copies a link that skips the code.
+  const sharedLink = pairingSettled ? linkToShare(link, pairing) : "";
+
   const copyLink = async () => {
+    if (!sharedLink) return;
     try {
-      await navigator.clipboard.writeText(link);
+      await navigator.clipboard.writeText(sharedLink);
       setCopyError("");
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      setCopyError("Clipboard blocked. Long-press the QR or copy the link from the address bar after opening it.");
+      setCopyError("Clipboard blocked. Scan the QR from another device instead.");
+    }
+  };
+
+  const copyDirectLink = async () => {
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopyError("");
+      setDirectCopied(true);
+      setTimeout(() => setDirectCopied(false), 2000);
+    } catch {
+      setCopyError("Clipboard blocked. Scan the QR from another device instead.");
     }
   };
 
   const copyCode = async () => {
-    if (!code) return;
+    if (!pairing) return;
     try {
-      await navigator.clipboard.writeText(code);
+      await navigator.clipboard.writeText(pairing.code);
       setCopyError("");
       setCodeCopied(true);
       setTimeout(() => setCodeCopied(false), 2000);
@@ -221,14 +254,14 @@ export default function BurnTool() {
                 <span className="text-[9px] font-bold tracking-[0.28em] uppercase text-brand-gray-light">
                   Their code
                 </span>
-                {code ? (
+                {pairing ? (
                   <button
                     type="button"
                     onClick={copyCode}
-                    aria-label={`Confirmation code ${code}`}
+                    aria-label={`Confirmation code ${pairing.code}`}
                     className="text-[52px] sm:text-[60px] leading-none font-black tabular-nums tracking-[0.18em] text-white"
                   >
-                    {code}
+                    {pairing.code}
                   </button>
                 ) : !pairingSettled ? (
                   <span
@@ -242,22 +275,29 @@ export default function BurnTool() {
                     Share the link. A pairing code was not issued for this drop.
                   </p>
                 )}
-                {code && (
+                {pairing && (
                   <p className="text-[8px] text-brand-gray-light">
-                    {codeCopied ? "Code copied." : "Tap the code to copy. Tell them these digits."}
+                    {codeCopied ? "Code copied." : "Tap to copy. Tell them these digits."}
                   </p>
                 )}
               </div>
 
-              {link && (
+              {sharedLink ? (
                 <div className="p-1.5 bg-white rounded-lg">
-                  <ShareQr value={link} size={108} />
+                  <ShareQr value={sharedLink} size={108} />
                 </div>
+              ) : (
+                <div
+                  role="img"
+                  aria-label="Preparing the share link"
+                  className="w-[120px] h-[120px] rounded-lg bg-white/10 animate-pulse motion-reduce:animate-none"
+                />
               )}
 
               <button
                 onClick={copyLink}
-                className="bg-white text-black px-6 py-2 text-[9px] font-bold uppercase tracking-widest hover:bg-black hover:text-white border border-white transition-all rounded-full flex items-center gap-2 z-20"
+                disabled={!sharedLink}
+                className="bg-white text-black px-6 py-2 text-[9px] font-bold uppercase tracking-widest hover:bg-black hover:text-white border border-white transition-all rounded-full flex items-center gap-2 z-20 disabled:opacity-40 disabled:pointer-events-none"
               >
                 {copied ? (
                   <>
@@ -269,6 +309,19 @@ export default function BurnTool() {
                   </>
                 )}
               </button>
+              {pairing && (
+                <>
+                  <p className="text-[8px] text-brand-gray-light max-w-[240px]">
+                    The link only opens with the code{pairingTimeLeft ? ` · works for ${pairingTimeLeft}` : ""}.
+                  </p>
+                  <button
+                    onClick={copyDirectLink}
+                    className="text-[8px] font-bold uppercase tracking-widest text-brand-gray-light underline underline-offset-2 hover:text-white transition-colors z-20"
+                  >
+                    {directCopied ? "Direct link copied" : "Copy direct link (no code)"}
+                  </button>
+                </>
+              )}
               {copyError && <p className="text-[10px] text-brand-gray-light" role="alert">{copyError}</p>}
               <button
                 onClick={reset}
@@ -423,7 +476,7 @@ export default function BurnTool() {
                     className="w-[70%] bg-brand-black/50 border border-white/10 hover:border-white/30 focus:border-white focus:outline-none py-3 text-center text-lg font-mono tracking-[0.35em] text-white rounded-xl uppercase"
                   />
                   <p className="text-[7.5px] font-mono text-brand-gray-light mt-3 uppercase text-center max-w-[220px] leading-relaxed">
-                    Got a link? Open it, then type the 2-digit code here. Older 8-character codes still work.
+                    Paste the link you were sent. If it came with a 2-digit code, you&apos;ll type it next.
                   </p>
                   <button
                     onClick={handleRedeem}

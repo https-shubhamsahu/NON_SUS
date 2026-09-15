@@ -223,6 +223,20 @@ String? extractRedemptionToken(Uri uri) {
   return null;
 }
 
+/// The standalone web app for a `#/redeem/<token>` link. Like the burn
+/// viewers, this entrypoint never joins the normal app, so it needs its own
+/// MaterialApp: without one, [RedeemCodeScreen]'s Scaffold has no theme or
+/// navigator and the page renders blank.
+Widget redeemLinkApp({required String redeemToken}) {
+  return MaterialApp(
+    title: 'NO SUS',
+    debugShowCheckedModeBanner: false,
+    theme: NoSusTheme.lightTheme,
+    darkTheme: NoSusTheme.darkTheme,
+    home: RedeemCodeScreen(redeemToken: redeemToken),
+  );
+}
+
 /// Extracts a SecureSend share token from a `/v/<token>` URL, checking both
 /// the fragment (default hash-based web routing, e.g. `#/v/abc123`) and the
 /// path, so the link works regardless of URL strategy. Returns null on any
@@ -419,7 +433,7 @@ void main() async {
         runApp(
           ProviderScope(
             overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
-            child: RedeemCodeScreen(redeemToken: redemptionToken),
+            child: redeemLinkApp(redeemToken: redemptionToken),
           ),
         );
         return;
