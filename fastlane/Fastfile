@@ -1,0 +1,21 @@
+default_platform(:android)
+
+platform :android do
+  desc "Upload Play Store listing text and images for en-IN (no APK/AAB)"
+  lane :upload_listing do
+    params = {
+      skip_upload_apk: true,
+      skip_upload_aab: true,
+      skip_upload_changelogs: true,
+      sync_image_upload: true,
+      metadata_path: "fastlane/metadata/android"
+    }
+
+    begin
+      supply(params)
+    rescue => e
+      UI.important("supply failed (#{e.message}); retrying with changes_not_sent_for_review: true")
+      supply(params.merge(changes_not_sent_for_review: true))
+    end
+  end
+end

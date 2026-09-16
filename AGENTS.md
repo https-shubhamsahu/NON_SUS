@@ -129,7 +129,14 @@ the user rather than chasing flaky rendering.
 in-app update banner (`lib/features/config/presentation/providers/app_update_provider.dart`).
 
 Paste-ready Play Console listing copy + data-safety answers live in `store_listing/` — **every claim
-there must map to a shipped feature.** Both workflows use `subosito/flutter-action`'s `cache: true`
+there must map to a shipped feature.** Listing *images* and Fastlane metadata live in
+`fastlane/metadata/android/en-IN/` (title, short/full description, `icon.png`,
+`featureGraphic.png`, `images/phoneScreenshots/`). Capture with
+`tool/capture_store_screenshots.ps1` / `.sh`; verify with `tool/verify_store_images.py`.
+Upload with `bundle exec fastlane android upload_listing` only when `PLAY_JSON_KEY` points at a
+Play Developer API service-account JSON (gitignored). Do not create that key ad hoc.
+
+Both workflows use `subosito/flutter-action`'s `cache: true`
 and write a `SENTRY_DSN` line into `.env` (empty/no-op unless that secret is ever set — see §8).
 
 **Signing keys:** the upload keystore is `android/app/upload-keystore.jks` (alias `nosus-upload`,
@@ -467,7 +474,7 @@ codebase — assume still outstanding unless you know otherwise.
 | Android App Links wired but unverified | Code + `assetlinks.json` shipped 2026-07-30 (see §5). Verification needs a **Play-signed** build on a device — a debug APK always reports `verified: false`. Blocked behind the row above |
 | `app_latest_version` still `1.2.0` in `remote_configs` | **(manual)** — bumping it prompts every existing user |
 | Back up `android/app/upload-keystore.jks` + `key.properties` outside the repo | **(manual)** — losing these forfeits the signing identity |
-| Play Console: upload feature graphic, phone/tablet screenshots, enter Data Safety answers, add Internal Testing testers | **(manual)** — assets drafted in `store_listing/`; shipping analytics changes the Data Safety answers |
+| Play Console: upload feature graphic + phone screenshots via Fastlane `upload_listing` | **Blocked** on `PLAY_JSON_KEY` (service-account JSON for the Play Android Developer API). Assets are generated under `fastlane/metadata/android/en-IN/images/`. Data Safety answers remain a Console form (`store_listing/data_safety_answers.md`). Do not re-enter listing *text* if it is already in Console. |
 | `google_fonts` fetches Inter/Outfit from Google's CDN at runtime | ✅ Closed 2026-08-01 (`cd514aa`) — Inter/Outfit/VT323 `.ttf` bundled in `assets/google_fonts/` (~1.6 MB), `allowRuntimeFetching = false` in `main()`. Adding a weight without its `.ttf` now falls back silently |
 | ~~Accessibility sweep on lower-traffic screens~~ | **Done** 2026-07-29 — see §7 |
 | `BURN_FILES_IP_SALT` not set | Open — burn-file per-IP rate limiting degrades without it |
@@ -509,6 +516,15 @@ codebase — assume still outstanding unless you know otherwise.
 > bottom rather than letting this section grow without bound.
 
 <!-- CHANGELOG:INSERT -->
+- **2026-09-17** · feat(store): Play listing images and Fastlane `upload_listing` — why:
+  Console already has listing text; this wires the missing *images* to Play spec
+  (phone ≥1080px/side, aspect ≤2:1; 1024×500 24-bit feature graphic; 512×512 icon)
+  and a Fastlane lane that uploads metadata only. Capture is an integration test of
+  live widgets with demo data (never real emails, share keys, or user files).
+  Pairing-code AES-key-on-server (≤20 min) is disclosed in `full_description.txt`.
+  Upload is blocked until `PLAY_JSON_KEY` is set — this change does not create a
+  Google Cloud service account.
+
 - **2026-09-17** · fix(copy): say where the Burn key goes — why: the handoff's P0 1.2.
   `create-redemption-code` stores `key_hex`/`iv_hex` for every single-target Burn share until
   its 2-digit code is used or expires (20 min default). The homepage (FAQ, footer, TrustMetrics,

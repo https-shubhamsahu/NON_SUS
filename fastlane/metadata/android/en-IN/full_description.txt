@@ -1,0 +1,21 @@
+NO SUS is a workspace for sharing documents with people you trust — and seeing who opened them.
+
+WATERMARKED DOCUMENTS
+Create invite-only study groups and share notes and files. Documents open in a viewer that watermarks each copy with the reader's identity, so a leak traces back to a person.
+
+BURN NOTES & BURN FILES
+Send self-destructing notes and files. They are encrypted on your device before upload. For a normal share link, the decryption key travels in the URL fragment and is not sent to our servers. Pairing-code shares are different: the AES key is stored on the server until the code is used or it expires (20 minutes by default). One view or download, and the payload is permanently deleted. Recipients don't need an account.
+
+AUDIT LOG
+File opens, shares, membership changes, and screenshot attempts are written to a hash-chained ledger your group can see. If a record is altered, the chain visibly breaks.
+
+SCREEN PROTECTION
+On Android, screenshots and screen recording are blocked inside the app, and attempts are logged. This is not available on web or other platforms. Links you share can require touch-to-reveal.
+
+DEVICE INTEGRITY
+Rooted or tampered Android devices are detected and flagged. If an account shows serious risk signals, NO SUS can lock the session and require a fresh sign-in.
+
+YOUR DATA
+No ads. No selling data. You can permanently delete your account from Profile → Settings → Danger Zone.
+
+Built for study groups.
