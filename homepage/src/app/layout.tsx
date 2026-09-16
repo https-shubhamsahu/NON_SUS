@@ -1,7 +1,13 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { CLOUDFLARE_WEB_ANALYTICS_TOKEN, SUPABASE_URL } from "@/lib/links";
+import {
+  APP_URL,
+  CLOUDFLARE_WEB_ANALYTICS_TOKEN,
+  DEVELOPER,
+  GITHUB_URL,
+  SUPABASE_URL,
+} from "@/lib/links";
 import { legacyLinkShim } from "@/lib/legacyLinkShim";
 
 const geistSans = Geist({
@@ -19,7 +25,8 @@ const geistMono = Geist_Mono({
 // Burn Note/File tool in the hero) — not generic file-sharing copy.
 export const metadata: Metadata = {
   title: "NO SUS - Know Who Leaked Your Document",
-  description: "Every document you share is watermarked to whoever opens it, so leaks trace back to one name. Self-destructing notes and files leave nothing behind. No login required.",
+  // Kept under ~155 characters so Google does not truncate it.
+  description: "Every document you share is watermarked to whoever opens it, so a leak traces back to one name. Self-destructing notes and files, no login required.",
   keywords: [
     "self-destructing notes",
     "anonymous file sharing",
@@ -79,6 +86,61 @@ export const viewport = {
   themeColor: "#080808",
 };
 
+// One linked graph. WebSite supplies the site name Google shows in results
+// (NOSUS as an alternate, since "no sus" alone is common slang). The
+// Organization logo must be at least 112px square, so it is the 512px app
+// icon: /favicon.png is 32px, and web/favicon.png overwrites it at deploy.
+// Keep every claim true. The only native app is Android; iOS uses the web app.
+const SITE_URL = "https://nosus.foo/";
+const structuredData = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": `${SITE_URL}#website`,
+      url: SITE_URL,
+      name: "NO SUS",
+      alternateName: ["NOSUS", "nosus.foo"],
+      inLanguage: "en",
+      publisher: { "@id": `${SITE_URL}#organization` },
+    },
+    {
+      "@type": "Organization",
+      "@id": `${SITE_URL}#organization`,
+      name: "NO SUS",
+      url: SITE_URL,
+      logo: {
+        "@type": "ImageObject",
+        url: `${SITE_URL}app_icon.png`,
+        width: 512,
+        height: 512,
+      },
+      founder: { "@id": `${SITE_URL}#founder` },
+      sameAs: [GITHUB_URL],
+    },
+    {
+      "@type": "Person",
+      "@id": `${SITE_URL}#founder`,
+      name: DEVELOPER.name,
+      url: `${SITE_URL}#developer`,
+      sameAs: [DEVELOPER.githubUrl, ...DEVELOPER.socials.map((s) => s.url)],
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": `${SITE_URL}#app`,
+      name: "NO SUS",
+      url: APP_URL,
+      applicationCategory: "SecurityApplication",
+      operatingSystem: "Android, Web",
+      image: `${SITE_URL}og-image.png`,
+      offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+      publisher: { "@id": `${SITE_URL}#organization` },
+      description:
+        "Share documents watermarked to each person who opens them, and send self-destructing notes and files without an account.",
+    },
+  ],
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -108,35 +170,7 @@ export default function RootLayout({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "SoftwareApplication",
-              "name": "NO SUS",
-              "operatingSystem": "Android, iOS, Web",
-              "applicationCategory": "SecurityApplication, BusinessApplication",
-              "image": "https://nosus.foo/og-image.png",
-              "offers": {
-                "@type": "Offer",
-                "price": "0",
-                "priceCurrency": "USD",
-              },
-              "description": "Secure document sharing platform featuring forensic watermarks, touch-to-reveal blur overlays, and single-use self-destructing file drops.",
-            }),
-          }}
-        />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "Organization",
-              "name": "NO SUS",
-              "url": "https://nosus.foo",
-              "logo": "https://nosus.foo/favicon.png",
-              "sameAs": [
-                "https://github.com/https-shubhamsahu/NON_SUS",
-              ],
-            }),
+            __html: JSON.stringify(structuredData).replace(/</g, "\\u003c"),
           }}
         />
         {children}

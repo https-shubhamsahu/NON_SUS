@@ -47,9 +47,9 @@ export default function Testimonials() {
               </p>
               
               <div className="mt-6 border-t border-brand-gray/50 pt-4">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-white">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-white">
                   {item.author}
-                </h4>
+                </h3>
                 <span className="text-[10px] font-mono text-brand-gray-light uppercase mt-0.5 block">
                   {item.role}
                 </span>

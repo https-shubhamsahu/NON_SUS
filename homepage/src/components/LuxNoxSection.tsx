@@ -53,7 +53,7 @@ export default function LuxNoxSection() {
                 className="luxnox-breathe motion-reduce:animate-none rounded-full overflow-hidden bg-white"
               >
                 <Image
-                  src="/luxandnox.png"
+                  src="/luxandnox.webp"
                   alt="Lux and Nox, the NO SUS lab mark: a white cat and a black cat curled into a yin-yang"
                   width={230}
                   height={230}
