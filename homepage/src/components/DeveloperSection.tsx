@@ -63,8 +63,8 @@ export default function DeveloperSection() {
             <p className="text-xs text-brand-gray-light leading-relaxed font-medium">
               The architecture is deliberately zero-budget: everything rides on
               free tiers, which forces the kind of design honesty this product
-              preaches. The server stores ciphertext it cannot read, deletes it
-              atomically on first view, and keeps a hash-chained ledger nobody can
+              preaches. The server stores ciphertext, holds a drop&apos;s key only
+              while its 2-digit code is valid, deletes it atomically on first view, and keeps a hash-chained ledger nobody can
               quietly edit. The entire client is open source; check the claims
               yourself.
             </p>

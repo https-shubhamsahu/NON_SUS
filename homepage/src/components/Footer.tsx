@@ -19,8 +19,8 @@ export default function Footer() {
   const footerLinks = {
     Product: [
       { name: "SecureSend", href: "#features" },
-      { name: "Burn Notes", href: "#features" },
-      { name: "Burn Files", href: "#features" },
+      { name: "Burn Notes", href: "#try" },
+      { name: "Burn Files", href: "#try" },
       { name: "Open the App", href: APP_URL },
       { name: "Android APK", href: RELEASES_URL },
     ],
@@ -69,7 +69,7 @@ export default function Footer() {
           <div className="flex flex-col gap-3">
             <NoSusLogo sizeClass="text-lg" />
             <p className="text-[11px] text-brand-gray-light leading-relaxed max-w-xs font-medium">
-              Forensic document leak prevention and zero-knowledge file distribution protocols<span className="text-white">.</span>
+              Forensic document leak prevention and encrypted, self-destructing file sharing<span className="text-white">.</span>
             </p>
           </div>
 
@@ -77,7 +77,7 @@ export default function Footer() {
           <div className="inline-flex items-center gap-2 border border-brand-gray bg-brand-gray-dark/50 px-3 py-1.5 rounded w-fit select-none">
             <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
             <span className="text-[9px] font-mono font-bold tracking-wider uppercase text-brand-gray-light">
-              Open Source · Zero-Knowledge Drops
+              Open Source · Self-Destructing Drops
             </span>
           </div>
         </div>
@@ -85,9 +85,9 @@ export default function Footer() {
         {/* Footer Navigation Categories */}
         {Object.entries(footerLinks).map(([category, links]) => (
           <div key={category} className="col-span-1 flex flex-col gap-4">
-            <h4 className="text-[10px] font-bold tracking-widest text-white uppercase">
+            <h3 className="text-[10px] font-bold tracking-widest text-white uppercase">
               {category}
-            </h4>
+            </h3>
             <ul className="flex flex-col gap-2.5">
               {links.map((link) => (
                 <li key={link.name}>
