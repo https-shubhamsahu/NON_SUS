@@ -25,7 +25,7 @@ export const CLOUDFLARE_WEB_ANALYTICS_TOKEN = "a55650161a204c4eb063047566b2fc0e"
 // ── Developer identity (About-the-Developer section) ────────────────────────
 export const DEVELOPER = {
   name: "Shubham Sahu",
-  photo: "/founder.jpeg",
+  photo: "/founder.webp",
   githubHandle: "https-shubhamsahu",
   githubUrl: "https://github.com/https-shubhamsahu",
   email: "shubhamsahu9372580326@gmail.com",

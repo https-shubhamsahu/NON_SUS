@@ -2,7 +2,7 @@ import BurnTool from "./BurnTool";
 
 export default function Hero() {
   return (
-    <section className="relative min-h-screen flex flex-col justify-center items-center pt-32 pb-20 overflow-hidden swiss-grid">
+    <section id="try" className="relative min-h-screen flex flex-col justify-center items-center pt-32 pb-20 overflow-hidden swiss-grid">
       <div aria-hidden="true" className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.09),transparent_65%)]" />
       {/* Fade the static glow into the next section. */}
       <div className="absolute inset-x-0 bottom-0 z-[1] h-56 md:h-72 bg-gradient-to-b from-transparent to-brand-black pointer-events-none" />
