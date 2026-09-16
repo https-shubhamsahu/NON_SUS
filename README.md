@@ -37,7 +37,7 @@ The Flutter web app deploys to `app.nosus.foo`. Burn links already in the wild m
 **Security model:**
 - Every table has Row-Level Security enabled — RLS must hold even if a client is fully compromised.
 - The client never talks directly to server-only services or external storage; sensitive operations go through scoped Supabase Edge Functions.
-- For zero-knowledge features (Burn Notes/Files), encryption keys are generated and used entirely client-side and never touch the server database or logs.
+- Burn Notes/Files are encrypted client-side and the key travels in the link's URL fragment. To support short 2-digit codes, single-target shares also store the key server-side in `burn_redemption_codes` until the code is used or expires (20 minutes by default); multi-file shares never send it.
 
 **State management:** Riverpod 3. Feature-first layout under `lib/features/<feature>/` (`data/`, `domain/`, `presentation/`); cross-cutting singletons (audit, screenshot guard, device integrity, risk engine) live in `lib/services/`.
 

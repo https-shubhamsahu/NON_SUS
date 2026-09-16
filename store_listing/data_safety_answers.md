@@ -80,10 +80,13 @@ are deleted on sign-out.
 
 Location (any), Contacts, Calendar, SMS/Call logs, Audio, Health & fitness,
 Financial info, Browsing history, Search history, Installed apps, Messages
-(burn notes are end-to-end encrypted ciphertext — the server cannot read
-them; the decryption key never leaves the URL fragment. Declaring "Messages —
-collected" would be wrong since the content is cryptographically unreadable
-by the service; the stored object is opaque ciphertext).
+(burn notes are stored as encrypted ciphertext. **Owner decision pending:**
+single-target burn shares also send the key and IV to `create-redemption-code`,
+which stores them in `burn_redemption_codes` until the 2-digit code is used or
+expires (20 minutes by default), so for that window the service could decrypt
+the note. Decide whether that still counts as "not collected" or ephemeral
+processing, and keep this answer, `web/privacy.html` §2 and the live Play
+Console form in step).
 
 **Crash logs / Diagnostics — currently NOT collected, but the SDK is now in
 the codebase (disabled).** `sentry_flutter` was added in the production-
@@ -123,9 +126,10 @@ answerable from app code:
   answers again.
 
 If a reviewer questions burn notes/files: content is AES-256 encrypted
-client-side; key material travels only in the URL fragment, which browsers
-never transmit to the server. Storage holds ciphertext only, deleted on first
-read or expiry.
+client-side and key material travels in the URL fragment. Single-target shares
+also store the key server-side until their 2-digit code is used or expires
+(20 minutes by default); multi-file shares do not. Storage holds ciphertext,
+deleted on first read or expiry.
 
 ## Security practices section
 

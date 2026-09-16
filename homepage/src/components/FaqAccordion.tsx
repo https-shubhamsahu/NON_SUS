@@ -10,11 +10,11 @@ export default function FaqAccordion() {
   const faqs = [
     {
       q: "What is NO SUS?",
-      a: "NO SUS is a secure document-sharing and private messaging platform designed for zero-knowledge self-destructing text notes (Burn Notes), anonymous encrypted file drops (Burn Files), and tracked, watermarked document link sharing (SecureSend).",
+      a: "NO SUS is a secure document-sharing and private messaging platform for encrypted, self-destructing text notes (Burn Notes), anonymous encrypted file drops (Burn Files), and tracked, watermarked document link sharing (SecureSend).",
     },
     {
       q: "How secure is NO SUS?",
-      a: "For Zero-Knowledge drops, encryption and decryption are computed client-side using 256-bit AES-CBC. Keys reside solely in URL fragments (#hash) which are never transmitted to the database, ensuring absolute zero-knowledge containment.",
+      a: "Burn Notes and Burn Files are encrypted in your browser with 256-bit AES (CTR mode for notes, CBC for files), and the key travels in the link's #fragment. To let a recipient unlock a drop with a 2-digit code, our server also keeps a copy of the key until that code is used or expires (20 minutes by default), then deletes it.",
     },
     {
       q: "Can I share files without creating an account?",
@@ -30,11 +30,11 @@ export default function FaqAccordion() {
     },
     {
       q: "Can governments read my files?",
-      a: "It depends on the feature. Burn Notes and Burn Files are zero-knowledge: the encryption key never leaves your browser, so there's no key on our servers for anyone to compel access to, including us. Other shared documents (SecureSend, study group files) aren't end-to-end encrypted; they're protected by strict access-control policies, but a valid legal order compelling our infrastructure provider could theoretically reach them, the same as with any cloud storage service.",
+      a: "It depends on the feature. Burn Notes and Burn Files are encrypted in your browser. Our server keeps a copy of a drop's key only while its 2-digit code is valid (20 minutes by default, or until the code is used), so a legal order in that window could in theory reach it; after that, we hold only ciphertext with no key. Other shared documents (SecureSend, study group files) aren't end-to-end encrypted; they're protected by strict access-control policies, but a valid legal order compelling our infrastructure provider could theoretically reach them, the same as with any cloud storage service.",
     },
     {
       q: "What happens if your servers get hacked?",
-      a: "For Burn Notes and Burn Files, an attacker gets ciphertext with no key attached, which is useless on its own. For other stored documents, the same access-control policies that protect them from other users would need to be bypassed too, but since those files aren't end-to-end encrypted, a full breach of the storage layer could expose their contents.",
+      a: "For Burn Notes and Burn Files, an attacker who breaks in while a drop's 2-digit code is still valid could find its key. Once the code is used or expires, only ciphertext with no key is left, which is useless on its own. For other stored documents, the same access-control policies that protect them from other users would need to be bypassed too, but since those files aren't end-to-end encrypted, a full breach of the storage layer could expose their contents.",
     },
     {
       q: "Can AI companies train on my files?",
@@ -67,7 +67,7 @@ export default function FaqAccordion() {
         {/* Inject JSON-LD FAQ Schema */}
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema).replace(/</g, "\\u003c") }}
         />
 
         <div className="text-center mb-16">
@@ -87,25 +87,27 @@ export default function FaqAccordion() {
                   borderColor: isOpen ? "#ffffff" : "#1e1e1e",
                 }}
               >
-                <button
-                  onClick={() => handleToggle(idx)}
-                  className="w-full px-6 py-5 text-left flex items-center justify-between text-white font-bold uppercase text-xs tracking-wider focus:outline-none"
-                  aria-expanded={isOpen}
-                >
-                  <span>{faq.q}</span>
-                  {isOpen ? <Minus className="h-4 w-4 shrink-0" /> : <Plus className="h-4 w-4 shrink-0" />}
-                </button>
+                <h3>
+                  <button
+                    onClick={() => handleToggle(idx)}
+                    className="w-full px-6 py-5 text-left flex items-center justify-between text-white font-bold uppercase text-xs tracking-wider focus:outline-none"
+                    aria-expanded={isOpen}
+                    aria-controls={`faq-answer-${idx}`}
+                  >
+                    <span>{faq.q}</span>
+                    {isOpen ? <Minus className="h-4 w-4 shrink-0" /> : <Plus className="h-4 w-4 shrink-0" />}
+                  </button>
+                </h3>
 
-                <>
-                  {isOpen && (
-                    <div
-                    >
-                      <div className="px-6 pb-6 pt-1 text-xs text-brand-gray-light leading-relaxed border-t border-brand-gray/40 font-medium">
-                        {faq.a}
-                      </div>
-                    </div>
-                  )}
-                </>
+                {/* Always in the static HTML, only hidden while collapsed, so
+                    crawlers can read the answers the FAQPage schema describes. */}
+                <div
+                  id={`faq-answer-${idx}`}
+                  hidden={!isOpen}
+                  className="px-6 pb-6 pt-1 text-xs text-brand-gray-light leading-relaxed border-t border-brand-gray/40 font-medium"
+                >
+                  {faq.a}
+                </div>
               </div>
             );
           })}

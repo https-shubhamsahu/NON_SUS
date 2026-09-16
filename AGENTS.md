@@ -78,6 +78,16 @@ handled, so do not load it any other way (no `next/script`, no second tag), and
 never add it — or any session replay/heatmap tool — to app.nosus.foo or the
 Flutter app. It is disclosed in `web/privacy.html`; change both together.
 
+Homepage SEO: `layout.tsx` holds the metadata and one JSON-LD `@graph` (WebSite,
+Organization, Person, SoftwareApplication). `FaqAccordion.tsx` holds the FAQPage
+schema, so its answers stay in the static HTML and are only `hidden` while
+collapsed. Structured data follows the same honesty rule as the copy: no
+ratings, reviews, or platforms that do not exist (the only native app is
+Android). `sitemap.ts` lists the home page and the three legal pages. Those
+pages come from `web/` and also ship in the app build, so their canonical and
+home links are absolute `https://nosus.foo/` URLs. `public/eureka-pitch/` is
+`noindex`. Search Console verification lives outside the repo.
+
 ---
 
 ## 2. Commands
@@ -499,6 +509,23 @@ codebase — assume still outstanding unless you know otherwise.
 > bottom rather than letting this section grow without bound.
 
 <!-- CHANGELOG:INSERT -->
+- **2026-09-17** · fix(copy): say where the Burn key goes — why: the handoff's P0 1.2.
+  `create-redemption-code` stores `key_hex`/`iv_hex` for every single-target Burn share until
+  its 2-digit code is used or expires (20 min default). The homepage (FAQ, footer, TrustMetrics,
+  DeveloperSection), `web/privacy.html` §2, and README all said the key never reaches the server.
+  `store_listing/data_safety_answers.md` now flags the Play "Messages" answer as an owner decision.
+  The live Play Console form was NOT changed. Flutter UI strings from 1.2 are still open.
+
+- **2026-09-17** · feat(homepage): technical SEO pass — why: nosus.foo was not in search results
+  while Lighthouse SEO was already 100. The fixes:
+  - FAQ answers only rendered after a click, so the FAQPage schema described text not in the HTML.
+  - Headings skipped h2→h4 in the use-case cards and the footer.
+  - The Organization logo was the 32px favicon; Google needs at least 112px.
+  - SoftwareApplication claimed iOS.
+  - The legal pages had no description, canonical, or link home; they are now in the sitemap and IndexNow ping.
+  - `/eureka-pitch/` is `noindex` so it doesn't compete with the homepage.
+  - The mascot and portrait now ship as 2x WebP (681 KB → 6 KB, 56 KB → 13 KB). The originals stay at their public URLs.
+
 - **2026-09-14** · `902c8bd` · feat: integrate current app and intelligence updates — why: preserves the production Burn-link and pairing contract while adding the independently deployable app updates. Runtime Google Fonts were removed so startup no longer depends on an external font package or fetch.
 
 - **2026-09-14** · docs(privacy): disclose in-app usage events — why: `analytics_events` has

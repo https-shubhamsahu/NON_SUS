@@ -3,7 +3,7 @@ import { Shield, EyeOff, Key, Share2, GraduationCap, Compass, Users } from "luci
 export default function TrustMetrics() {
   const trustItems = [
     { icon: EyeOff, title: "Private by Design", desc: "Access bounds are monitored without user signup requirements." },
-    { icon: Key, title: "Zero Knowledge", desc: "Encryption keys are held in URL fragments and never touch the host server." },
+    { icon: Key, title: "Client-Side Keys", desc: "Keys are made in your browser and travel in the link. The server holds one only while a 2-digit code is valid." },
     { icon: Shield, title: "Tamper Ledgers", desc: "Activity lists are cryptographically chained to prevent administrative edits." },
     { icon: Share2, title: "Secure Send", desc: "Custom access expiration options and download locks keep files in your custody." },
     { icon: GraduationCap, title: "For Students", desc: "Quickly distribute notes and slide decks across study groups without risk." },
@@ -15,7 +15,7 @@ export default function TrustMetrics() {
   // system itself (verifiable in the open-source client).
   const stats = [
     { number: 256, label: "AES key bits, generated client-side" },
-    { number: 0, label: "Decryption keys stored server-side" },
+    { number: 20, label: "Default minutes a 2-digit code holds its key" },
     { number: 1, label: "View before a burn drop self-destructs" },
     { number: 60, label: "Seconds until a revealed note wipes" },
   ];
