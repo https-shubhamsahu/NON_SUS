@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Copy the Play icon, flatten listing PNGs, and print a dimension table."""
+"""Copy the Play icon, flatten listing PNGs, and print a dimension table.
+
+Phone screenshots are optional. Missing `phoneScreenshots/` is not a failure;
+if PNGs are present they are still checked against Play's phone rules.
+"""
 
 from __future__ import annotations
 
@@ -65,7 +69,6 @@ def _check_phone(path: Path) -> list[str]:
 
 def main() -> int:
     IMAGES.mkdir(parents=True, exist_ok=True)
-    PHONE.mkdir(parents=True, exist_ok=True)
 
     icon_dest = IMAGES / "icon.png"
     if not ICON_SRC.is_file():
@@ -78,12 +81,14 @@ def main() -> int:
     if feature.is_file():
         _flatten_rgb(feature)
 
-    for shot in sorted(PHONE.glob("*.png")):
+    phone_shots = sorted(PHONE.glob("*.png")) if PHONE.is_dir() else []
+    for shot in phone_shots:
         _flatten_rgb(shot)
 
     rows = []
     issues: list[str] = []
-    for path in [icon_dest, feature, *sorted(PHONE.glob("*.png"))]:
+    required = [icon_dest, feature]
+    for path in [*required, *phone_shots]:
         if not path.is_file():
             issues.append(f"missing {path.relative_to(ROOT)}")
             continue
@@ -105,12 +110,15 @@ def main() -> int:
     for name, w, h, mode, kb, ratio in rows:
         print(f"{name:<72} {w:5} {h:5} {mode:>5} {kb:8.1f} {ratio:6.3f}")
 
+    if not phone_shots:
+        print("\nNo phoneScreenshots yet (optional; capture from a real device).")
+
     if issues:
         print("\nFAILED:")
         for item in issues:
             print(f"  - {item}")
         return 1
-    print("\nAll Play listing images meet the checked specs.")
+    print("\nChecked listing images meet the specs above.")
     return 0
 
 

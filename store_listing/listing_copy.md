@@ -67,10 +67,12 @@ Built for study groups.
 | Chromebook / Android XR | optional | Skip for v1 |
 
 **Important:** Play phone screenshots must be ≥1080px per side with aspect ratio
-≤ 2:1 (a Pixel 1080×2400 capture is 20:9 and will be rejected). Capture with
-`tool/capture_store_screenshots.ps1` (Windows) or `tool/capture_store_screenshots.sh`.
-Images land in `fastlane/metadata/android/en-IN/images/phoneScreenshots/`. Upload
-with Fastlane `upload_listing` when `PLAY_JSON_KEY` points at a service-account JSON.
+≤ 2:1 (a Pixel 1080×2400 capture is 20:9 and will be rejected). Capture them from
+a real device or emulator frame; do not rasterize widgets. Drop PNGs in
+`fastlane/metadata/android/en-IN/images/phoneScreenshots/` when you have them.
+Upload with Fastlane `upload_listing` when `PLAY_JSON_KEY` points at a
+service-account JSON. Icon and feature graphic in that images folder are the
+only listing images currently in git.
 
 ## Suggested release notes for the first listing (500 max)
 

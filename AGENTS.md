@@ -131,9 +131,11 @@ in-app update banner (`lib/features/config/presentation/providers/app_update_pro
 Paste-ready Play Console listing copy + data-safety answers live in `store_listing/` — **every claim
 there must map to a shipped feature.** Listing *images* and Fastlane metadata live in
 `fastlane/metadata/android/en-IN/` (title, short/full description, `icon.png`,
-`featureGraphic.png`, `images/phoneScreenshots/`). Capture with
-`tool/capture_store_screenshots.ps1` / `.sh`; verify with `tool/verify_store_images.py`.
-Upload with `bundle exec fastlane android upload_listing` only when `PLAY_JSON_KEY` points at a
+`featureGraphic.png`). Phone screenshots are **not** in-repo — capture them from a real
+device (Play: ≥1080px per side, aspect ≤2:1) and drop them in
+`images/phoneScreenshots/`. Do not rasterize widgets as store screenshots. Verify icon and
+feature graphic with `tool/verify_store_images.py`. Upload with
+`bundle exec fastlane android upload_listing` only when `PLAY_JSON_KEY` points at a
 Play Developer API service-account JSON (gitignored). Do not create that key ad hoc.
 
 Both workflows use `subosito/flutter-action`'s `cache: true`
@@ -516,15 +518,14 @@ codebase — assume still outstanding unless you know otherwise.
 > bottom rather than letting this section grow without bound.
 
 <!-- CHANGELOG:INSERT -->
+- **2026-09-17** · chore(store): drop fake screenshot capture pipeline — why:
+  the six phone PNGs were widget-rasterized stand-ins, not Play-ready device
+  captures. Icon, feature graphic, listing text, and Fastlane `upload_listing` stay.
+  Phone screenshots remain a manual Console step.
 - **2026-09-17** · feat(store): Play listing images and Fastlane `upload_listing` — why:
-  Console already has listing text; this wires the missing *images* to Play spec
-  (phone ≥1080px/side, aspect ≤2:1; 1024×500 24-bit feature graphic; 512×512 icon)
-  and a Fastlane lane that uploads metadata only. Capture is an integration test of
-  live widgets with demo data (never real emails, share keys, or user files).
-  Pairing-code AES-key-on-server (≤20 min) is disclosed in `full_description.txt`.
-  Upload is blocked until `PLAY_JSON_KEY` is set — this change does not create a
-  Google Cloud service account.
-
+  Console already has listing text; this wires icon + feature graphic and a
+  Fastlane lane that uploads metadata only. Phone screenshots were later removed
+  as widget-rasterized fakes. Upload is blocked until `PLAY_JSON_KEY` is set.
 - **2026-09-17** · fix(copy): say where the Burn key goes — why: the handoff's P0 1.2.
   `create-redemption-code` stores `key_hex`/`iv_hex` for every single-target Burn share until
   its 2-digit code is used or expires (20 min default). The homepage (FAQ, footer, TrustMetrics,
