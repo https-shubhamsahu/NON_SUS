@@ -524,9 +524,13 @@ codebase — assume still outstanding unless you know otherwise.
   so the key is stored for up to 20 minutes even if only the link is sent. Only multi-file app
   shares skip it. `data_safety_answers.md` now matches the live Play form (Messages not
   ephemeral; User IDs purposes). `20260917000000_content_reports.sql` was applied to production
-  on 2026-09-18 (run in the SQL editor, then `supabase migration repair --status applied`,
-  because `db push` is blocked: production carries a migration `20260915075600` that exists in
-  no local file — recover it with `supabase db pull` (needs Docker) before the next push.)
+  on 2026-09-18 via the SQL editor plus `supabase migration repair --status applied`, because
+  `db push` was blocked by drift: production carried `20260915075600` (per-account hourly
+  budgets for document-intelligence / play-integrity, applied with the Gemini function deploy)
+  with no local file. That migration is now recovered verbatim as
+  `20260915075600_optional_service_budgets.sql`, so `db push` reports the remote as up to date
+  again. It also closes the "Gemini functions have no rate limit" thread: the budget is
+  service_role-only, 20/hour for document-intelligence and 10/hour for play-integrity.
 - **2026-09-17** · feat(moderation): Play UGC content reports — why: Play requires
   an in-app report path. Insert-only `content_reports` (RLS, no SELECT for
   clients) plus a sheet on group / file / member menus.
