@@ -523,8 +523,10 @@ codebase — assume still outstanding unless you know otherwise.
   `mintPairing` (homepage) and `createCode` (app) run on every single note or single file share,
   so the key is stored for up to 20 minutes even if only the link is sent. Only multi-file app
   shares skip it. `data_safety_answers.md` now matches the live Play form (Messages not
-  ephemeral; User IDs purposes). **`20260917000000_content_reports.sql` is not applied to
-  production yet — apply it before shipping a build with the Report sheet.**
+  ephemeral; User IDs purposes). `20260917000000_content_reports.sql` was applied to production
+  on 2026-09-18 (run in the SQL editor, then `supabase migration repair --status applied`,
+  because `db push` is blocked: production carries a migration `20260915075600` that exists in
+  no local file — recover it with `supabase db pull` (needs Docker) before the next push.)
 - **2026-09-17** · feat(moderation): Play UGC content reports — why: Play requires
   an in-app report path. Insert-only `content_reports` (RLS, no SELECT for
   clients) plus a sheet on group / file / member menus.
