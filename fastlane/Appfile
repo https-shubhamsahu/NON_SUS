@@ -1,0 +1,4 @@
+# Play Console package. json_key_file is the service-account JSON path.
+# Never print or commit that file — set PLAY_JSON_KEY in the environment.
+json_key_file(ENV["PLAY_JSON_KEY"])
+package_name("foo.nosus.app")

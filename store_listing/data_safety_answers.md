@@ -23,9 +23,9 @@ Answer **No** to sharing for every data type.
 |---|---|---|---|---|---|
 | Personal info → **Email address** | Yes | No | No | Required | App functionality, Account management |
 | Personal info → **Name** (display name) | Yes | No | No | Required | App functionality, Account management |
-| Personal info → **User IDs** (Supabase auth user id) | Yes | No | No | Required | App functionality, Account management |
+| Personal info → **User IDs** (Supabase auth user id, attached to usage events and the security ledger) | Yes | No | No | Required | App functionality, Analytics, Fraud prevention, security and compliance, Account management |
 | Personal info → **Phone number** (optional, OTP sign-in) | Yes | No | No | Optional | App functionality, Account management |
-| Messages → **Other in-app messages** (Burn note ciphertext; pairing-code shares also store the AES key server-side for up to 20 minutes) | Yes | No | Pairing-code key is ephemeral (≤20 min) | Required | App functionality |
+| Messages → **Other in-app messages** (Burn note ciphertext; every single note or single file share also stores its AES key server-side for up to 20 minutes, for the 2-digit code) | Yes | No | No (the key sits in a database row for up to 20 min, which is not in-memory processing) | Required | App functionality |
 | Photos and videos → **Photos** (optional avatar upload) | Yes | No | No | Optional | App functionality |
 | Files and docs (documents users upload to groups) | Yes | No | No | Optional | App functionality |
 | App activity → **App interactions** (audit ledger: file opens, shares, membership changes, screenshot attempts; plus the activation-funnel analytics described below) | Yes | No | No | Required | App functionality, Analytics, Fraud prevention, security and compliance |
@@ -85,11 +85,10 @@ Location (any), Contacts, Calendar, SMS/Call logs, Audio, Health & fitness,
 Financial info, Browsing history, Search history, Installed apps.
 
 **Messages are COLLECTED.** Burn notes are stored as encrypted ciphertext.
-Single-target pairing-code shares also send the key and IV to
+Every single-target share (one note or one file) also sends the key and IV to
 `create-redemption-code`, which stores them in `burn_redemption_codes` until
-the 2-digit code is used or expires (20 minutes by default). Declare Messages
-→ Other in-app messages as collected (required, app functionality) on the
-live Play form when you next edit Data Safety.
+the 2-digit code is used or expires (20 minutes by default). Messages → Other in-app messages is declared collected (required, app
+functionality, not ephemeral) on the live Play form as of 2026-09-17.
 
 **Crash logs / Diagnostics — currently NOT collected, but the SDK is now in
 the codebase (disabled).** `sentry_flutter` was added in the production-

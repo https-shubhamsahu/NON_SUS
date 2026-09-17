@@ -291,7 +291,7 @@ class _BurnNoteCreatorScreenState extends ConsumerState<BurnNoteCreatorScreen> {
                         const SizedBox(height: 12),
                         Text(
                           _generatedCode != null
-                              ? 'Your note is encrypted on this device. The full link keeps the key in the URL fragment. Sharing the pairing code also stores that key on the server for up to 20 minutes. The ciphertext is deleted after one view.'
+                              ? 'Your note is encrypted on this device and the key travels in the link. So the 2-digit code works, a copy of the key is also stored on our server until the code is used or expires (up to 20 minutes). The note is deleted after one view.'
                               : 'Your note is encrypted on this device. The key stays in the URL fragment, so the server only stores ciphertext. It is deleted after one view.',
                           textAlign: TextAlign.center,
                           style: const TextStyle(fontSize: 12, color: Colors.white70),

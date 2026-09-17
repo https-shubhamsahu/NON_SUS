@@ -606,8 +606,8 @@ class _BurnFileCreatorScreenState extends ConsumerState<BurnFileCreatorScreen> {
                         Text(
                           _generatedCode != null
                               ? (_selectedFiles.length > 1
-                                  ? 'Your files are encrypted on this device. Each full link keeps its key in the URL fragment. Sharing a pairing code also stores that key on the server for up to 20 minutes. Ciphertext is deleted after one download.'
-                                  : 'Your file is encrypted on this device. The full link keeps the key in the URL fragment. Sharing the pairing code also stores that key on the server for up to 20 minutes. Ciphertext is deleted after one download.')
+                                  ? 'Your files are encrypted on this device and each key travels in the link. So the 2-digit code works, a copy of the keys is also stored on our server until the code is used or expires (up to 20 minutes). Each file is deleted after one download.'
+                                  : 'Your file is encrypted on this device and the key travels in the link. So the 2-digit code works, a copy of the key is also stored on our server until the code is used or expires (up to 20 minutes). It is deleted after one download.')
                               : (_selectedFiles.length > 1
                                   ? 'Your files are encrypted on this device. The keys stay in the URL fragments, so the server only stores ciphertext. Each file is deleted after one download.'
                                   : 'Your file is encrypted on this device. The key stays in the URL fragment, so the server only stores ciphertext. It is deleted after one download.'),

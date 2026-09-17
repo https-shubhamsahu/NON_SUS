@@ -118,3 +118,9 @@ supabase/functions/**/dist/
 
 # Local marker for the AGENTS.md change-log hook (per-checkout state)
 .claude/.changelog-head
+
+# Google Play / Fastlane service-account keys — never commit
+**/*service-account*.json
+fastlane/*.json
+play-*.json
+google-play*.json
