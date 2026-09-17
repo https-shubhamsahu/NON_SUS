@@ -23,6 +23,9 @@ Answer **No** to sharing for every data type.
 |---|---|---|---|---|---|
 | Personal info → **Email address** | Yes | No | No | Required | App functionality, Account management |
 | Personal info → **Name** (display name) | Yes | No | No | Required | App functionality, Account management |
+| Personal info → **User IDs** (Supabase auth user id) | Yes | No | No | Required | App functionality, Account management |
+| Personal info → **Phone number** (optional, OTP sign-in) | Yes | No | No | Optional | App functionality, Account management |
+| Messages → **Other in-app messages** (Burn note ciphertext; pairing-code shares also store the AES key server-side for up to 20 minutes) | Yes | No | Pairing-code key is ephemeral (≤20 min) | Required | App functionality |
 | Photos and videos → **Photos** (optional avatar upload) | Yes | No | No | Optional | App functionality |
 | Files and docs (documents users upload to groups) | Yes | No | No | Optional | App functionality |
 | App activity → **App interactions** (audit ledger: file opens, shares, membership changes, screenshot attempts; plus the activation-funnel analytics described below) | Yes | No | No | Required | App functionality, Analytics, Fraud prevention, security and compliance |
@@ -79,14 +82,14 @@ are deleted on sign-out.
 ## Data types to declare as NOT collected
 
 Location (any), Contacts, Calendar, SMS/Call logs, Audio, Health & fitness,
-Financial info, Browsing history, Search history, Installed apps, Messages
-(burn notes are stored as encrypted ciphertext. **Owner decision pending:**
-single-target burn shares also send the key and IV to `create-redemption-code`,
-which stores them in `burn_redemption_codes` until the 2-digit code is used or
-expires (20 minutes by default), so for that window the service could decrypt
-the note. Decide whether that still counts as "not collected" or ephemeral
-processing, and keep this answer, `web/privacy.html` §2 and the live Play
-Console form in step).
+Financial info, Browsing history, Search history, Installed apps.
+
+**Messages are COLLECTED.** Burn notes are stored as encrypted ciphertext.
+Single-target pairing-code shares also send the key and IV to
+`create-redemption-code`, which stores them in `burn_redemption_codes` until
+the 2-digit code is used or expires (20 minutes by default). Declare Messages
+→ Other in-app messages as collected (required, app functionality) on the
+live Play form when you next edit Data Safety.
 
 **Crash logs / Diagnostics — currently NOT collected, but the SDK is now in
 the codebase (disabled).** `sentry_flutter` was added in the production-

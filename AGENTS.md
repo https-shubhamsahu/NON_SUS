@@ -509,6 +509,12 @@ codebase — assume still outstanding unless you know otherwise.
 > bottom rather than letting this section grow without bound.
 
 <!-- CHANGELOG:INSERT -->
+- **2026-09-17** · feat(moderation): Play UGC content reports — why: Play requires
+  an in-app report path. Insert-only `content_reports` (RLS, no SELECT for
+  clients) plus a sheet on group / file / member menus.
+- **2026-09-17** · fix(copy): drop zero-knowledge and screenshot-proof claims — why:
+  pairing-code shares store the AES key on the server for up to 20 minutes;
+  web cannot block screenshots. UI and store listing now match that.
 - **2026-09-17** · fix(copy): say where the Burn key goes — why: the handoff's P0 1.2.
   `create-redemption-code` stores `key_hex`/`iv_hex` for every single-target Burn share until
   its 2-digit code is used or expires (20 min default). The homepage (FAQ, footer, TrustMetrics,

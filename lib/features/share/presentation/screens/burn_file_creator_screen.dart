@@ -604,9 +604,13 @@ class _BurnFileCreatorScreenState extends ConsumerState<BurnFileCreatorScreen> {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          _selectedFiles.length > 1
-                              ? 'Your files are encrypted. The keys live only in this link — the server cannot read them, and each is deleted permanently the moment it\'s downloaded.'
-                              : 'Your file is encrypted. The key lives only in this link — the server cannot read it, and it\'s deleted permanently the moment it\'s downloaded.',
+                          _generatedCode != null
+                              ? (_selectedFiles.length > 1
+                                  ? 'Your files are encrypted on this device. Each full link keeps its key in the URL fragment. Sharing a pairing code also stores that key on the server for up to 20 minutes. Ciphertext is deleted after one download.'
+                                  : 'Your file is encrypted on this device. The full link keeps the key in the URL fragment. Sharing the pairing code also stores that key on the server for up to 20 minutes. Ciphertext is deleted after one download.')
+                              : (_selectedFiles.length > 1
+                                  ? 'Your files are encrypted on this device. The keys stay in the URL fragments, so the server only stores ciphertext. Each file is deleted after one download.'
+                                  : 'Your file is encrypted on this device. The key stays in the URL fragment, so the server only stores ciphertext. It is deleted after one download.'),
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             fontSize: 12,

@@ -10,10 +10,10 @@ listing can't drift out of Play's metadata policy or misrepresent the app.
 NO SUS
 ```
 
-## Short description (80 max — this one is 76)
+## Short description (80 max — this one is 71)
 
 ```
-Secure study groups: encrypted files, burn notes & tamper-evident audit logs
+Share documents watermarked to each viewer. Send self-destructing notes.
 ```
 
 Alternates if you want to A/B later (both ≤80):
@@ -22,25 +22,25 @@ Alternates if you want to A/B later (both ≤80):
 Encrypted study workspace — secure sharing, self-destructing notes, audit log
 ```
 ```
-Share files that protect themselves. Encrypted groups, burn notes, audit log.
+Share documents watermarked to each viewer. Send self-destructing notes.
 ```
 
-## Full description (4000 max — this one is ~1,900)
+## Full description (4000 max)
 
 ```
-NO SUS is a security-first workspace for sharing documents with people you trust — and proving nothing happened behind your back.
+NO SUS is a workspace for sharing documents with people you trust — and proving who opened them.
 
 PRIVATE STUDY GROUPS
 Create invite-only groups and keep notes and documents in an encrypted vault. Files open inside a secure viewer with watermarking, so every copy carries its reader's identity.
 
 BURN NOTES & BURN FILES
-Send self-destructing notes and files. They are encrypted on your device before upload, and the decryption key travels only inside the link — it never reaches our servers, so we couldn't read your content even if we wanted to. One view or download, and it's permanently deleted. Recipients don't need an account.
+Send self-destructing notes and files. They are encrypted on your device before upload. Link shares keep the decryption key in the URL fragment. Pairing-code shares also store that key on the server for up to 20 minutes so the recipient can redeem a 2-digit code. One view or download, and the ciphertext is permanently deleted. Recipients don't need an account.
 
 TAMPER-EVIDENT AUDIT LOG
 Every file open, share, membership change, and screenshot attempt is written to a hash-chained ledger visible to your group. If a record is ever altered, the chain visibly breaks. Trust isn't promised — it's checkable.
 
 BUILT-IN SCREEN PROTECTION
-Screenshots and screen recording are blocked inside the app, and attempts are logged to the ledger. Links you share can require touch-to-reveal, so a glance at someone else's screen shows nothing.
+On Android, screenshots and screen recording are blocked inside the app, and attempts are logged to the ledger. The web viewer cannot block screenshots; it watermarks the page instead. Links you share can require touch-to-reveal.
 
 DEVICE INTEGRITY
 Rooted or tampered devices are detected and flagged. If an account shows serious risk signals, NO SUS can lock the session and require a fresh sign-in before anything else is opened.
@@ -82,7 +82,7 @@ secure viewer with watermark, Burn Note creator, the Audit ledger. Drop them in
 ```
 First public release.
 • Private study groups with an encrypted document vault
-• Burn Notes & Burn Files — self-destructing, zero-knowledge sharing
+• Burn Notes & Burn Files — self-destructing encrypted shares
 • Tamper-evident audit ledger
-• Screenshot blocking and watermarked viewing
+• Screenshot blocking on Android and watermarked viewing
 ```
