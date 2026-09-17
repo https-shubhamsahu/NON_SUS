@@ -184,7 +184,7 @@ class _BurnNoteViewerScreenState extends ConsumerState<BurnNoteViewerScreen> {
         ),
         const SizedBox(height: 12),
         const Text(
-          'This is a zero-knowledge encrypted burn note. Once you open it, the server deletes it permanently. You will have exactly 60 seconds to read it.',
+          'This is an encrypted burn note. Once you open it, it is permanently deleted. You will have exactly 60 seconds to read it.',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 13, color: Colors.white70, height: 1.4),
         ),

@@ -8,9 +8,11 @@
 //           (redemption_code_client.dart) — see
 //           supabase/migrations/20260713000000_burn_redemption_codes.sql for
 //           why this path trades zero-knowledge for a short, typeable code:
-//           the server briefly holds the key/IV. New two-digit codes are
-//           paired with an unguessable link token, while the direct link stays
-//           untouched and keeps its original guarantee.
+//           the server holds the key/IV until the code is used or expires.
+//           Every share here mints one, so the server receives the key even
+//           if the sender ends up handing out the direct link. The two digits
+//           are paired with an unguessable link token (#/redeem/<token>);
+//           that pairing link is what the tool shares when a code exists.
 import { APP_URL, SUPABASE_ANON_KEY, SUPABASE_URL } from "./links";
 import {
   bytesToHex,
@@ -30,15 +32,49 @@ export const NOTE_MAX_CHARS = 10000;
 // tool is still single-file only.
 export const FILE_MAX_BYTES = 25 * 1024 * 1024;
 
-export type RedemptionPairing = { code: string; link: string };
+export type RedemptionPairing = {
+  code: string;
+  /** `#/redeem/<token>`: opens only after the recipient types `code`. */
+  link: string;
+  /** When the pairing link and code stop working (ISO 8601), if known. */
+  expiresAt: string | null;
+};
 export type BurnResult = {
+  /** Direct link: carries the key and IV in the fragment, needs no code. */
   link: string;
   pairingPromise: Promise<RedemptionPairing | null>;
 };
 
+// A share should never hang on the code: past this, fall back to the direct link.
+const PAIRING_TIMEOUT_MS = 8000;
+
 function shareLink(kind: "burn" | "burnfile", id: string, key: Uint8Array, iv: Uint8Array): string {
-  // Key + IV live in the fragment — never transmitted to any server.
+  // Key + IV live in the fragment, which browsers never send in a request.
   return `${APP_URL}#/${kind}/${id}?k=${bytesToHex(key)}&v=${bytesToHex(iv)}`;
+}
+
+/** The link the sender hands out (QR and Copy Link). With a code it is the
+ * pairing link, so the two digits are actually needed to open the drop;
+ * without one (minting failed) it is the direct link. */
+export function linkToShare(directLink: string, pairing: RedemptionPairing | null): string {
+  return pairing ? pairing.link : directLink;
+}
+
+/** Redeem tab: turns a pasted pairing link, bare pairing token, or direct
+ * burn link into the app URL that opens it. Null for anything else. */
+export function appLinkFromPaste(raw: string): string | null {
+  const text = raw.trim();
+  const token =
+    text.match(/[#/]redeem\/([a-f0-9]{64})(?![a-f0-9])/i) ?? text.match(/^([a-f0-9]{64})$/i);
+  if (token) return `${APP_URL}#/redeem/${token[1].toLowerCase()}`;
+  const direct = text.match(
+    /#\/(burn|burnfile)\/([0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12})\?k=([0-9a-f]{64})&v=([0-9a-f]{32})(?![0-9a-f])/i,
+  );
+  if (direct) {
+    const [, kind, id, k, v] = direct;
+    return `${APP_URL}#/${kind.toLowerCase()}/${id.toLowerCase()}?k=${k.toLowerCase()}&v=${v.toLowerCase()}`;
+  }
+  return null;
 }
 
 /** Best-effort: mints a two-digit confirmation and its secure pairing link.
@@ -60,13 +96,23 @@ async function mintPairing(
         key_hex: keyHex,
         iv_hex: ivHex,
       }),
+      signal: AbortSignal.timeout(PAIRING_TIMEOUT_MS),
     });
     if (!res.ok) return null;
     const data = await res.json();
-    if (typeof data.code !== "string" || typeof data.redeem_token !== "string") {
+    if (
+      typeof data.code !== "string" ||
+      !/^\d{2}$/.test(data.code) ||
+      typeof data.redeem_token !== "string" ||
+      !/^[a-f0-9]{64}$/.test(data.redeem_token)
+    ) {
       return null;
     }
-    return { code: data.code, link: `${APP_URL}#/redeem/${data.redeem_token}` };
+    return {
+      code: data.code,
+      link: `${APP_URL}#/redeem/${data.redeem_token}`,
+      expiresAt: typeof data.expires_at === "string" ? data.expires_at : null,
+    };
   } catch {
     return null;
   }
@@ -94,9 +140,8 @@ export async function createBurnNote(text: string): Promise<BurnResult> {
 
   const keyHex = bytesToHex(key);
   const ivHex = bytesToHex(iv);
-  // Not awaited: the link is the actual deliverable and is already ready.
-  // Pairing is a secondary convenience — let it arrive whenever it arrives
-  // instead of making every share wait on another network round trip.
+  // Not awaited: READY TO SHARE shows as soon as the ciphertext is stored,
+  // and the UI hands out a link once this settles (see linkToShare).
   const pairingPromise = mintPairing("note", noteId, keyHex, ivHex);
   return { link: shareLink("burn", noteId, key, iv), pairingPromise };
 }

@@ -22,6 +22,7 @@ import '../../../services/screenshot_guard.dart';
 import '../../../components/shimmer_box.dart';
 import '../../../components/async_state_view.dart';
 import '../../../core/utils/web_links.dart';
+import '../../../components/content_report_sheet.dart';
 
 /// Full-screen group detail page with tabbed content:
 /// Files | Notes | Members | Activity
@@ -248,6 +249,13 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
                     _confirmLeaveGroup(context, ref, group);
                   } else if (val == 'delete') {
                     _confirmDeleteGroup(context, ref, group);
+                  } else if (val == 'report') {
+                    showContentReportSheet(
+                      context,
+                      targetKind: 'group',
+                      targetId: group.id,
+                      groupId: group.id,
+                    );
                   }
                 },
                 itemBuilder: (context) {
@@ -256,6 +264,16 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
                   // registers a listener with no effect.
                   final isCurrentUserAdmin = group.members.any((m) => m.id == ref.read(authStateProvider).value?.id && m.isAdmin);
                   return [
+                    const PopupMenuItem(
+                      value: 'report',
+                      child: Row(
+                        children: [
+                          Icon(Icons.flag_outlined, size: 16),
+                          SizedBox(width: 8),
+                          Text('Report group', style: TextStyle(fontSize: 12)),
+                        ],
+                      ),
+                    ),
                     const PopupMenuItem(
                       value: 'leave',
                       child: Row(
@@ -618,6 +636,12 @@ class _FilesTab extends ConsumerWidget {
                       file: file,
                       group: group,
                     ),
+                    onReport: () => showContentReportSheet(
+                      context,
+                      targetKind: 'file',
+                      targetId: file.id,
+                      groupId: group.id,
+                    ),
                   );
                   if (isHighlighted) {
                     card = Container(
@@ -738,6 +762,12 @@ class _NotesTab extends ConsumerWidget {
               ),
               onRename: () => _renameNote(context, ref, note.id, note.name),
               onDelete: () => _confirmDeleteNote(context, ref, group.id, note.id, note.name),
+              onReport: () => showContentReportSheet(
+                context,
+                targetKind: 'file',
+                targetId: note.id,
+                groupId: group.id,
+              ),
             );
             if (isHighlighted) {
               card = Container(
@@ -846,6 +876,7 @@ class _PinnedNoteCard extends StatelessWidget {
   final VoidCallback onOpen;
   final VoidCallback onRename;
   final VoidCallback onDelete;
+  final VoidCallback onReport;
 
   const _PinnedNoteCard({
     required this.note,
@@ -857,6 +888,7 @@ class _PinnedNoteCard extends StatelessWidget {
     required this.onOpen,
     required this.onRename,
     required this.onDelete,
+    required this.onReport,
   });
 
   @override
@@ -904,6 +936,8 @@ class _PinnedNoteCard extends StatelessWidget {
                       onRename();
                     } else if (val == 'delete') {
                       onDelete();
+                    } else if (val == 'report') {
+                      onReport();
                     }
                   },
                   itemBuilder: (context) => [
@@ -934,6 +968,16 @@ class _PinnedNoteCard extends StatelessWidget {
                           Icon(Icons.delete_outline, size: 14, color: Colors.redAccent),
                           SizedBox(width: 8),
                           Text('Delete Note', style: TextStyle(fontSize: 12, color: Colors.redAccent)),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'report',
+                      child: Row(
+                        children: [
+                          Icon(Icons.flag_outlined, size: 14),
+                          SizedBox(width: 8),
+                          Text('Report', style: TextStyle(fontSize: 12)),
                         ],
                       ),
                     ),
@@ -1418,6 +1462,12 @@ class _MembersTabState extends ConsumerState<_MembersTab> {
                   _confirmSetRole(visible[i], makeAdmin),
               onRemove: () => _confirmRemoveMember(visible[i]),
               onBan: () => _confirmBanMember(visible[i]),
+              onReport: () => showContentReportSheet(
+                context,
+                targetKind: 'member',
+                targetId: visible[i].id,
+                groupId: widget.groupId,
+              ),
             ),
             const SizedBox(height: NoSusTheme.s12),
           ],
@@ -1475,6 +1525,7 @@ class _MemberRow extends StatelessWidget {
   final ValueChanged<bool> onSetRole;
   final VoidCallback onRemove;
   final VoidCallback onBan;
+  final VoidCallback onReport;
 
   const _MemberRow({
     required this.member,
@@ -1486,6 +1537,7 @@ class _MemberRow extends StatelessWidget {
     required this.onSetRole,
     required this.onRemove,
     required this.onBan,
+    required this.onReport,
   });
 
   @override
@@ -1559,11 +1611,13 @@ class _MemberRow extends StatelessWidget {
                     ),
                   ),
                 ),
-              if (canModerate)
+              if (!isSelf)
                 PopupMenuButton<String>(
                   // 48dp minimum touch target, and a real label for screen
                   // readers — a bare icon announces nothing useful.
-                  tooltip: 'Manage ${member.name}',
+                  tooltip: canModerate
+                      ? 'Manage ${member.name}'
+                      : 'Report ${member.name}',
                   icon: Icon(
                     Icons.more_vert,
                     size: 20,
@@ -1579,10 +1633,12 @@ class _MemberRow extends StatelessWidget {
                         onRemove();
                       case 'ban':
                         onBan();
+                      case 'report':
+                        onReport();
                     }
                   },
                   itemBuilder: (context) => [
-                    if (member.isAdmin)
+                    if (canModerate && member.isAdmin)
                       const PopupMenuItem(
                         value: 'demote',
                         child: ListTile(
@@ -1592,7 +1648,7 @@ class _MemberRow extends StatelessWidget {
                           title: Text('Remove admin', style: TextStyle(fontSize: 13)),
                         ),
                       )
-                    else
+                    else if (canModerate)
                       const PopupMenuItem(
                         value: 'promote',
                         child: ListTile(
@@ -1602,26 +1658,37 @@ class _MemberRow extends StatelessWidget {
                           title: Text('Make admin', style: TextStyle(fontSize: 13)),
                         ),
                       ),
-                    const PopupMenuItem(
-                      value: 'remove',
-                      child: ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        dense: true,
-                        leading: Icon(Icons.person_remove_outlined, size: 18),
-                        title: Text('Remove from group',
-                            style: TextStyle(fontSize: 13)),
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'ban',
-                      child: ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        dense: true,
-                        leading: Icon(Icons.block, size: 18, color: Colors.redAccent),
-                        title: Text(
-                          'Ban from group',
-                          style: TextStyle(fontSize: 13, color: Colors.redAccent),
+                    if (canModerate)
+                      const PopupMenuItem(
+                        value: 'remove',
+                        child: ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          leading: Icon(Icons.person_remove_outlined, size: 18),
+                          title: Text('Remove from group',
+                              style: TextStyle(fontSize: 13)),
                         ),
+                      ),
+                    if (canModerate)
+                      const PopupMenuItem(
+                        value: 'ban',
+                        child: ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          leading: Icon(Icons.block, size: 18, color: Colors.redAccent),
+                          title: Text(
+                            'Ban from group',
+                            style: TextStyle(fontSize: 13, color: Colors.redAccent),
+                          ),
+                        ),
+                      ),
+                    const PopupMenuItem(
+                      value: 'report',
+                      child: ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                        leading: Icon(Icons.flag_outlined, size: 18),
+                        title: Text('Report', style: TextStyle(fontSize: 13)),
                       ),
                     ),
                   ],

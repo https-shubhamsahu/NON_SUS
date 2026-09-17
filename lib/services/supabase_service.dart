@@ -397,7 +397,7 @@ class SupabaseService {
           "2. Tap the '+' icon to create a secure study group.\n"
           "3. Share the invite code with classmates.\n"
           "4. Upload notes — they are stored securely in the workspace.\n"
-          "5. Use 'REVEAL' to read in our screenshot-proof viewer.";
+          "5. Use 'REVEAL' to read in the watermarked viewer.";
     } catch (e) {
       debugLog("SupabaseService: fetchUserNote error: $e");
       return '';

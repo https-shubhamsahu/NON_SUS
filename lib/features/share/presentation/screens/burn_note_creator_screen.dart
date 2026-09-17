@@ -177,7 +177,7 @@ class _BurnNoteCreatorScreenState extends ConsumerState<BurnNoteCreatorScreen> {
               style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
             ),
             Text(
-              'ZERO-KNOWLEDGE SELF-DESTRUCTS',
+              'ENCRYPTED. ONE VIEW. GONE.',
               style: TextStyle(
                 fontSize: 9,
                 color: Colors.orangeAccent,
@@ -289,10 +289,12 @@ class _BurnNoteCreatorScreenState extends ConsumerState<BurnNoteCreatorScreen> {
                           ),
                         ),
                         const SizedBox(height: 12),
-                        const Text(
-                          'Your note is encrypted. The key is embedded in the link fragment. The server cannot read it, and it will be deleted permanently once opened.',
+                        Text(
+                          _generatedCode != null
+                              ? 'Your note is encrypted on this device and the key travels in the link. So the 2-digit code works, a copy of the key is also stored on our server until the code is used or expires (up to 20 minutes). The note is deleted after one view.'
+                              : 'Your note is encrypted on this device. The key stays in the URL fragment, so the server only stores ciphertext. It is deleted after one view.',
                           textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 12, color: Colors.white70),
+                          style: const TextStyle(fontSize: 12, color: Colors.white70),
                         ),
                         const SizedBox(height: 32),
                         Container(

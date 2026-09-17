@@ -129,7 +129,16 @@ the user rather than chasing flaky rendering.
 in-app update banner (`lib/features/config/presentation/providers/app_update_provider.dart`).
 
 Paste-ready Play Console listing copy + data-safety answers live in `store_listing/` — **every claim
-there must map to a shipped feature.** Both workflows use `subosito/flutter-action`'s `cache: true`
+there must map to a shipped feature.** Listing *images* and Fastlane metadata live in
+`fastlane/metadata/android/en-IN/` (title, short/full description, `icon.png`,
+`featureGraphic.png`). Phone screenshots are **not** in-repo — capture them from a real
+device (Play: ≥1080px per side, aspect ≤2:1) and drop them in
+`images/phoneScreenshots/`. Do not rasterize widgets as store screenshots. Verify icon and
+feature graphic with `tool/verify_store_images.py`. Upload with
+`bundle exec fastlane android upload_listing` only when `PLAY_JSON_KEY` points at a
+Play Developer API service-account JSON (gitignored). Do not create that key ad hoc.
+
+Both workflows use `subosito/flutter-action`'s `cache: true`
 and write a `SENTRY_DSN` line into `.env` (empty/no-op unless that secret is ever set — see §8).
 
 **Signing keys:** the upload keystore is `android/app/upload-keystore.jks` (alias `nosus-upload`,
@@ -467,7 +476,7 @@ codebase — assume still outstanding unless you know otherwise.
 | Android App Links wired but unverified | Code + `assetlinks.json` shipped 2026-07-30 (see §5). Verification needs a **Play-signed** build on a device — a debug APK always reports `verified: false`. Blocked behind the row above |
 | `app_latest_version` still `1.2.0` in `remote_configs` | **(manual)** — bumping it prompts every existing user |
 | Back up `android/app/upload-keystore.jks` + `key.properties` outside the repo | **(manual)** — losing these forfeits the signing identity |
-| Play Console: upload feature graphic, phone/tablet screenshots, enter Data Safety answers, add Internal Testing testers | **(manual)** — assets drafted in `store_listing/`; shipping analytics changes the Data Safety answers |
+| Play Console launch | **Done 2026-09-17:** every App content declaration (privacy policy, ads, sign-in details, target audience 13+, Data safety, advertising ID, government/financial/health, content ratings), store contact details, listing title/short/full text. **Open:** phone screenshots (capture on a real device), app category, a signed release, and the closed test — a personal account needs 12 testers for 14 days before production. Images upload with Fastlane `upload_listing` once `PLAY_JSON_KEY` is set; `store_listing/data_safety_answers.md` mirrors the live form. |
 | `google_fonts` fetches Inter/Outfit from Google's CDN at runtime | ✅ Closed 2026-08-01 (`cd514aa`) — Inter/Outfit/VT323 `.ttf` bundled in `assets/google_fonts/` (~1.6 MB), `allowRuntimeFetching = false` in `main()`. Adding a weight without its `.ttf` now falls back silently |
 | ~~Accessibility sweep on lower-traffic screens~~ | **Done** 2026-07-29 — see §7 |
 | `BURN_FILES_IP_SALT` not set | Open — burn-file per-IP rate limiting degrades without it |
@@ -509,6 +518,33 @@ codebase — assume still outstanding unless you know otherwise.
 > bottom rather than letting this section grow without bound.
 
 <!-- CHANGELOG:INSERT -->
+- **2026-09-17** · fix(copy): every single-target Burn share stores its key server-side — why: the
+  listing, store copy and share screens said a plain link share keeps the key off the server.
+  `mintPairing` (homepage) and `createCode` (app) run on every single note or single file share,
+  so the key is stored for up to 20 minutes even if only the link is sent. Only multi-file app
+  shares skip it. `data_safety_answers.md` now matches the live Play form (Messages not
+  ephemeral; User IDs purposes). `20260917000000_content_reports.sql` was applied to production
+  on 2026-09-18 via the SQL editor plus `supabase migration repair --status applied`, because
+  `db push` was blocked by drift: production carried `20260915075600` (per-account hourly
+  budgets for document-intelligence / play-integrity, applied with the Gemini function deploy)
+  with no local file. That migration is now recovered verbatim as
+  `20260915075600_optional_service_budgets.sql`, so `db push` reports the remote as up to date
+  again. It also closes the "Gemini functions have no rate limit" thread: the budget is
+  service_role-only, 20/hour for document-intelligence and 10/hour for play-integrity.
+- **2026-09-17** · feat(moderation): Play UGC content reports — why: Play requires
+  an in-app report path. Insert-only `content_reports` (RLS, no SELECT for
+  clients) plus a sheet on group / file / member menus.
+- **2026-09-17** · fix(copy): drop zero-knowledge and screenshot-proof claims — why:
+  pairing-code shares store the AES key on the server for up to 20 minutes;
+  web cannot block screenshots. UI and store listing now match that.
+- **2026-09-17** · chore(store): drop fake screenshot capture pipeline — why:
+  the six phone PNGs were widget-rasterized stand-ins, not Play-ready device
+  captures. Icon, feature graphic, listing text, and Fastlane `upload_listing` stay.
+  Phone screenshots remain a manual Console step.
+- **2026-09-17** · feat(store): Play listing images and Fastlane `upload_listing` — why:
+  Console already has listing text; this wires icon + feature graphic and a
+  Fastlane lane that uploads metadata only. Phone screenshots were later removed
+  as widget-rasterized fakes. Upload is blocked until `PLAY_JSON_KEY` is set.
 - **2026-09-17** · fix(copy): say where the Burn key goes — why: the handoff's P0 1.2.
   `create-redemption-code` stores `key_hex`/`iv_hex` for every single-target Burn share until
   its 2-digit code is used or expires (20 min default). The homepage (FAQ, footer, TrustMetrics,
@@ -662,37 +698,5 @@ codebase — assume still outstanding unless you know otherwise.
   `supabase_flutter` owns the `login-callback` deep link; do not call `getSessionFromUrl` alongside
   it, the PKCE code is single-use and whichever handler loses the race reports a spurious auth
   failure on a login that succeeded.
-
-- **2026-07-25** · `6015dc3` · chore(release): bump to 1.3.0+10
-
-- **2026-07-25** · `96efcac` · ci: bump softprops/action-gh-release to v3
-
-- **2026-07-25** · `d6a1c1d` · fix(ci): pin actions/checkout to v5 — v6+ breaks the cross-repo deploy
-
-- **2026-07-25** · `8718c08` · ci: bump actions/checkout and actions/setup-node to v7
-
-- **2026-07-19** · `bf48c97` · docs: add root README documenting product, architecture, and monorepo layout
-
-- **2026-07-25** · `b795cc4` · docs(agents): log 4905e42 in the change log
-
-- **2026-07-25** · `4905e42` · docs(agents): add the "why" for cfab7c8, fix two stale references
-
-- **2026-07-25** · `cfab7c8` · feat(security): hardware-backed device identity on Android — why:
-  `DeviceIntegrityService.deviceId` was a `Uuid().v4()` in plaintext SharedPreferences, so the two
-  detectors built on it were defeatable by editing one file on a rooted device — the exact
-  population they target. It is now a digest of a non-extractable Android Keystore key (§8).
-  Contract note: `migrate_device_id()` must never be "improved" into also rewriting
-  `device_integrity_events.device_id` — that table's `entry_hash` is computed over `device_id` by a
-  **BEFORE INSERT** trigger, so an UPDATE would not recompute it and would silently break
-  `verify_device_integrity_chain()`. Trade-off: if the migration is needed and fails, the client
-  skips device registration for that session rather than risk writing a false
-  `multiple_device_access` into an append-only chain it could never retract.
-
-- **2026-07-25** · consolidated project documentation into this file — why: three root docs
-  (`ANALYZE_RESULT.md`, `INTEGRATION_REPORT.md`, `PROJECT_HANDOVER.md`) each separately claimed to be
-  "the authoritative single source of truth", none referenced each other consistently, and none were
-  kept in sync — a future agent picking one at random would act on stale information (e.g.
-  `PROJECT_HANDOVER.md` still described the product as "SecureSend" and listed already-fixed bugs).
-  They are now in `docs/archive/`. `CLAUDE.md` is a pointer to this file.
 
 _Entries before this point predate the consolidation and live in `git log` and `docs/archive/`._

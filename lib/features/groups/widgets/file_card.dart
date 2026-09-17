@@ -16,6 +16,7 @@ class FileCard extends StatefulWidget {
   final VoidCallback? onRename;
   final VoidCallback? onShare;
   final VoidCallback? onAnalytics;
+  final VoidCallback? onReport;
 
   const FileCard({
     super.key,
@@ -26,6 +27,7 @@ class FileCard extends StatefulWidget {
     this.onRename,
     this.onShare,
     this.onAnalytics,
+    this.onReport,
     required this.uploaderName,
     this.animationIndex = 0,
   });
@@ -264,6 +266,8 @@ class _FileCardState extends State<FileCard> {
                               widget.onAnalytics?.call();
                             } else if (val == 'delete') {
                               widget.onDelete?.call();
+                            } else if (val == 'report') {
+                              widget.onReport?.call();
                             }
                           },
                           itemBuilder: (context) => [
@@ -337,6 +341,17 @@ class _FileCardState extends State<FileCard> {
                                 ],
                               ),
                             ),
+                            if (widget.onReport != null)
+                              const PopupMenuItem(
+                                value: 'report',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.flag_outlined, size: 14),
+                                    SizedBox(width: 8),
+                                    Text('Report', style: TextStyle(fontSize: 12)),
+                                  ],
+                                ),
+                              ),
                           ],
                         ),
                       ],

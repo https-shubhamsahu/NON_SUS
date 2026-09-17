@@ -592,7 +592,7 @@ class _BurnNoteTeaserCard extends StatelessWidget {
 
     return Semantics(
       button: true,
-      label: 'Burn Notes — zero-knowledge encrypted self-destructing secrets',
+      label: 'Burn Notes — encrypted self-destructing secrets',
       child: InkWell(
       borderRadius: BorderRadius.circular(NoSusTheme.r16),
       onTap: () {

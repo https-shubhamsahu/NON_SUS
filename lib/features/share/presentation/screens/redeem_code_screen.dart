@@ -110,7 +110,9 @@ class _RedeemCodeScreenState extends State<RedeemCodeScreen> {
               ),
               const SizedBox(height: NoSusTheme.s16),
               Text(
-                'Got a code instead of a link?',
+                widget.redeemToken == null
+                    ? 'Got a code instead of a link?'
+                    : 'Enter the two-digit code',
                 style: theme.textTheme.titleLarge,
               ),
               const SizedBox(height: NoSusTheme.s8),
