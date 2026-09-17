@@ -476,7 +476,7 @@ codebase — assume still outstanding unless you know otherwise.
 | Android App Links wired but unverified | Code + `assetlinks.json` shipped 2026-07-30 (see §5). Verification needs a **Play-signed** build on a device — a debug APK always reports `verified: false`. Blocked behind the row above |
 | `app_latest_version` still `1.2.0` in `remote_configs` | **(manual)** — bumping it prompts every existing user |
 | Back up `android/app/upload-keystore.jks` + `key.properties` outside the repo | **(manual)** — losing these forfeits the signing identity |
-| Play Console: upload feature graphic + phone screenshots via Fastlane `upload_listing` | **Blocked** on `PLAY_JSON_KEY` (service-account JSON for the Play Android Developer API). Assets are generated under `fastlane/metadata/android/en-IN/images/`. Data Safety answers remain a Console form (`store_listing/data_safety_answers.md`). Do not re-enter listing *text* if it is already in Console. |
+| Play Console launch | **Done 2026-09-17:** every App content declaration (privacy policy, ads, sign-in details, target audience 13+, Data safety, advertising ID, government/financial/health, content ratings), store contact details, listing title/short/full text. **Open:** phone screenshots (capture on a real device), app category, a signed release, and the closed test — a personal account needs 12 testers for 14 days before production. Images upload with Fastlane `upload_listing` once `PLAY_JSON_KEY` is set; `store_listing/data_safety_answers.md` mirrors the live form. |
 | `google_fonts` fetches Inter/Outfit from Google's CDN at runtime | ✅ Closed 2026-08-01 (`cd514aa`) — Inter/Outfit/VT323 `.ttf` bundled in `assets/google_fonts/` (~1.6 MB), `allowRuntimeFetching = false` in `main()`. Adding a weight without its `.ttf` now falls back silently |
 | ~~Accessibility sweep on lower-traffic screens~~ | **Done** 2026-07-29 — see §7 |
 | `BURN_FILES_IP_SALT` not set | Open — burn-file per-IP rate limiting degrades without it |
@@ -692,37 +692,5 @@ codebase — assume still outstanding unless you know otherwise.
   `supabase_flutter` owns the `login-callback` deep link; do not call `getSessionFromUrl` alongside
   it, the PKCE code is single-use and whichever handler loses the race reports a spurious auth
   failure on a login that succeeded.
-
-- **2026-07-25** · `6015dc3` · chore(release): bump to 1.3.0+10
-
-- **2026-07-25** · `96efcac` · ci: bump softprops/action-gh-release to v3
-
-- **2026-07-25** · `d6a1c1d` · fix(ci): pin actions/checkout to v5 — v6+ breaks the cross-repo deploy
-
-- **2026-07-25** · `8718c08` · ci: bump actions/checkout and actions/setup-node to v7
-
-- **2026-07-19** · `bf48c97` · docs: add root README documenting product, architecture, and monorepo layout
-
-- **2026-07-25** · `b795cc4` · docs(agents): log 4905e42 in the change log
-
-- **2026-07-25** · `4905e42` · docs(agents): add the "why" for cfab7c8, fix two stale references
-
-- **2026-07-25** · `cfab7c8` · feat(security): hardware-backed device identity on Android — why:
-  `DeviceIntegrityService.deviceId` was a `Uuid().v4()` in plaintext SharedPreferences, so the two
-  detectors built on it were defeatable by editing one file on a rooted device — the exact
-  population they target. It is now a digest of a non-extractable Android Keystore key (§8).
-  Contract note: `migrate_device_id()` must never be "improved" into also rewriting
-  `device_integrity_events.device_id` — that table's `entry_hash` is computed over `device_id` by a
-  **BEFORE INSERT** trigger, so an UPDATE would not recompute it and would silently break
-  `verify_device_integrity_chain()`. Trade-off: if the migration is needed and fails, the client
-  skips device registration for that session rather than risk writing a false
-  `multiple_device_access` into an append-only chain it could never retract.
-
-- **2026-07-25** · consolidated project documentation into this file — why: three root docs
-  (`ANALYZE_RESULT.md`, `INTEGRATION_REPORT.md`, `PROJECT_HANDOVER.md`) each separately claimed to be
-  "the authoritative single source of truth", none referenced each other consistently, and none were
-  kept in sync — a future agent picking one at random would act on stale information (e.g.
-  `PROJECT_HANDOVER.md` still described the product as "SecureSend" and listed already-fixed bugs).
-  They are now in `docs/archive/`. `CLAUDE.md` is a pointer to this file.
 
 _Entries before this point predate the consolidation and live in `git log` and `docs/archive/`._
