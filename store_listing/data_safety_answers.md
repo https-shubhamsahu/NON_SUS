@@ -145,3 +145,12 @@ deleted on first read or expiry.
 ## Ads declaration
 
 **No ads.** The app contains no advertising SDK.
+
+## Saved (feature flag `nosus_address_enabled`, off until rollout)
+
+When this is turned on, files the user sends to Saved are written to a folder in
+the user's own Google Drive (`drive.file`). Declare, at that point: Files and
+docs, collected, and shared with Google Drive because the user connected it,
+purpose App functionality. A borrowed computer does not receive the Google
+token. Do not describe the session as leaving no trace: downloads and prints
+can remain on that computer.

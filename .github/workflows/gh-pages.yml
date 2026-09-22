@@ -57,6 +57,7 @@ jobs:
           npm ci
           npm run lint
           npm run test:burn
+          npm run test:seal
           npm run build
 
       # Play Store listing + in-app links reference nosus.foo/privacy.html etc.
