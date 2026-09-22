@@ -43,6 +43,7 @@ if(!next)return;
 try{w.history.replaceState(null,"",w.location.pathname+w.location.search);}catch(e){}
 w.location.replace(next);
 });
+if(/^\\/go\\/?$/.test(w.location.pathname||"/"))return;
 if(!token)return;
 var h=w.location.hash||"";
 if(h&&!/^#[A-Za-z][\\w-]*$/.test(h))return;

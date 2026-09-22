@@ -5,11 +5,13 @@ import '../theme.dart';
 class FloatingNav extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
+  final bool chats;
 
   const FloatingNav({
     super.key,
     required this.currentIndex,
     required this.onTap,
+    this.chats = false,
   });
 
   static bool isCompact(BuildContext context) =>
@@ -52,7 +54,7 @@ class FloatingNav extends StatelessWidget {
       NavTabItem(
         icon: Icons.group_outlined,
         selectedIcon: Icons.group,
-        label: 'Groups',
+        label: chats ? 'Chats' : 'Groups',
       ),
     ];
 

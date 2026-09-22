@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../theme.dart';
+import '../../../address/saved_chat_screen.dart';
+import '../../../config/presentation/providers/config_provider.dart';
 import '../../../../services/share_intent_service.dart';
 import '../../../../services/supabase_service.dart';
 import '../../../groups/providers/groups_provider.dart';
@@ -622,6 +624,39 @@ class _SaveToNoSusDialogState extends ConsumerState<SaveToNoSusDialog>
                       ],
                     ),
                   ),
+
+                  if (ref.watch(featureFlagProvider('nosus_address_enabled'))) ...[
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      height: 48,
+                      child: OutlinedButton.icon(
+                        onPressed: () async {
+                          final content = widget.content;
+                          final SavedPending pending;
+                          if (content.type == 'text' || content.type == 'url') {
+                            pending = SavedPending.text(content.data);
+                          } else {
+                            final bytes = await File(content.data).readAsBytes();
+                            pending = SavedPending.file(
+                              bytes,
+                              content.name ?? 'file',
+                              content.type == 'image' ? 'image/jpeg' : 'application/pdf',
+                            );
+                          }
+                          if (!context.mounted) return;
+                          final nav = Navigator.of(context);
+                          nav.pop();
+                          nav.push(
+                            MaterialPageRoute(
+                              builder: (_) => SavedChatScreen(pending: pending),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.bookmark_outline),
+                        label: const Text('Send to Saved'),
+                      ),
+                    ),
+                  ],
 
                   const SizedBox(height: 20),
 

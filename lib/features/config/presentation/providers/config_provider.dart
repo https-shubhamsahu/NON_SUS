@@ -29,12 +29,10 @@ final configInitializerProvider = FutureProvider<void>((ref) async {
 /// It watches the active authenticated user's ID to perform targeting checks.
 final featureFlagProvider = Provider.family<bool, String>((ref, flagKey) {
   final user = ref.watch(authStateProvider).value;
+  // No user means off. Don't touch remote config — its provider reaches
+  // Supabase, which widget tests (and a logged-out frame) have not started.
+  if (user == null) return false;
   final service = ref.watch(remoteConfigServiceProvider);
-  
-  if (user == null) {
-    return false;
-  }
-  
   return service.isFeatureEnabled(flagKey, user.id);
 });
 

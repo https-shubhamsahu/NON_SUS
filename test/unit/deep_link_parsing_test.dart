@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:no_sus/core/crypto/nosus_seal.dart';
+import 'package:no_sus/features/address/go_session.dart';
 import 'package:no_sus/main.dart';
 
 // These lock the two shared-into-the-wild URL contracts. Links people have
@@ -251,6 +253,22 @@ void main() {
         ),
         isNull,
       );
+    });
+  });
+
+  group('extractGoPairing', () {
+    test('parses a Go link and ignores shipped link shapes', () {
+      final desk = generateGoKeyPair();
+      final sid = b64url(randomBytes(16));
+      final url = GoPairing(sid: sid, deskPublic: desk.publicKey).url;
+      expect(extractGoPairing(Uri.parse(url))?.sid, sid);
+      expect(
+        extractGoPairing(Uri.parse('https://nosus.foo/#/burn/$noteId?k=$keyHex&v=$ivHex')),
+        isNull,
+      );
+      expect(extractGoPairing(Uri.parse('https://nosus.foo/#/redeem/${'ab' * 32}')), isNull);
+      expect(extractGoPairing(Uri.parse('https://nosus.foo/#/v/abc')), isNull);
+      expect(extractGoPairing(Uri.parse('https://nosus.foo/#/join/invite123')), isNull);
     });
   });
 }

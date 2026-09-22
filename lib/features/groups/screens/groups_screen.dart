@@ -16,6 +16,8 @@ import '../widgets/empty_states.dart';
 import 'group_detail_screen.dart';
 import 'join_group_page.dart';
 import '../../../theme.dart';
+import '../../address/saved_chat_screen.dart';
+import '../../config/presentation/providers/config_provider.dart';
 import '../../../components/shimmer_box.dart';
 import '../../../components/async_state_view.dart';
 import '../../auth/presentation/providers/auth_providers.dart';
@@ -123,6 +125,16 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen>
           onChanged: (q) => ref.read(searchQueryProvider.notifier).update(q),
         ).animate().fadeIn(delay: 80.ms, duration: 250.ms),
 
+        if (ref.watch(authStateProvider).hasValue &&
+            ref.watch(featureFlagProvider('nosus_address_enabled'))) ...[
+          const SizedBox(height: NoSusTheme.s12),
+          _SavedPin(
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const SavedChatScreen()),
+            ),
+          ),
+        ],
+
         const SizedBox(height: NoSusTheme.s16),
 
         // ── Group list ─────────────────────────────────────────────────────
@@ -160,6 +172,42 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen>
 }
 
 // ─── Sub-widgets ──────────────────────────────────────────────────────────────
+
+class _SavedPin extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _SavedPin({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final fg = Theme.of(context).colorScheme.onSurface;
+    final subtle = fg.withValues(alpha: 0.62);
+    return Semantics(
+      button: true,
+      label: 'Saved, only you',
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 56),
+          child: Row(
+            children: [
+              Icon(Icons.bookmark_outline, color: fg),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Saved', style: TextStyle(color: fg, fontSize: 16, fontWeight: FontWeight.w700)),
+                  Text('Only you', style: TextStyle(color: subtle, fontSize: 13)),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 class _GroupsHeader extends StatelessWidget {
   final Color fg;

@@ -44,6 +44,8 @@ import 'features/notifications/presentation/notification_router.dart';
 import 'features/notifications/presentation/providers/notification_providers.dart';
 import 'features/notifications/presentation/screens/notification_inbox_screen.dart';
 import 'features/config/data/remote_config_service.dart';
+import 'features/address/go_approve_screen.dart';
+import 'features/address/go_session.dart';
 import 'features/config/presentation/providers/config_provider.dart';
 import 'core/mascot/mascot_state.dart';
 import 'core/mascot/mascot_view.dart';
@@ -579,6 +581,7 @@ class MyApp extends ConsumerWidget {
     final themeMode = ref.watch(themeModeProvider);
 
     final inviteToken = extractInviteToken(Uri.base);
+    final goPairing = extractGoPairing(Uri.base);
 
     return MaterialApp(
       title: 'NO SUS',
@@ -589,7 +592,9 @@ class MyApp extends ConsumerWidget {
       themeMode: themeMode,
       home: inviteToken != null
           ? GroupInviteLandingScreen(inviteCode: inviteToken)
-          : const AuthGate(child: WorkspaceHome()),
+          : goPairing != null
+              ? AuthGate(child: GoApproveScreen(pairing: goPairing))
+              : const AuthGate(child: WorkspaceHome()),
       onGenerateRoute: (settings) {
         // Web OAuth (Google/GitHub) redirects land on e.g. "/?code=..." — not
         // exactly "/", so Flutter treats it as a distinct route instead of
@@ -1065,7 +1070,11 @@ class _WorkspaceHomeState extends ConsumerState<WorkspaceHome> {
                 ),
 
                 // Floating bottom navigation
-                FloatingNav(currentIndex: _currentTab, onTap: _onTabTapped),
+                FloatingNav(
+                  currentIndex: _currentTab,
+                  onTap: _onTabTapped,
+                  chats: ref.watch(featureFlagProvider('nosus_address_enabled')),
+                ),
               ],
             ),
           ),
@@ -1253,6 +1262,17 @@ bool _routeIncomingWebLink(Uri uri) {
               .map((t) => (id: t.id, keyHex: t.keyHex, ivHex: t.ivHex))
               .toList(),
         ),
+      ),
+    );
+    return true;
+  }
+
+  final goPairing = extractGoPairing(uri);
+  if (goPairing != null) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => GoApproveScreen(pairing: goPairing),
       ),
     );
     return true;
