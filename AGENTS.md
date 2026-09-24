@@ -246,8 +246,12 @@ handle every shape the app can mint — **add a new link shape without adding it
 dead-ends on the home screen**, silently, with no browser fallback, because the system already chose
 the app over the web page. It is the native mirror of the `Uri.base` branches that run in `main()`
 on web. `web/.nojekyll` is load-bearing for the same feature: without it GitHub Pages drops the
-`.well-known` dot-directory and verification fails. The fingerprint in `assetlinks.json` is the Play
-**app signing** key — pressing "Change key" in Play Console invalidates it.
+`.well-known` dot-directory and verification fails. `assetlinks.json` lists the Play **app signing**
+keys by SHA-256. The key was rotated to a quantum-ready one, so it carries **both** the previous key
+(`3D:6F:46…`, first used 2026-07-30; older devices still see it) and the current classical key
+(`63:F6:CB…`). Keep both. Pressing "Change key" again means adding the new fingerprint here first.
+The Google OAuth **Android** clients (project `no-sus`) must match by SHA-1: debug `56:05:F3…`,
+upload `4D:DE:0D…`, current Play `3B:24:87…`, previous Play `78:D0:01…` — one client per SHA-1.
 
 **Burn Files: single vs. multi-file share.** `#/burnfile/<id>?k=&v=` (singular) is the original
 one-file link, untouched. `#/burnfiles/<id1,id2,...>?k=<key1,key2,...>&v=<iv1,iv2,...>` (plural) is
@@ -549,6 +553,9 @@ codebase — assume still outstanding unless you know otherwise.
 > bottom rather than letting this section grow without bound.
 
 <!-- CHANGELOG:INSERT -->
+- **2026-09-24** · fix(applinks): add the current Play signing key to `assetlinks.json` — why: Play
+  shows the app signing key was rotated (previous key first used 2026-07-30); the file only listed
+  the old key, so App Links would stop verifying for devices on the new key. Both are listed now.
 - **2026-09-24** · chore(release): bump to 1.4.1+12 — why: ships Address (Saved/Go, Drop, Group
   drops; all flags at 0%), device keys, the web Face ID gate, and the Burn note upgrades (copy,
   paste, scrolling, 50,000 characters) to the Play internal track. `app_latest_version` in
