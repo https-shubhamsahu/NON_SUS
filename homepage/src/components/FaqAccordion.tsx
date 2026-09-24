@@ -80,7 +80,10 @@ export default function FaqAccordion() {
   };
 
   return (
-    <section className="py-24 bg-background border-b border-border relative">
+    <section
+      id="faq"
+      className="py-24 bg-background border-b border-border relative"
+    >
       <div className="mx-auto max-w-4xl px-6 md:px-8">
         <script
           type="application/ld+json"

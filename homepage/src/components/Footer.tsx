@@ -27,6 +27,7 @@ export default function Footer() {
     ],
     Resources: [
       { name: "How It Works", href: "#how-it-works" },
+      { name: "FAQ", href: "/#faq" },
       { name: "Security Spec", href: "#security" },
       { name: "Under the Hood", href: "#developers" },
       { name: "Meet Lux & Nox", href: "#mascots" },

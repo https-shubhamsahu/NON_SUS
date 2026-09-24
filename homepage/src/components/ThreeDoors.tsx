@@ -19,7 +19,7 @@ export default function ThreeDoors() {
         </h2>
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3 md:gap-8">
-          {/* 1. You (Go) — live */}
+          {/* 1. You (Go) — in app when flag enabled */}
           <article
             className="paper-card door-card flex flex-col gap-6 p-6 md:p-8"
             style={{ animationDelay: "0ms" }}
@@ -33,7 +33,7 @@ export default function ThreeDoors() {
                 />
               </div>
               <span className="rounded-pill bg-muted px-3 py-1 text-xs font-semibold uppercase tracking-wider text-foreground">
-                Available now
+                In app when enabled
               </span>
             </div>
 

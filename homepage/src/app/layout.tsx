@@ -132,12 +132,12 @@ const structuredData = {
       name: "NO SUS",
       url: APP_URL,
       applicationCategory: "SecurityApplication",
-      operatingSystem: "Android",
+      operatingSystem: "Android, Web",
       image: `${SITE_URL}og-image.png`,
       offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
       publisher: { "@id": `${SITE_URL}#organization` },
       description:
-        "Open Saved on a borrowed computer without signing Google in there. Watermarked documents and self-destructing notes stay in the app.",
+        "Watermarked documents and self-destructing notes in the app. Open Saved on a borrowed computer when Go is enabled for your account, without signing Google in there. Web app at app.nosus.foo; native Android app.",
     },
   ],
 };

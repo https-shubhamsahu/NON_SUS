@@ -3,14 +3,14 @@ import { MetadataRoute } from "next";
 // Required for `output: "export"` — metadata routes must opt into static.
 export const dynamic = "force-static";
 
-// The legal pages are copied in from web/ by .github/workflows/gh-pages.yml,
-// so this build cannot see when they change. They carry no lastModified
-// because a date that moves on every deploy would be false.
+// Indexable URLs only. Legal pages are copied from web/ at deploy, so this
+// build has no honest mtime for them. Homepage lastModified is omitted too:
+// inventing freshness (or using new Date() every build) would be false.
+// /go and /to are utility pages with robots noindex — keep them out.
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
     {
       url: "https://nosus.foo/",
-      lastModified: new Date(),
       changeFrequency: "weekly",
       priority: 1,
     },
