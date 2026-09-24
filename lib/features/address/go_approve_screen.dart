@@ -4,11 +4,11 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
-import 'package:local_auth/local_auth.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../config/go_config.dart';
 import '../../core/crypto/nosus_seal.dart';
+import '../../core/security/platform_lock.dart';
 import '../config/presentation/providers/config_provider.dart';
 import 'drive_saved_store.dart';
 import 'go_link.dart';
@@ -275,19 +275,7 @@ class _GoApproveScreenState extends ConsumerState<GoApproveScreen> {
     if (mounted) setState(() => _message = 'Waiting for the computer…');
   }
 
-  Future<bool> _deviceLock() async {
-    try {
-      final auth = LocalAuthentication();
-      final supported = await auth.isDeviceSupported();
-      if (!supported) return false;
-      return auth.authenticate(
-        localizedReason: 'Approve this computer',
-        options: const AuthenticationOptions(biometricOnly: false, stickyAuth: true),
-      );
-    } catch (_) {
-      return false;
-    }
-  }
+  Future<bool> _deviceLock() => confirmWithDeviceLock('Approve this computer');
 
   Future<void> _none() async {
     await _finish(send: true);
