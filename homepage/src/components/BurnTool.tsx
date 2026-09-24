@@ -231,14 +231,22 @@ export default function BurnTool() {
   };
 
   return (
-    <div className="relative flex flex-col items-center justify-center py-6">
-      {/* Keep the branded circle without continuous animation work. */}
+    <section id="try" className="relative w-full max-w-xl mx-auto py-6">
+      <div className="mb-8 text-center px-2">
+        <h2 className="text-[32px] font-black uppercase tracking-tight text-foreground leading-tight">
+          No account needed. Try it now.
+        </h2>
+        <p className="mt-4 text-base leading-relaxed text-muted-foreground max-w-md mx-auto">
+          Burn a note or file in the browser. The key for a normal link stays in
+          the URL fragment. If you use a two-digit pairing code on a single note
+          or file, that key is stored for up to 20 minutes.
+        </p>
+      </div>
+
       <div
-        className={`relative z-10 w-[min(380px,calc(100vw-32px))] sm:w-[440px] border-4 border-white/80 bg-brand-black/95 text-left flex flex-col items-center justify-center p-6 shadow-[8px_8px_0px_0px_rgba(255,255,255,0.05)] transition-colors ${
-          phase === "done"
-            ? "h-auto min-h-[380px] sm:min-h-[440px] py-8 rounded-[48px] sm:rounded-[56px]"
-            : "h-[380px] sm:h-[440px] rounded-[50%]"
-        } ${dragOver ? "scale-105 border-white bg-white/5" : ""}`}
+        className={`relative z-10 w-full paper-card text-left flex flex-col items-center justify-center p-6 sm:p-8 transition-colors duration-200 ease-out motion-reduce:transition-none ${
+          phase === "done" ? "min-h-[380px] py-8" : "min-h-[380px]"
+        } ${dragOver ? "ring-2 ring-ring" : ""}`}
       >
           {phase === "working" ? (
             <div
@@ -248,13 +256,13 @@ export default function BurnTool() {
             >
               <div className="relative">
                 <div
-                  className="w-16 h-16 border-2 border-dashed border-white rounded-full flex items-center justify-center animate-spin motion-reduce:animate-none"
+                  className="w-16 h-16 border-2 border-dashed border-border rounded-full flex items-center justify-center animate-spin motion-reduce:animate-none"
                 />
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <Lock className="h-5 w-5 text-white" />
+                  <Lock className="h-5 w-5 text-foreground" />
                 </div>
               </div>
-              <span className="text-[10px] font-mono tracking-widest text-brand-gray-light animate-pulse text-center max-w-[200px] uppercase">
+              <span className="text-xs font-mono tracking-widest text-muted-foreground animate-pulse motion-reduce:animate-none text-center max-w-[240px] uppercase">
                 {statusLabel}
               </span>
             </div>
@@ -262,17 +270,17 @@ export default function BurnTool() {
             <div
               key="done"
               role="status"
-              className="flex flex-col items-center justify-center gap-2 text-center w-full px-3"
+              className="flex flex-col items-center justify-center gap-4 text-center w-full px-2"
             >
-              <div className="flex items-center gap-2 text-white">
-                <Lock className="h-4 w-4 text-green-400" />
-                <span className="text-[10px] font-bold tracking-widest uppercase">
+              <div className="flex items-center gap-2 text-foreground">
+                <Lock className="h-4 w-4 text-foreground" />
+                <span className="text-xs font-bold tracking-widest uppercase">
                   READY TO SHARE
                 </span>
               </div>
 
               <div className="flex flex-col items-center">
-                <span className="text-[9px] font-bold tracking-[0.28em] uppercase text-brand-gray-light">
+                <span className="text-xs font-bold tracking-[0.28em] uppercase text-muted-foreground">
                   Their code
                 </span>
                 {pairing ? (
@@ -280,75 +288,78 @@ export default function BurnTool() {
                     type="button"
                     onClick={copyCode}
                     aria-label={`Confirmation code ${pairing.code}`}
-                    className="text-[52px] sm:text-[60px] leading-none font-black tabular-nums tracking-[0.18em] text-white"
+                    className="min-h-[44px] min-w-[44px] text-[52px] sm:text-[60px] leading-none font-black tabular-nums tracking-[0.18em] text-foreground"
                   >
                     {pairing.code}
                   </button>
                 ) : !pairingSettled ? (
                   <span
-                    className="text-[52px] sm:text-[60px] leading-none font-black tabular-nums tracking-[0.18em] text-white/25 animate-pulse"
+                    className="text-[52px] sm:text-[60px] leading-none font-black tabular-nums tracking-[0.18em] text-muted-foreground/40 animate-pulse motion-reduce:animate-none"
                     aria-label="Generating confirmation code"
                   >
                     ··
                   </span>
                 ) : (
-                  <p className="mt-1 text-[10px] text-brand-gray-light max-w-[200px]">
+                  <p className="mt-1 text-base text-muted-foreground max-w-[240px]">
                     Share the link. A pairing code was not issued for this drop.
                   </p>
                 )}
                 {pairing && (
-                  <p className="text-[8px] text-brand-gray-light">
+                  <p className="text-sm text-muted-foreground">
                     {codeCopied ? "Code copied." : "Tap to copy. Tell them these digits."}
                   </p>
                 )}
               </div>
 
               {sharedLink ? (
-                <div className="p-1.5 bg-white rounded-lg">
+                <div className="p-2 bg-card border border-border rounded-[12px]">
                   <ShareQr value={sharedLink} size={108} />
                 </div>
               ) : (
                 <div
                   role="img"
                   aria-label="Preparing the share link"
-                  className="w-[120px] h-[120px] rounded-lg bg-white/10 animate-pulse motion-reduce:animate-none"
+                  className="w-[120px] h-[120px] rounded-[12px] bg-muted animate-pulse motion-reduce:animate-none"
                 />
               )}
 
               <button
+                type="button"
                 onClick={copyLink}
                 disabled={!sharedLink}
-                className="bg-white text-black px-6 py-2 text-[9px] font-bold uppercase tracking-widest hover:bg-black hover:text-white border border-white transition-all rounded-full flex items-center gap-2 z-20 disabled:opacity-40 disabled:pointer-events-none"
+                className="btn btn-primary disabled:opacity-40 disabled:pointer-events-none"
               >
                 {copied ? (
                   <>
-                    <Check className="h-3 w-3" /> Copied
+                    <Check className="h-4 w-4" /> Copied
                   </>
                 ) : (
                   <>
-                    <Copy className="h-3 w-3" /> Copy Link
+                    <Copy className="h-4 w-4" /> Copy Link
                   </>
                 )}
               </button>
               {pairing && (
                 <>
-                  <p className="text-[8px] text-brand-gray-light max-w-[240px]">
+                  <p className="text-sm text-muted-foreground max-w-[280px]">
                     The link only opens with the code{pairingTimeLeft ? ` · works for ${pairingTimeLeft}` : ""}.
                   </p>
                   <button
+                    type="button"
                     onClick={copyDirectLink}
-                    className="text-[8px] font-bold uppercase tracking-widest text-brand-gray-light underline underline-offset-2 hover:text-white transition-colors z-20"
+                    className="btn btn-ghost text-sm"
                   >
                     {directCopied ? "Direct link copied" : "Copy direct link (no code)"}
                   </button>
                 </>
               )}
-              {copyError && <p className="text-[10px] text-brand-gray-light" role="alert">{copyError}</p>}
+              {copyError && <p className="text-base text-destructive" role="alert">{copyError}</p>}
               <button
+                type="button"
                 onClick={reset}
-                className="inline-flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-widest text-brand-gray-light hover:text-white transition-colors z-20"
+                className="btn btn-ghost text-sm"
               >
-                <RotateCcw className="h-3 w-3" /> Burn another
+                <RotateCcw className="h-4 w-4" /> Burn another
               </button>
             </div>
           ) : phase === "error" ? (
@@ -357,44 +368,63 @@ export default function BurnTool() {
               role="alert"
               className="flex flex-col items-center justify-center gap-4 text-center w-full p-4"
             >
-              <AlertTriangle className="h-8 w-8 text-white" />
-              <span className="text-[10px] font-mono text-brand-gray-light uppercase leading-relaxed max-w-[220px]">
+              <AlertTriangle className="h-8 w-8 text-destructive" />
+              <span className="text-base font-mono text-muted-foreground uppercase leading-relaxed max-w-[260px]">
                 {error}
               </span>
               <button
+                type="button"
                 onClick={reset}
-                className="bg-white text-black px-5 py-2 text-[9px] font-bold uppercase tracking-widest hover:bg-black hover:text-white border border-white transition-all rounded-full flex items-center gap-2 z-20"
+                className="btn btn-primary"
               >
-                <RotateCcw className="h-3 w-3" /> Try again
+                <RotateCcw className="h-4 w-4" /> Try again
               </button>
             </div>
           ) : (
             <div
               key="form"
-              className="flex flex-col items-center justify-center w-full h-full text-center relative z-20"
+              className="flex flex-col items-center justify-center w-full text-center relative z-20"
             >
-              {/* Tabs Capsule */}
-              <div className="flex border border-white/20 bg-brand-black rounded-full overflow-hidden mb-5">
+              <div
+                role="tablist"
+                aria-label="Burn tool mode"
+                className="flex border border-border bg-muted rounded-full overflow-hidden mb-6"
+              >
                 <button
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === "note"}
                   onClick={() => switchTab("note")}
-                  className={`px-4 py-1.5 text-[9px] font-bold uppercase tracking-wider transition-colors ${
-                    tab === "note" ? "bg-white text-black" : "text-brand-gray-light hover:text-white"
+                  className={`min-h-[44px] px-5 text-sm font-bold uppercase tracking-wider transition-colors duration-200 ease-out motion-reduce:transition-none ${
+                    tab === "note"
+                      ? "bg-accent text-accent-foreground"
+                      : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   Note
                 </button>
                 <button
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === "file"}
                   onClick={() => switchTab("file")}
-                  className={`px-4 py-1.5 text-[9px] font-bold uppercase tracking-wider transition-colors ${
-                    tab === "file" ? "bg-white text-black" : "text-brand-gray-light hover:text-white"
+                  className={`min-h-[44px] px-5 text-sm font-bold uppercase tracking-wider transition-colors duration-200 ease-out motion-reduce:transition-none ${
+                    tab === "file"
+                      ? "bg-accent text-accent-foreground"
+                      : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   File
                 </button>
                 <button
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === "redeem"}
                   onClick={() => switchTab("redeem")}
-                  className={`px-4 py-1.5 text-[9px] font-bold uppercase tracking-wider transition-colors ${
-                    tab === "redeem" ? "bg-white text-black" : "text-brand-gray-light hover:text-white"
+                  className={`min-h-[44px] px-5 text-sm font-bold uppercase tracking-wider transition-colors duration-200 ease-out motion-reduce:transition-none ${
+                    tab === "redeem"
+                      ? "bg-accent text-accent-foreground"
+                      : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   Redeem
@@ -407,50 +437,49 @@ export default function BurnTool() {
                     ref={noteRef}
                     value={noteText}
                     onChange={(e) => setNoteText(e.target.value.slice(0, NOTE_MAX_CHARS))}
-                    placeholder="WRITE OR PASTE A SECRET NOTE…"
+                    placeholder="Write or paste a secret note…"
                     aria-label="Secret note"
-                    className="w-[85%] h-[160px] overflow-y-auto bg-brand-black/50 border border-white/10 hover:border-white/30 focus:border-white focus:outline-none p-3.5 text-[10px] font-mono text-left text-white resize-y rounded-xl"
+                    className="w-full max-w-[360px] h-[160px] overflow-y-auto bg-background border border-border hover:border-foreground/40 focus:border-foreground p-4 text-base font-mono text-left text-foreground resize-y rounded-[12px] leading-relaxed"
                   />
-                  <div className="flex items-center gap-2 w-[80%] mt-2">
+                  <div className="flex flex-wrap items-center gap-2 w-full max-w-[360px] mt-3">
                     <button
                       type="button"
                       onClick={pasteNote}
-                      className="flex items-center gap-1 px-2.5 py-1 rounded border border-white/15 text-[9px] font-bold uppercase tracking-wider text-white hover:bg-white/10"
+                      className="min-h-[44px] flex items-center gap-2 px-4 rounded-[12px] border border-border text-sm font-bold uppercase tracking-wider text-foreground hover:bg-muted"
                     >
-                      <ClipboardPaste className="h-3 w-3" /> Paste
+                      <ClipboardPaste className="h-4 w-4" aria-hidden="true" /> Paste
                     </button>
                     {noteText.length > 0 && (
                       <button
                         type="button"
                         onClick={() => setNoteText("")}
-                        className="px-2.5 py-1 rounded border border-white/10 text-[9px] font-bold uppercase tracking-wider text-brand-gray-light hover:text-white"
+                        className="min-h-[44px] px-4 rounded-[12px] border border-border text-sm font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground"
                       >
                         Clear
                       </button>
                     )}
-                    {pasteError && <span className="text-[9px] text-brand-gray-light" role="alert">{pasteError}</span>}
+                    {pasteError && <span className="text-sm text-muted-foreground" role="alert">{pasteError}</span>}
                   </div>
-                  {/* Expiry & Counter */}
-                  <div className="flex items-center justify-between w-[80%] mt-3 text-[8px] font-mono text-brand-gray-light">
+                  <div className="flex items-center justify-between w-full max-w-[360px] mt-3 text-sm font-mono text-muted-foreground">
                     <span>{noteText.length.toLocaleString()}/{NOTE_MAX_CHARS.toLocaleString()}</span>
                     <select
                       value={expiryHours}
                       onChange={(e) => setExpiryHours(Number(e.target.value))}
-                      className="bg-brand-black border border-white/10 text-white rounded px-1.5 py-0.5 focus:outline-none"
+                      className="min-h-[44px] bg-background border border-border text-foreground rounded-[12px] px-3 py-2"
                     >
                       {EXPIRY_CHOICES.map((c) => (
                         <option key={c.hours} value={c.hours}>{c.label}</option>
                       ))}
                     </select>
                   </div>
-                  {/* Burn Button */}
                   <button
+                    type="button"
                     onClick={handleCreateNote}
                     disabled={!noteText.trim()}
-                    className={`mt-5 px-6 py-2.5 text-[9px] font-bold uppercase tracking-widest rounded-full border transition-all ${
+                    className={`btn mt-6 ${
                       noteText.trim()
-                        ? "bg-white text-black border-white hover:bg-black hover:text-white active:scale-95"
-                        : "bg-transparent text-white/30 border-white/10 cursor-not-allowed"
+                        ? "btn-primary"
+                        : "opacity-40 cursor-not-allowed"
                     }`}
                   >
                     Burn Note
@@ -458,14 +487,23 @@ export default function BurnTool() {
                 </div>
               ) : tab === "file" ? (
                 <div className="flex flex-col items-center w-full">
-                  {/* Circular Upload Area */}
                   <div
                     onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
                     onDragLeave={() => setDragOver(false)}
                     onDrop={handleDrop}
                     onClick={() => fileInputRef.current?.click()}
-                    className={`w-[85%] h-[140px] border-2 border-dashed rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-colors p-4 ${
-                      dragOver ? "border-white bg-white/5" : "border-white/20 hover:border-white/40 bg-transparent"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        fileInputRef.current?.click();
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    className={`w-full max-w-[360px] min-h-[160px] border-2 border-dashed rounded-[12px] flex flex-col items-center justify-center cursor-pointer transition-colors duration-200 ease-out motion-reduce:transition-none p-6 ${
+                      dragOver
+                        ? "border-foreground bg-muted"
+                        : "border-border hover:border-foreground/40 bg-transparent"
                     }`}
                   >
                     <input
@@ -474,28 +512,28 @@ export default function BurnTool() {
                       className="hidden"
                       onChange={(e) => handleFile(e.target.files?.[0])}
                     />
-                    <FileUp className="h-7 w-7 text-white mb-2" />
-                    <p className="text-[9px] font-mono text-white font-bold leading-tight uppercase">
-                      CLICK OR DRAG FILE HERE
+                    <FileUp className="h-7 w-7 text-foreground mb-3" />
+                    <p className="text-base font-mono text-foreground font-bold leading-tight uppercase">
+                      Click or drag file here
                     </p>
-                    <p className="text-[7px] font-mono text-brand-gray-light mt-1.5 uppercase">
+                    <p className="text-sm font-mono text-muted-foreground mt-2 uppercase">
                       Up to {Math.floor(FILE_MAX_BYTES / 1048576)}MB
                     </p>
                   </div>
 
-                  {/* Expiry Choice */}
-                  <div className="flex items-center justify-center gap-2 mt-4">
-                    <span className="text-[7.5px] font-mono text-brand-gray-light uppercase tracking-wider">
+                  <div className="flex flex-wrap items-center justify-center gap-2 mt-5">
+                    <span className="text-sm font-mono text-muted-foreground uppercase tracking-wider">
                       Expires in:
                     </span>
                     {EXPIRY_CHOICES.map((c) => (
                       <button
+                        type="button"
                         key={c.hours}
                         onClick={() => setExpiryHours(c.hours)}
-                        className={`px-2 py-0.5 text-[8px] font-bold tracking-widest border rounded transition-colors ${
+                        className={`min-h-[44px] px-3 text-sm font-bold tracking-widest border rounded-[12px] transition-colors duration-200 ease-out motion-reduce:transition-none ${
                           expiryHours === c.hours
-                            ? "border-white text-white bg-white/10"
-                            : "border-white/10 text-brand-gray-light hover:text-white"
+                            ? "border-foreground text-foreground bg-muted"
+                            : "border-border text-muted-foreground hover:text-foreground"
                         }`}
                       >
                         {c.label}
@@ -505,7 +543,7 @@ export default function BurnTool() {
                 </div>
               ) : (
                 <div className="flex flex-col items-center w-full">
-                  <Key className="h-7 w-7 text-white mb-3" />
+                  <Key className="h-7 w-7 text-foreground mb-4" />
                   <input
                     type="text"
                     value={redeemInput}
@@ -515,18 +553,19 @@ export default function BurnTool() {
                     autoCapitalize="characters"
                     autoCorrect="off"
                     spellCheck={false}
-                    className="w-[70%] bg-brand-black/50 border border-white/10 hover:border-white/30 focus:border-white focus:outline-none py-3 text-center text-lg font-mono tracking-[0.35em] text-white rounded-xl uppercase"
+                    className="w-full max-w-[320px] min-h-[44px] bg-background border border-border hover:border-foreground/40 focus:border-foreground py-3 px-4 text-center text-base font-mono tracking-[0.2em] text-foreground rounded-[12px] uppercase"
                   />
-                  <p className="text-[7.5px] font-mono text-brand-gray-light mt-3 uppercase text-center max-w-[220px] leading-relaxed">
+                  <p className="text-sm font-mono text-muted-foreground mt-4 text-center max-w-[280px] leading-relaxed">
                     Paste the link you were sent. If it came with a 2-digit code, you&apos;ll type it next.
                   </p>
                   <button
+                    type="button"
                     onClick={handleRedeem}
                     disabled={!redeemInput.trim()}
-                    className={`mt-5 px-6 py-2.5 text-[9px] font-bold uppercase tracking-widest rounded-full border transition-all ${
+                    className={`btn mt-6 ${
                       redeemInput.trim()
-                        ? "bg-white text-black border-white hover:bg-black hover:text-white active:scale-95"
-                        : "bg-transparent text-white/30 border-white/10 cursor-not-allowed"
+                        ? "btn-primary"
+                        : "opacity-40 cursor-not-allowed"
                     }`}
                   >
                     Unlock
@@ -536,6 +575,6 @@ export default function BurnTool() {
             </div>
           )}
       </div>
-    </div>
+    </section>
   );
 }

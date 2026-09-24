@@ -1,85 +1,75 @@
-import { Upload, Shield, Share2, Users, Eye, Ban } from "lucide-react";
+import { Monitor, QrCode, Fingerprint, MessageSquare } from "lucide-react";
+
+const steps = [
+  {
+    icon: Monitor,
+    num: "01",
+    title: "Open",
+    text: "Open nosus.foo/go on the computer.",
+  },
+  {
+    icon: QrCode,
+    num: "02",
+    title: "Scan",
+    text: "Scan the QR with the NO SUS app.",
+  },
+  {
+    icon: Fingerprint,
+    num: "03",
+    title: "Approve",
+    text: "Check the 2-digit match code and approve with fingerprint or face.",
+  },
+  {
+    icon: MessageSquare,
+    num: "04",
+    title: "Use & end",
+    text: "Your Saved chat appears. Close the tab or tap End and the session ends.",
+  },
+];
 
 export default function WorkflowTimeline() {
-  const steps = [
-    {
-      icon: Upload,
-      num: "01",
-      title: "Upload",
-      desc: "Drag or select your document. Files are encrypted client-side using AES-256 before reaching the server.",
-    },
-    {
-      icon: Shield,
-      num: "02",
-      title: "Protect",
-      desc: "Apply dynamic email watermarks, toggle touch-to-reveal blur, and enable root-detection filters.",
-    },
-    {
-      icon: Share2,
-      num: "03",
-      title: "Share",
-      desc: "Mint secure access URLs. Control links with automatic revocation bounds, view counts, and expiration limits.",
-    },
-    {
-      icon: Users,
-      num: "04",
-      title: "Collaborate",
-      desc: "Roster students or researchers into secure groups. Keep notes sync'd in real-time, online or offline.",
-    },
-    {
-      icon: Eye,
-      num: "05",
-      title: "Track",
-      desc: "Monitor opens, durations, and suspicious actions like right-clicks or screenshot attempts on a chained log.",
-    },
-    {
-      icon: Ban,
-      num: "06",
-      title: "Control",
-      desc: "Instantly revoke share permissions or self-destruct documents, wiping them from cache and storage.",
-    },
-  ];
-
   return (
-    <section id="how-it-works" className="relative py-24 bg-brand-black">
-      <div className="flex flex-col justify-center">
-        
-        <div className="mx-auto max-w-7xl w-full px-6 md:px-8 mb-12">
-          <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tight text-white leading-none">
-            End-to-End Governance
-          </h2>
-        </div>
+    <section
+      id="how-it-works"
+      className="relative border-b border-border bg-background py-16 md:py-24"
+    >
+      <div className="mx-auto w-full max-w-7xl px-6 md:px-8">
+        <h2 className="mb-12 text-[32px] font-black uppercase leading-none tracking-tight text-foreground md:mb-16">
+          How Go works
+        </h2>
 
-        {/* Native responsive layout: every step is reachable without scroll JS. */}
-        <div className="mx-auto max-w-7xl w-full px-6 md:px-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {steps.map((step, idx) => (
-              <div
-                key={idx}
-                className="border border-brand-gray bg-brand-gray-dark/50 p-8 rounded flex flex-col justify-between min-h-[300px] relative"
-              >
-                <div className="flex justify-between items-start">
-                  <div className="w-12 h-12 border border-brand-gray flex items-center justify-center bg-brand-black rounded">
-                    <step.icon className="h-5 w-5 text-white stroke-[1.5]" />
-                  </div>
-                  <span className="font-mono text-3xl font-black text-brand-gray/30">
-                    {step.num}
-                  </span>
+        <ol className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 md:gap-8">
+          {steps.map((step) => (
+            <li key={step.num} className="paper-card flex flex-col gap-5 p-6 md:p-8">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex h-11 w-11 items-center justify-center border border-border bg-muted">
+                  <step.icon
+                    className="h-5 w-5 text-foreground"
+                    strokeWidth={1.5}
+                    aria-hidden
+                  />
                 </div>
-
-                <div className="mt-8">
-                  <h3 className="text-base font-bold uppercase tracking-wider text-white">
-                    {step.title}
-                  </h3>
-                  <p className="text-xs text-brand-gray-light leading-relaxed mt-2 font-medium">
-                    {step.desc}
-                  </p>
-                </div>
+                <span className="font-mono text-2xl font-black text-muted-foreground/40">
+                  {step.num}
+                </span>
               </div>
-            ))}
-          </div>
-        </div>
 
+              <div>
+                <h3 className="text-base font-bold uppercase tracking-wider text-foreground">
+                  {step.title}
+                </h3>
+                <p className="mt-2 text-base leading-relaxed text-muted-foreground">
+                  {step.text}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ol>
+
+        <p className="mt-8 max-w-3xl text-sm leading-relaxed text-muted-foreground">
+          Sessions last at most 60 minutes. Anything you download or print may
+          stay on that computer.
+        </p>
       </div>
     </section>
   );

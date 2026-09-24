@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import { useState } from "react";
-
 import { Sun, Moon } from "lucide-react";
 
 /**
@@ -30,28 +29,24 @@ export default function LuxNoxSection() {
       name: "NOX",
       title: "The Dark Guard",
       personality: "Protective · Quiet · Alert",
-      role: "The silent security sentinel. Nox appears at high-security moments, standing guard over the vault, flashing alert when a screenshot is blocked, stamping watermarks as documents are viewed.",
+      role: "The silent security sentinel. Nox appears at high-security moments, standing guard over the vault, flashing alert when a capture is blocked, stamping watermarks as documents are viewed.",
       moods: ["guard", "protect", "alert", "verify", "stamp"],
     },
   ];
 
   return (
-    <section id="mascots" className="py-24 bg-brand-gray-dark/20 border-b border-brand-gray/80 relative">
+    <section id="mascots" className="py-24 bg-background border-b border-border relative">
       <div className="mx-auto max-w-7xl px-6 md:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-          {/* The animated mark */}
           <div className="lg:col-span-5 flex flex-col items-center gap-6">
             <div
               className="relative flex items-center justify-center select-none"
               onMouseEnter={() => setAwake(true)}
               onMouseLeave={() => setAwake(false)}
             >
-              {/* Slow-orbiting dashed ring — pixel-lab instrument vibe */}
-              <div className="absolute inset-[-28px] rounded-full border border-dashed border-white/15 luxnox-ring motion-reduce:animate-none" />
-              <div className="absolute inset-[-14px] rounded-full border border-white/5" />
-              <div
-                className="luxnox-breathe motion-reduce:animate-none rounded-full overflow-hidden bg-white"
-              >
+              <div className="absolute inset-[-28px] rounded-full border border-dashed border-border luxnox-ring motion-reduce:animate-none" />
+              <div className="absolute inset-[-14px] rounded-full border border-border/60" />
+              <div className="luxnox-breathe motion-reduce:animate-none rounded-full overflow-hidden bg-card border border-border">
                 <Image
                   src="/luxandnox.webp"
                   alt="Lux and Nox, the NO SUS lab mark: a white cat and a black cat curled into a yin-yang"
@@ -61,18 +56,17 @@ export default function LuxNoxSection() {
                 />
               </div>
             </div>
-            <span className="text-[9px] font-mono text-brand-gray-light uppercase tracking-widest">
+            <span className="text-xs font-mono text-muted-foreground uppercase tracking-widest">
               {awake ? "MOOD 02 · WAKE" : "MOOD 00 · IDLE (BREATHING)"}
             </span>
           </div>
 
-          {/* The story + character cards */}
           <div className="lg:col-span-7 flex flex-col gap-8">
             <div>
-              <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tight text-white leading-none">
+              <h2 className="text-[32px] md:text-5xl font-black uppercase tracking-tight text-foreground leading-none">
                 Meet Lux &amp; Nox.
               </h2>
-              <p className="text-xs text-brand-gray-light mt-4 leading-relaxed max-w-lg font-medium">
+              <p className="text-base text-muted-foreground mt-4 leading-relaxed max-w-lg">
                 Two cats, one mark. Inside the app they are living characters with a
                 19-mood animation language, from a breathing idle loop to a sentinel
                 guard stance, driven by what is actually happening to your documents.
@@ -84,30 +78,30 @@ export default function LuxNoxSection() {
               {characters.map((c) => (
                 <div
                   key={c.name}
-                  className="border border-brand-gray bg-brand-black p-6 rounded paper-card flex flex-col gap-3"
+                  className="paper-card p-6 flex flex-col gap-3"
                 >
                   <div className="flex items-center gap-2.5">
-                    <c.icon className="h-5 w-5 text-white stroke-[1.5]" />
+                    <c.icon className="h-5 w-5 text-foreground stroke-[1.5]" />
                     <div>
-                      <h3 className="text-sm font-black uppercase tracking-widest text-white leading-none">
+                      <h3 className="text-base font-black uppercase tracking-widest text-foreground leading-none">
                         {c.name}
                       </h3>
-                      <span className="text-[9px] font-mono text-brand-gray-light uppercase">
+                      <span className="text-xs font-mono text-muted-foreground uppercase">
                         {c.title}
                       </span>
                     </div>
                   </div>
-                  <p className="text-[10px] font-bold tracking-wider uppercase text-brand-gray-light">
+                  <p className="text-sm font-bold tracking-wider uppercase text-muted-foreground">
                     {c.personality}
                   </p>
-                  <p className="text-xs text-brand-gray-light leading-relaxed font-medium">
+                  <p className="text-base text-muted-foreground leading-relaxed">
                     {c.role}
                   </p>
                   <div className="flex flex-wrap gap-1.5 mt-auto pt-2">
                     {c.moods.map((m) => (
                       <span
                         key={m}
-                        className="text-[8px] font-mono uppercase tracking-widest border border-brand-gray px-1.5 py-0.5 rounded-sm text-brand-gray-light"
+                        className="text-xs font-mono uppercase tracking-widest border border-border px-2 py-1 rounded-[12px] text-muted-foreground"
                       >
                         {m}
                       </span>

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-
 import { Eye, ShieldAlert, Ban, CheckCircle, RefreshCw, Smartphone } from "lucide-react";
 
 export default function LivePreview() {
@@ -38,133 +37,105 @@ export default function LivePreview() {
     setPreviewLogs((prev) => [newLog, ...prev].slice(0, 4));
   };
 
+  const tabBtn = (id: typeof activeTab) =>
+    `p-5 text-left border rounded-[12px] transition-colors duration-200 ease-out motion-reduce:transition-none flex items-start gap-4 min-h-[44px] ${
+      activeTab === id
+        ? "border-foreground bg-card"
+        : "border-border bg-transparent hover:border-foreground/40"
+    }`;
+
   return (
-    <section id="live-preview" className="py-24 bg-brand-black border-b border-brand-gray/80 relative">
+    <section id="live-preview" className="py-24 bg-background border-b border-border relative">
       <div className="mx-auto max-w-7xl px-6 md:px-8">
-        
         <div className="text-center max-w-2xl mx-auto mb-16">
-          <span className="text-[10px] font-bold tracking-widest text-brand-gray-light uppercase mb-2 block">
-            Product Simulation
+          <span className="text-xs font-bold tracking-widest text-muted-foreground uppercase mb-2 block">
+            Lightweight preview
           </span>
-          <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tight text-white">
-            Experience the Vault
+          <h2 className="text-[32px] md:text-5xl font-black uppercase tracking-tight text-foreground">
+            How sharing feels
           </h2>
-          <p className="text-xs text-brand-gray-light mt-3 leading-relaxed font-medium">
-            Toggle security controls to see how NO SUS enforces data sovereignty in real-time.
+          <p className="text-base text-muted-foreground mt-4 leading-relaxed">
+            A simple mock of watermarks, revocation, and activity — not a live dashboard.
           </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
-          
-          {/* Simulation Controllers (Left Panel) */}
           <div className="lg:col-span-4 flex flex-col gap-4">
-            <button
-              onClick={() => setActiveTab("watermark")}
-              className={`p-5 text-left border rounded transition-all flex items-start gap-4 ${
-                activeTab === "watermark"
-                  ? "border-white bg-brand-gray-dark"
-                  : "border-brand-gray bg-transparent hover:border-white/30"
-              }`}
-            >
-              <Eye className="h-5 w-5 text-white shrink-0 mt-0.5" />
+            <button type="button" onClick={() => setActiveTab("watermark")} className={tabBtn("watermark")}>
+              <Eye className="h-5 w-5 text-foreground shrink-0 mt-0.5" />
               <div>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-white">
-                  Forensic Watermarking
+                <h3 className="text-base font-bold uppercase tracking-wider text-foreground">
+                  Viewer watermarks
                 </h3>
-                <p className="text-[11px] text-brand-gray-light mt-1 font-medium">
-                  Embed recipient identifiers dynamically to deter and attribute leaks.
+                <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                  Overlay the recipient’s identity on shared documents.
                 </p>
               </div>
             </button>
 
-            <button
-              onClick={() => setActiveTab("revoke")}
-              className={`p-5 text-left border rounded transition-all flex items-start gap-4 ${
-                activeTab === "revoke"
-                  ? "border-white bg-brand-gray-dark"
-                  : "border-brand-gray bg-transparent hover:border-white/30"
-              }`}
-            >
-              <Ban className="h-5 w-5 text-white shrink-0 mt-0.5" />
+            <button type="button" onClick={() => setActiveTab("revoke")} className={tabBtn("revoke")}>
+              <Ban className="h-5 w-5 text-foreground shrink-0 mt-0.5" />
               <div>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-white">
-                  Instant Revocation
+                <h3 className="text-base font-bold uppercase tracking-wider text-foreground">
+                  Instant revocation
                 </h3>
-                <p className="text-[11px] text-brand-gray-light mt-1 font-medium">
-                  Kill access to any shared document instantly, erasing active sessions.
+                <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                  Turn off a share when you no longer want it open.
                 </p>
               </div>
             </button>
 
-            <button
-              onClick={() => setActiveTab("audit")}
-              className={`p-5 text-left border rounded transition-all flex items-start gap-4 ${
-                activeTab === "audit"
-                  ? "border-white bg-brand-gray-dark"
-                  : "border-brand-gray bg-transparent hover:border-white/30"
-              }`}
-            >
-              <ShieldAlert className="h-5 w-5 text-white shrink-0 mt-0.5" />
+            <button type="button" onClick={() => setActiveTab("audit")} className={tabBtn("audit")}>
+              <ShieldAlert className="h-5 w-5 text-foreground shrink-0 mt-0.5" />
               <div>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-white">
-                  Tamper Audit Ledger
+                <h3 className="text-base font-bold uppercase tracking-wider text-foreground">
+                  Activity log
                 </h3>
-                <p className="text-[11px] text-brand-gray-light mt-1 font-medium">
-                  Review chained records of user views, download events, and blocked screen captures.
+                <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                  See opens and flagged attempt events on a share.
                 </p>
               </div>
             </button>
 
-            <button
-              onClick={() => setActiveTab("device")}
-              className={`p-5 text-left border rounded transition-all flex items-start gap-4 ${
-                activeTab === "device"
-                  ? "border-white bg-brand-gray-dark"
-                  : "border-brand-gray bg-transparent hover:border-white/30"
-              }`}
-            >
-              <Smartphone className="h-5 w-5 text-white shrink-0 mt-0.5" />
+            <button type="button" onClick={() => setActiveTab("device")} className={tabBtn("device")}>
+              <Smartphone className="h-5 w-5 text-foreground shrink-0 mt-0.5" />
               <div>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-white">
-                  Device Verification
+                <h3 className="text-base font-bold uppercase tracking-wider text-foreground">
+                  Device checks
                 </h3>
-                <p className="text-[11px] text-brand-gray-light mt-1 font-medium">
-                  Detect and block user devices running root overrides or layout mirrors.
+                <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                  Basic checks before opening sensitive material on mobile.
                 </p>
               </div>
             </button>
           </div>
 
-          {/* Interactive Screen Viewer (Right Panel) */}
-          <div className="lg:col-span-8 border border-brand-gray bg-brand-gray-dark/40 rounded p-6 flex flex-col justify-between min-h-[450px] relative overflow-hidden">
-            
-            {/* Screen Header mock */}
-            <div className="flex items-center justify-between border-b border-brand-gray pb-4 mb-6">
+          <div className="lg:col-span-8 paper-card p-6 flex flex-col justify-between min-h-[450px] relative overflow-hidden">
+            <div className="flex items-center justify-between border-b border-border pb-4 mb-6">
               <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-brand-gray" />
-                <span className="text-[10px] font-mono text-brand-gray-light uppercase tracking-wider">
-                  Vault Dashboard // {activeTab.toUpperCase()}
+                <span className="w-3 h-3 rounded-full bg-muted" />
+                <span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
+                  Preview · {activeTab}
                 </span>
               </div>
-              
-              {/* Context Trigger Options inside Mock */}
+
               <div className="flex items-center gap-3">
                 {activeTab === "watermark" && (
                   <button
+                    type="button"
                     onClick={() => setIsWatermarked(!isWatermarked)}
-                    className="border border-brand-gray px-3 py-1 text-[9px] font-bold uppercase tracking-widest text-white hover:border-white bg-brand-black transition-colors rounded"
+                    className="btn btn-ghost text-xs"
                   >
-                    Toggle Grid: {isWatermarked ? "ON" : "OFF"}
+                    Grid: {isWatermarked ? "ON" : "OFF"}
                   </button>
                 )}
 
                 {activeTab === "revoke" && (
                   <button
+                    type="button"
                     onClick={handleRevoke}
-                    className={`px-3 py-1 text-[9px] font-bold uppercase tracking-widest transition-colors rounded ${
-                      accessStatus === "secured"
-                        ? "bg-red-950 text-red-200 border border-red-800 hover:bg-red-900"
-                        : "bg-green-950 text-green-200 border border-green-800 hover:bg-green-900"
+                    className={`btn text-xs ${
+                      accessStatus === "secured" ? "btn-primary" : "btn-ghost"
                     }`}
                   >
                     {accessStatus === "secured" ? "Revoke Access" : "Restore Access"}
@@ -172,149 +143,141 @@ export default function LivePreview() {
                 )}
 
                 {activeTab === "audit" && (
-                  <button
-                    onClick={handleSimulateLeak}
-                    className="border border-brand-gray px-3 py-1 text-[9px] font-bold uppercase tracking-widest text-white hover:border-white bg-brand-black transition-colors rounded"
-                  >
-                    Simulate Leak
+                  <button type="button" onClick={handleSimulateLeak} className="btn btn-ghost text-xs">
+                    Simulate event
                   </button>
                 )}
 
                 {activeTab === "device" && (
                   <button
+                    type="button"
                     onClick={triggerDeviceScan}
                     disabled={deviceScanState === "scanning"}
-                    className="border border-brand-gray px-3 py-1 text-[9px] font-bold uppercase tracking-widest text-white hover:border-white bg-brand-black transition-colors rounded flex items-center gap-1.5"
+                    className="btn btn-ghost text-xs disabled:opacity-40"
                   >
-                    <RefreshCw className={`h-3 w-3 ${deviceScanState === "scanning" ? "animate-spin" : ""}`} />
+                    <RefreshCw
+                      className={`h-4 w-4 ${
+                        deviceScanState === "scanning"
+                          ? "animate-spin motion-reduce:animate-none"
+                          : ""
+                      }`}
+                    />
                     Scan Device
                   </button>
                 )}
               </div>
             </div>
 
-            {/* Screen Content mock viewport */}
-            <div className="flex-1 flex items-center justify-center relative bg-brand-black border border-brand-gray/50 rounded overflow-hidden p-6 min-h-[300px]">
-              
-              <>
-                {activeTab === "watermark" && (
-                  <div
-                    key="watermark"
-                    className="w-full max-w-md bg-brand-gray-dark border border-brand-gray p-6 flex flex-col gap-4 relative rounded"
-                  >
-                    {/* Watermark Diagonal Overlay grid */}
-                    {isWatermarked && (
-                      <div className="absolute inset-0 pointer-events-none grid grid-cols-3 grid-rows-3 select-none opacity-[0.06] rotate-[-12deg] scale-110">
-                        {Array.from({ length: 9 }).map((_, i) => (
-                          <div key={i} className="text-[10px] font-mono text-white text-center flex items-center justify-center font-bold">
-                            stud_01@tsec.edu
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-white">
-                      Midterm_Notes_Draft.pdf
-                    </h4>
-                    <p className="text-[10px] text-brand-gray-light leading-relaxed font-medium">
-                      Unit 4: Signals &amp; Systems. Sampling theorem: a band-limited signal can be perfectly reconstructed when sampled above the Nyquist rate. Aliasing occurs below it; anti-aliasing filters must precede the sampler. See worked examples 4.2-4.6 before Friday&apos;s review session.
-                    </p>
-                  </div>
-                )}
+            <div className="flex-1 flex items-center justify-center relative bg-background border border-border rounded-[12px] overflow-hidden p-6 min-h-[300px]">
+              {activeTab === "watermark" && (
+                <div className="w-full max-w-md bg-card border border-border p-6 flex flex-col gap-4 relative rounded-[12px]">
+                  {isWatermarked && (
+                    <div className="absolute inset-0 pointer-events-none grid grid-cols-3 grid-rows-3 select-none opacity-[0.08] rotate-[-12deg] scale-110">
+                      {Array.from({ length: 9 }).map((_, i) => (
+                        <div
+                          key={i}
+                          className="text-xs font-mono text-foreground text-center flex items-center justify-center font-bold"
+                        >
+                          stud_01@tsec.edu
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <h4 className="text-base font-bold uppercase tracking-wider text-foreground">
+                    Midterm_Notes_Draft.pdf
+                  </h4>
+                  <p className="text-base text-muted-foreground leading-relaxed">
+                    Unit 4: Signals &amp; Systems. Sampling theorem: a band-limited signal can be
+                    perfectly reconstructed when sampled above the Nyquist rate. Aliasing occurs
+                    below it; anti-aliasing filters must precede the sampler.
+                  </p>
+                </div>
+              )}
 
-                {activeTab === "revoke" && (
-                  <div
-                    key="revoke"
-                    className="w-full flex flex-col items-center text-center p-6"
-                  >
-                    {accessStatus === "secured" ? (
-                      <div className="bg-brand-gray-dark border border-brand-gray p-6 max-w-sm rounded">
-                        <CheckCircle className="h-10 w-10 text-green-500 mb-3" />
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-white">
-                          Access Secured
-                        </h4>
-                        <p className="text-[10px] text-brand-gray-light mt-1.5 leading-normal">
-                          Document is online and actively shareable. Click &ldquo;Revoke Access&rdquo; above to test the lock block.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="bg-red-950/20 border border-red-900/50 p-6 max-w-sm rounded">
-                        <Ban className="h-10 w-10 text-red-500 mb-3" />
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-red-400">
-                          ACCESS REVOKED
-                        </h4>
-                        <p className="text-[10px] text-brand-gray-light mt-1.5 leading-normal">
-                          This share token has been destroyed. Active recipient viewports are closed instantly.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
+              {activeTab === "revoke" && (
+                <div className="w-full flex flex-col items-center text-center p-6">
+                  {accessStatus === "secured" ? (
+                    <div className="bg-card border border-border p-6 max-w-sm rounded-[12px]">
+                      <CheckCircle className="h-10 w-10 text-foreground mb-3" />
+                      <h4 className="text-base font-bold uppercase tracking-wider text-foreground">
+                        Share open
+                      </h4>
+                      <p className="text-base text-muted-foreground mt-2 leading-relaxed">
+                        Document link is active. Use Revoke Access to close it.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="bg-destructive/10 border border-destructive/40 p-6 max-w-sm rounded-[12px]">
+                      <Ban className="h-10 w-10 text-destructive mb-3" />
+                      <h4 className="text-base font-bold uppercase tracking-wider text-destructive">
+                        Access revoked
+                      </h4>
+                      <p className="text-base text-muted-foreground mt-2 leading-relaxed">
+                        This share is closed. Recipients can no longer open the link.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
 
-                {activeTab === "audit" && (
-                  <div
-                    key="audit"
-                    className="w-full max-w-lg"
-                  >
-                    <table className="w-full text-left font-mono text-[10px]">
-                      <thead>
-                        <tr className="border-b border-brand-gray text-brand-gray-light">
-                          <th className="py-2">Time</th>
-                          <th className="py-2">Event</th>
-                          <th className="py-2">Actor</th>
-                          <th className="py-2">Ledger Status</th>
+              {activeTab === "audit" && (
+                <div className="w-full max-w-lg overflow-x-auto">
+                  <table className="w-full text-left font-mono text-sm">
+                    <thead>
+                      <tr className="border-b border-border text-muted-foreground">
+                        <th className="py-2 font-medium">Time</th>
+                        <th className="py-2 font-medium">Event</th>
+                        <th className="py-2 font-medium">Actor</th>
+                        <th className="py-2 font-medium">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {previewLogs.map((log, idx) => (
+                        <tr key={idx} className="border-b border-border/60 text-foreground">
+                          <td className="py-2 text-muted-foreground">{log.time}</td>
+                          <td className="py-2 font-bold tracking-tight">{log.event}</td>
+                          <td className="py-2 text-muted-foreground">{log.actor}</td>
+                          <td
+                            className={`py-2 ${
+                              log.status === "Blocked" ? "text-destructive" : "text-foreground"
+                            }`}
+                          >
+                            {log.status}
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {previewLogs.map((log, idx) => (
-                          <tr key={idx} className="border-b border-brand-gray/30 text-white">
-                            <td className="py-2 text-brand-gray-light">{log.time}</td>
-                            <td className="py-2 font-bold tracking-tight">{log.event}</td>
-                            <td className="py-2 text-brand-gray-light">{log.actor}</td>
-                            <td className={`py-2 ${log.status === "Blocked" ? "text-red-400" : "text-green-400"}`}>
-                              {log.status}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
 
-                {activeTab === "device" && (
-                  <div
-                    key="device"
-                    className="w-full max-w-sm text-center flex flex-col items-center"
-                  >
-                    {deviceScanState === "scanning" && (
-                      <div className="flex flex-col items-center gap-3">
-                        <RefreshCw className="h-8 w-8 text-white animate-spin" />
-                        <span className="text-[10px] font-mono uppercase tracking-widest text-brand-gray-light">
-                          Scanning device configurations...
-                        </span>
-                      </div>
-                    )}
+              {activeTab === "device" && (
+                <div className="w-full max-w-sm text-center flex flex-col items-center">
+                  {deviceScanState === "scanning" && (
+                    <div className="flex flex-col items-center gap-3">
+                      <RefreshCw className="h-8 w-8 text-foreground animate-spin motion-reduce:animate-none" />
+                      <span className="text-sm font-mono uppercase tracking-widest text-muted-foreground">
+                        Checking device…
+                      </span>
+                    </div>
+                  )}
 
-                    {deviceScanState === "clean" && (
-                      <div className="bg-brand-gray-dark border border-brand-gray p-6 rounded">
-                        <CheckCircle className="h-10 w-10 text-white mb-3" />
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-white">
-                          Device Verified Secure
-                        </h4>
-                        <p className="text-[10px] text-brand-gray-light mt-1.5 leading-normal">
-                          Verification complete. No screen recorders, accessibility hooks, or debuggers detected.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </>
-
+                  {deviceScanState === "clean" && (
+                    <div className="bg-card border border-border p-6 rounded-[12px]">
+                      <CheckCircle className="h-10 w-10 text-foreground mb-3" />
+                      <h4 className="text-base font-bold uppercase tracking-wider text-foreground">
+                        Checks passed
+                      </h4>
+                      <p className="text-base text-muted-foreground mt-2 leading-relaxed">
+                        Preview only — no live device scan runs in this page.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-
           </div>
-
         </div>
-
       </div>
     </section>
   );

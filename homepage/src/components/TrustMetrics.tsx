@@ -1,53 +1,60 @@
-import { Shield, EyeOff, Key, Share2, GraduationCap, Compass, Users } from "lucide-react";
+import { Lock, Link2, ScanFace, Timer } from "lucide-react";
+
+const facts = [
+  {
+    icon: Lock,
+    title: "AES-256-GCM on Go",
+    desc: "After the hello, the borrowed-computer session uses AES-256-GCM. The phone keeps the Google token.",
+  },
+  {
+    icon: Link2,
+    title: "Keys where they belong",
+    desc: "Burn links keep the key in the URL fragment. A single note or file with a pairing code also stores that key on the server for up to 20 minutes.",
+  },
+  {
+    icon: ScanFace,
+    title: "2-digit match, not a password",
+    desc: "The two-digit code is a check you read on the screen in front of you. Only approve a code on a screen you can see.",
+  },
+  {
+    icon: Timer,
+    title: "60-minute session cap",
+    desc: "Go sessions last at most 60 minutes. They also end when you close the tab or tap End, and sooner if idle.",
+  },
+];
 
 export default function TrustMetrics() {
-  const trustItems = [
-    { icon: EyeOff, title: "Private by Design", desc: "Access bounds are monitored without user signup requirements." },
-    { icon: Key, title: "Client-Side Keys", desc: "Keys are made in your browser and travel in the link. The server holds one only while a 2-digit code is valid." },
-    { icon: Shield, title: "Tamper Ledgers", desc: "Activity lists are cryptographically chained to prevent administrative edits." },
-    { icon: Share2, title: "Secure Send", desc: "Custom access expiration options and download locks keep files in your custody." },
-    { icon: GraduationCap, title: "For Students", desc: "Quickly distribute notes and slide decks across study groups without risk." },
-    { icon: Compass, title: "For Researchers", desc: "Pre-print distribution tracking protects findings during blind peer reviews." },
-    { icon: Users, title: "For Teams", desc: "Collaborate securely on sensitive plans and intellectual files." },
-  ];
-
-  // Protocol facts, not usage claims — each number is a property of the
-  // system itself (verifiable in the open-source client).
-  const stats = [
-    { number: 256, label: "AES key bits, generated client-side" },
-    { number: 20, label: "Default minutes a 2-digit code holds its key" },
-    { number: 1, label: "View before a burn drop self-destructs" },
-    { number: 60, label: "Seconds until a revealed note wipes" },
-  ];
-
   return (
-    <section className="py-24 bg-brand-gray-dark/30 border-t border-b border-brand-gray/80 relative">
+    <section className="py-24 bg-background border-t border-b border-border relative">
       <div className="mx-auto max-w-7xl px-6 md:px-8">
-        
-        {/* Core Pillars Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-20">
-          <div className="md:col-span-1 flex flex-col justify-center">
-            <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tight leading-none text-white">
-              Trust Built on <br />
-              Proof, Not Promises.
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-12">
+          <div className="md:col-span-4 flex flex-col justify-center">
+            <h2 className="text-[32px] md:text-4xl font-black uppercase tracking-tight leading-none text-foreground">
+              Protocol facts,
+              <br />
+              not vanity metrics
             </h2>
-            <p className="text-xs text-brand-gray-light mt-4 leading-relaxed max-w-xs font-medium">
-              We leverage browser sandboxes, local key storage, and cryptographically verified activity audits to secure your documents.
+            <p className="text-base text-muted-foreground mt-4 leading-relaxed max-w-sm">
+              Short properties of what ships today — no user counts, uptime
+              claims, or audit badges.
             </p>
           </div>
 
-          <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {trustItems.slice(0, 4).map((item, idx) => (
+          <div className="md:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {facts.map((item) => (
               <div
-                key={idx}
-                className="border border-brand-gray p-6 bg-brand-black/40 hover:border-white/20 transition-colors flex flex-col gap-4 rounded"
+                key={item.title}
+                className="border border-border bg-card paper-card p-6 flex flex-col gap-4 min-h-[11rem]"
               >
-                <item.icon className="h-6 w-6 text-white stroke-[1.5]" />
+                <item.icon
+                  className="h-6 w-6 text-foreground stroke-[1.5]"
+                  aria-hidden
+                />
                 <div>
-                  <h3 className="text-sm font-bold uppercase tracking-wider text-white">
+                  <h3 className="text-base font-bold tracking-tight text-foreground">
                     {item.title}
                   </h3>
-                  <p className="text-xs text-brand-gray-light leading-relaxed mt-1 font-medium">
+                  <p className="text-base text-muted-foreground leading-relaxed mt-2">
                     {item.desc}
                   </p>
                 </div>
@@ -55,21 +62,6 @@ export default function TrustMetrics() {
             ))}
           </div>
         </div>
-
-        {/* Audit Counters Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 pt-12 border-t border-brand-gray/60 text-center">
-          {stats.map((stat, idx) => (
-            <div key={idx} className="flex flex-col gap-1">
-              <span className="text-3xl md:text-5xl font-black font-mono tracking-tighter text-white">
-                {stat.number}
-              </span>
-              <span className="text-[9px] font-bold uppercase tracking-widest text-brand-gray-light">
-                {stat.label}
-              </span>
-            </div>
-          ))}
-        </div>
-
       </div>
     </section>
   );

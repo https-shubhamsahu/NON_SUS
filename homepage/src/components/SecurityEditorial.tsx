@@ -1,43 +1,63 @@
 "use client";
 
 import { useState } from "react";
-
 import { Key, Cpu, ChevronRight, HelpCircle } from "lucide-react";
 
 export default function SecurityEditorial() {
   const [showTechnicalSpecs, setShowTechnicalSpecs] = useState(false);
 
   const keyStatements = [
-    { title: "Only the people you choose can access your files.", desc: "Dynamic domain filters and strict user authentication keep document scopes private." },
-    { title: "Every action is traceable.", desc: "Screenshot logs, DevTools notifications, and dynamic identification watermarks identify source breaches." },
-    { title: "Sharing stays under your control.", desc: "Instant revocation and view counters close remote access links immediately." },
-    { title: "Privacy isn't optional.", desc: "From onboarding checks to ledger chains, we bake security directly into every database state." },
+    {
+      title: "The borrowed PC never gets your Google login.",
+      desc: "Your phone holds the Google token. That computer only sees items you approve, for at most 60 minutes.",
+    },
+    {
+      title: "Sessions end when you leave.",
+      desc: "A Go session caps at 60 minutes. It also ends when you close the tab or tap End, and sooner if idle.",
+    },
+    {
+      title: "Downloads and prints can stick around.",
+      desc: "Anything you download or print may stay on that computer. Approve only what you are willing to leave behind.",
+    },
+    {
+      title: "Pairing codes are honest about keys.",
+      desc: "Burn notes and files encrypt in the browser. A normal burn link keeps the key in the URL fragment. A single note or file with a two-digit pairing code also stores that key on the server for up to 20 minutes.",
+    },
   ];
 
   return (
-    <section id="security" className="py-24 bg-brand-black border-b border-brand-gray/80 relative">
+    <section
+      id="security"
+      className="py-24 bg-background border-b border-border relative"
+    >
       <div className="mx-auto max-w-7xl px-6 md:px-8">
-        
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-          
-          {/* Editorial Content (Left Column) */}
           <div className="lg:col-span-6 flex flex-col justify-center gap-8">
             <div>
-              <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tight text-white leading-none">
-                Absolute Governance. <br />
-                No Excuses.
+              <h2 className="text-[32px] md:text-5xl font-black uppercase tracking-tight text-foreground leading-none">
+                Shared screens.
+                <br />
+                Honest limits.
               </h2>
+              <p className="mt-4 text-base text-muted-foreground leading-relaxed max-w-md">
+                Safer than logging into Google on that PC: this computer only
+                sees what you approve, for at most 60 minutes. Only approve a
+                code on a screen in front of you.
+              </p>
             </div>
 
             <div className="flex flex-col gap-6">
-              {keyStatements.map((state, idx) => (
-                <div key={idx} className="flex gap-4 items-start">
-                  <div className="w-1.5 h-1.5 bg-white rounded-full shrink-0 mt-2" />
+              {keyStatements.map((state) => (
+                <div key={state.title} className="flex gap-4 items-start">
+                  <div
+                    className="w-1.5 h-1.5 bg-foreground rounded-full shrink-0 mt-2.5"
+                    aria-hidden
+                  />
                   <div>
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-white">
+                    <h3 className="text-base font-bold tracking-tight text-foreground">
                       {state.title}
                     </h3>
-                    <p className="text-xs text-brand-gray-light mt-1.5 leading-relaxed font-medium">
+                    <p className="text-base text-muted-foreground mt-1.5 leading-relaxed">
                       {state.desc}
                     </p>
                   </div>
@@ -47,86 +67,98 @@ export default function SecurityEditorial() {
 
             <div>
               <button
+                type="button"
                 onClick={() => setShowTechnicalSpecs(!showTechnicalSpecs)}
-                className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-white hover:text-brand-gray-light transition-colors group focus:outline-none"
+                className="inline-flex items-center gap-1.5 min-h-11 px-1 text-sm font-bold uppercase tracking-widest text-foreground hover:text-muted-foreground transition-colors duration-200 ease-out group focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none"
               >
-                Learn More (Technical Specs)
-                <ChevronRight className={`h-4 w-4 transition-transform ${showTechnicalSpecs ? "rotate-90" : "group-hover:translate-x-1"}`} />
+                How the crypto fits
+                <ChevronRight
+                  className={`h-4 w-4 transition-transform duration-200 ease-out motion-reduce:transition-none ${
+                    showTechnicalSpecs
+                      ? "rotate-90"
+                      : "group-hover:translate-x-1 motion-reduce:group-hover:translate-x-0"
+                  }`}
+                  aria-hidden
+                />
               </button>
             </div>
           </div>
 
-          {/* Graphic / Interactive Technical Blueprints Panel (Right Column) */}
-          <div className="lg:col-span-6 border border-brand-gray bg-brand-gray-dark/40 rounded p-8 min-h-[380px] flex flex-col justify-between relative overflow-hidden">
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.01)_0%,transparent_70%)] pointer-events-none" />
+          <div className="lg:col-span-6 border border-border bg-card paper-card p-8 min-h-[380px] flex flex-col justify-between relative overflow-hidden">
+            {!showTechnicalSpecs ? (
+              <div className="flex flex-col justify-between h-full gap-8">
+                <div className="flex items-center gap-2 border-b border-border pb-3">
+                  <Key className="h-5 w-5 text-foreground" aria-hidden />
+                  <span className="text-xs font-mono tracking-widest uppercase text-muted-foreground">
+                    What stays where
+                  </span>
+                </div>
+                <div className="py-4">
+                  <p className="text-base text-muted-foreground leading-relaxed">
+                    For a borrowed-computer Go session, the relay is not your
+                    Google account — Supabase relays ciphertext and stores a
+                    hash of the session id, not the Google token. Saved files
+                    live in your own Google Drive (a NO SUS/ folder) with
+                    drive.file scope: the app sees files it created.
+                  </p>
+                </div>
+                <div className="border-t border-border pt-4 flex flex-wrap gap-4 items-center justify-between text-xs font-mono text-muted-foreground">
+                  <span>GO SESSION: AES-256-GCM</span>
+                  <span>CAP: 60 MIN</span>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col justify-between h-full gap-6 font-mono text-sm">
+                <div className="flex items-center gap-2 border-b border-border pb-3">
+                  <Cpu className="h-5 w-5 text-foreground" aria-hidden />
+                  <span className="text-xs tracking-widest uppercase text-muted-foreground">
+                    Protocol notes
+                  </span>
+                </div>
 
-            <>
-              {!showTechnicalSpecs ? (
-                <div
-                  key="ethos-card"
-                  className="flex flex-col justify-between h-full gap-8"
-                >
-                  <div className="flex items-center gap-2 border-b border-brand-gray pb-3">
-                    <Key className="h-5 w-5 text-white" />
-                    <span className="text-[10px] font-mono tracking-widest uppercase text-brand-gray-light">
-                      Encryption Envelope
+                <div className="flex flex-col gap-4 text-muted-foreground text-base font-sans">
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1 border-b border-border pb-2">
+                    <span className="text-foreground font-bold">
+                      Go session crypto
                     </span>
+                    <span>AES-256-GCM after hello</span>
                   </div>
-                  <div className="py-4">
-                    <p className="text-xs text-brand-gray-light leading-relaxed font-medium">
-                      For Burn Notes and Burn Files, encryption happens entirely in your browser and the key never reaches our servers, managed via the URL hash segment instead. Other shared documents are protected by strict access-control policies rather than end-to-end encryption.
-                    </p>
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1 border-b border-border pb-2">
+                    <span className="text-foreground font-bold">
+                      Burn link key
+                    </span>
+                    <span>URL fragment (#…)</span>
                   </div>
-                  <div className="border-t border-brand-gray pt-4 flex items-center justify-between text-[10px] font-mono text-brand-gray-light">
-                    <span>ALGORITHM: AES-256-CBC</span>
-                    <span>KEY SIZE: 256 BITS</span>
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1 border-b border-border pb-2">
+                    <span className="text-foreground font-bold">
+                      Pairing-code key
+                    </span>
+                    <span>On server ≤ 20 min</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1 border-b border-border pb-2">
+                    <span className="text-foreground font-bold">
+                      Multi-file shares
+                    </span>
+                    <span>Key not sent that way</span>
                   </div>
                 </div>
-              ) : (
-                <div
-                  key="tech-blueprint"
-                  className="flex flex-col justify-between h-full gap-6 font-mono text-[10px]"
-                >
-                  <div className="flex items-center gap-2 border-b border-brand-gray pb-3">
-                    <Cpu className="h-5 w-5 text-white" />
-                    <span className="text-[10px] tracking-widest uppercase text-brand-gray-light">
-                      Cryptographic Blueprint
-                    </span>
-                  </div>
-                  
-                  <div className="flex flex-col gap-4 text-brand-gray-light">
-                    <div className="flex justify-between border-b border-brand-gray/30 pb-1.5">
-                      <span className="text-white font-bold">1. File Encryption</span>
-                      <span>In-browser AES-256-CBC</span>
-                    </div>
-                    <div className="flex justify-between border-b border-brand-gray/30 pb-1.5">
-                      <span className="text-white font-bold">2. Key Transport</span>
-                      <span>URL Fragment Identifier (#hash)</span>
-                    </div>
-                    <div className="flex justify-between border-b border-brand-gray/30 pb-1.5">
-                      <span className="text-white font-bold">3. Access Verification</span>
-                      <span>Single-use claiming SQL transactions</span>
-                    </div>
-                    <div className="flex justify-between border-b border-brand-gray/30 pb-1.5">
-                      <span className="text-white font-bold">4. Audit Chain</span>
-                      <span>SHA-256 Hash-Linked Database Rows</span>
-                    </div>
-                  </div>
 
-                  <div className="border border-brand-gray/60 p-3.5 bg-brand-black/50 text-[9px] text-brand-gray-light leading-relaxed flex items-start gap-2.5 rounded">
-                    <HelpCircle className="h-4.5 w-4.5 text-white shrink-0 mt-0.5" />
-                    <span>
-                      Keys are parsed locally by JavaScript `window.location.hash`. Browsers do not transmit this token to servers during normal HTTP operations.
-                    </span>
-                  </div>
+                <div className="border border-border p-4 bg-muted text-base text-muted-foreground leading-relaxed flex items-start gap-2.5 font-sans">
+                  <HelpCircle
+                    className="h-5 w-5 text-foreground shrink-0 mt-0.5"
+                    aria-hidden
+                  />
+                  <span>
+                    The two-digit match code is a check you read on the screen
+                    in front of you — not a password. Fragment keys stay in the
+                    browser URL for normal burn links; pairing codes are the
+                    exception that stores a key briefly.
+                  </span>
                 </div>
-              )}
-            </>
-            
+              </div>
+            )}
           </div>
-
         </div>
-
       </div>
     </section>
   );
