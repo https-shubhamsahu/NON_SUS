@@ -51,7 +51,7 @@ Three sub-projects live in this repo:
   (this repo's gh-pages) and `app` (needs `APP_DEPLOY_TOKEN`). A pre-paint shim in
   `homepage/src/app/layout.tsx` forwards legacy `nosus.foo/#/burn|burnfile|redeem|v|join/…` links and
   Supabase auth callbacks to the app subdomain (fragment preserved — **the AES key lives there**).
-  The hero has REAL working Burn Note/File tools; their WebCrypto (`homepage/src/lib/burnCrypto.ts`)
+  The hero pitches a NO SUS Address (Saved on a borrowed computer). The real Burn Note/File tools sit in the Try it section; their WebCrypto (`homepage/src/lib/burnCrypto.ts`)
   is kept byte-compatible with the Dart app by `test/unit/burn_crypto_web_compat_test.dart` — never
   change one side without the other. Cross-product URLs + dev identity live in
   `homepage/src/lib/links.ts`. It has its own `homepage/CLAUDE.md` / `homepage/AGENTS.md`; the
@@ -553,6 +553,10 @@ codebase — assume still outstanding unless you know otherwise.
 > bottom rather than letting this section grow without bound.
 
 <!-- CHANGELOG:INSERT -->
+- **2026-09-24** · feat(landing): retell nosus.foo as Your NO SUS Address — why: the homepage still
+  led with leak attribution. The first screen is now Saved on a borrowed computer, Drop and
+  Group drops are marked coming soon, and burn / SecureSend stay as supporting sections.
+  Copy stays inside the real crypto.
 - **2026-09-24** · fix(applinks): add the current Play signing key to `assetlinks.json` — why: Play
   shows the app signing key was rotated (previous key first used 2026-07-30); the file only listed
   the old key, so App Links would stop verifying for devices on the new key. Both are listed now.
