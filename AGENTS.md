@@ -288,7 +288,32 @@ ever ship.
 
 **Web↔Dart crypto compatibility.** `homepage/src/lib/burnCrypto.ts` and the Dart burn crypto must
 stay byte-compatible; `test/unit/burn_crypto_web_compat_test.dart` is the guard. Never change one
-side alone.
+side alone. The same rule covers `lib/core/crypto/nosus_seal.dart` ↔ `homepage/src/lib/nosusSeal.ts`
+(Go session, sealed box, group key seal), guarded by `test/unit/nosus_seal_test.dart` +
+`test/unit/nosus_box_test.dart` and `homepage/scripts/nosus-seal.test.cjs` + `nosus-box.test.cjs`,
+which pin the same hex vectors.
+
+**Go pairing link `#/go/1.<sid>.<dpk>` (Saved on a borrowed computer).** Minted only as a QR by
+`nosus.foo/go` (`homepage/src/components/go/GoDesk.tsx`). `sid` is b64url of 16 random bytes (22
+chars), `dpk` is the desk's ephemeral uncompressed P-256 key (87 chars). `extractGoPairing` in
+`lib/features/address/go_session.dart` parses it and is wired into both `_routeIncomingWebLink()`
+and the web `Uri.base` branch in `MyApp`; `test/unit/deep_link_parsing_test.dart` pins that it
+never matches burn/burnfile/burnfiles/redeem/v/join. The `1` is a protocol version — a new version
+must be a new prefix, and `1.` must keep parsing. The borrowed computer **never** receives a Google
+token: the phone keeps Drive access and sends only the items the user approves, sealed, through the
+Burn Files pipe (`go_transit.dart`). Realtime topic `go:<sid>` is private; `go_sessions` (sid stored
+as a hash) is what lets it be joined, and the flag `nosus_address_enabled` gates everything.
+
+**Device keys and sealed boxes (Drop, Group drops).** Each signed-in device publishes one P-256 key
+to `device_keys` via `register_device_key` (`lib/core/crypto/device_keys.dart`). On Android API 31+
+the private key is generated in Android Keystore with `PURPOSE_AGREE_KEY` and never leaves it
+(`android/.../security/DeviceKeyAgreement.kt`, channel `co.nosus.app/device_keys`; only the ECDH
+result crosses to Dart). Below API 31 it is a software key wrapped by a Keystore AES key; on web it
+is a software key in browser storage (kind `web`). Box format: `0x01 ‖ epk ‖ nonce ‖ AES-GCM`, key =
+HKDF(Z, salt=epk, info="nosus-box/1"‖0‖context‖0‖rpk). The `context` string binds a box to its use
+(`drop:<id>`, `group-key:<group>:<epoch>`) — never reuse a context for a different purpose. The
+server stores only public keys, so it could swap a key it serves; safety codes (`safetyCode()`) are
+the user-visible check. Don't claim more than that in copy.
 
 ---
 
@@ -518,6 +543,19 @@ codebase — assume still outstanding unless you know otherwise.
 > bottom rather than letting this section grow without bound.
 
 <!-- CHANGELOG:INSERT -->
+- **2026-09-24** · ci: compile `GO_WEB_CLIENT_ID` into web and Play builds — why: it was empty in
+  every build, so Saved could never connect Drive. The id is the public web OAuth client
+  `694624182770-6fr4…` in Cloud project `no-sus` (694624182770), which also holds the Android client
+  "NO SUS Android" and the Supabase Google sign-in. All Google clients live in that one project —
+  keep it that way, because `drive.file` access belongs to the project.
+- **2026-09-24** · feat(keys): device ECDH keys + sealed box (79d3e77) — why: foundation for Drop and
+  Group drops. Adds `device_keys` (migration `20260924100000`), the Keystore ECDH channel, and the
+  Dart/TS box format. See §5 "Device keys and sealed boxes".
+- **2026-09-22** · feat: Saved chat + borrowed-computer Go (PR #11, dc3e2f0) — why: first phase of
+  "Your NO SUS Address". Adds `lib/features/address/`, `nosus.foo/go`, `go-session-open`, migration
+  `20260922050000_nosus_go.sql` (applied to production), the `#/go/` link (see §5), the flag
+  `nosus_address_enabled` (0% + testers), and deps `google_sign_in`, `local_auth`, `pointycastle`.
+  `MainActivity` became `FlutterFragmentActivity` because `local_auth` requires it.
 - **2026-09-17** · fix(copy): every single-target Burn share stores its key server-side — why: the
   listing, store copy and share screens said a plain link share keeps the key off the server.
   `mintPairing` (homepage) and `createCode` (app) run on every single note or single file share,
