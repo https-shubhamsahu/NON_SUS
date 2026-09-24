@@ -73,6 +73,7 @@ class DriveSavedStore {
   static const markerRoot = 'nosus_root';
   static const markerSaved = 'nosus_saved';
   static const markerMessages = 'nosus_messages';
+  static const markerInbox = 'nosus_inbox';
 
   Future<DriveFolders> ensureFolders() async {
     final root = await _folder(
@@ -93,8 +94,25 @@ class DriveSavedStore {
     return DriveFolders(root: root, saved: saved, messages: messages);
   }
 
-  Future<List<SavedItem>> listTimeline(DriveFolders folders) async {
+  /// NO SUS/Inbox, where accepted drops land. With [create] false this
+  /// only looks, so opening Saved never creates an empty Inbox folder.
+  Future<String?> inboxFolder({bool create = true}) async {
+    if (!create) {
+      final found = await _list(
+        "appProperties has { key='nosus_marker' and value='$markerInbox' } and trashed = false",
+        orderBy: 'createdTime',
+      );
+      return found.isEmpty ? null : found.first.driveId;
+    }
+    final root = await _folder(name: 'NO SUS', parent: 'root', marker: markerRoot);
+    return _folder(name: 'Inbox', parent: root, marker: markerInbox);
+  }
+
+  Future<List<SavedItem>> listTimeline(DriveFolders folders, {String? inboxFolderId}) async {
     final saved = await _list("'${folders.saved}' in parents and trashed = false");
+    final inbox = inboxFolderId == null
+        ? const <SavedItem>[]
+        : await _list("'$inboxFolderId' in parents and trashed = false");
     final messages = await _list(
       "'${folders.messages}' in parents and trashed = false",
     );
@@ -103,6 +121,10 @@ class DriveSavedStore {
       if (file.driveId == folders.messages || file.mime.contains('folder')) {
         continue;
       }
+      items.add(file);
+    }
+    for (final file in inbox) {
+      if (file.mime.contains('folder')) continue;
       items.add(file);
     }
     for (final message in messages) {

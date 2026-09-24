@@ -51,6 +51,27 @@ void main() {
     expect(folders.messages, 'older');
   });
 
+  test('the Inbox folder is only created when asked', () async {
+    var posts = 0;
+    final created = <String>[];
+    final store = DriveSavedStore(
+      token: () async => 'token',
+      client: MockClient((request) async {
+        if (request.method == 'GET') {
+          return http.Response('{"files":[]}', 200);
+        }
+        posts++;
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        created.add((body['appProperties'] as Map)['nosus_marker'] as String);
+        return http.Response('{"id":"id$posts"}', 200);
+      }),
+    );
+    expect(await store.inboxFolder(create: false), isNull);
+    expect(posts, 0);
+    expect(await store.inboxFolder(), 'id2');
+    expect(created, [DriveSavedStore.markerRoot, DriveSavedStore.markerInbox]);
+  });
+
   test('a retried message does not create a second file', () async {
     var uploads = 0;
     final store = DriveSavedStore(

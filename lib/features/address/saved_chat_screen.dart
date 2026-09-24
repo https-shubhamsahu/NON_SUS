@@ -8,6 +8,8 @@ import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 
 import '../../config/go_config.dart';
+import '../config/presentation/providers/config_provider.dart';
+import 'drop/inbox_screen.dart';
 import 'drive_saved_store.dart';
 import 'go_widgets.dart';
 import 'google_drive_access.dart';
@@ -47,6 +49,7 @@ class _SavedChatScreenState extends ConsumerState<SavedChatScreen> {
   final _uuid = const Uuid();
 
   DriveFolders? _folders;
+  String? _inbox;
   List<SavedItem> _items = const [];
   String? _email;
   String? _banner;
@@ -82,7 +85,8 @@ class _SavedChatScreenState extends ConsumerState<SavedChatScreen> {
         return;
       }
       _folders = await _store.ensureFolders();
-      final items = await _store.listTimeline(_folders!);
+      _inbox = await _store.inboxFolder(create: false);
+      final items = await _store.listTimeline(_folders!, inboxFolderId: _inbox);
       if (!mounted) return;
       setState(() {
         _items = items;
@@ -174,7 +178,7 @@ class _SavedChatScreenState extends ConsumerState<SavedChatScreen> {
   Future<void> _reloadQuiet() async {
     final folders = _folders;
     if (folders == null) return;
-    final items = await _store.listTimeline(folders);
+    final items = await _store.listTimeline(folders, inboxFolderId: _inbox);
     if (mounted) setState(() => _items = items);
   }
 
@@ -249,6 +253,14 @@ class _SavedChatScreenState extends ConsumerState<SavedChatScreen> {
           ],
         ),
         actions: [
+          if (ref.watch(featureFlagProvider('nosus_drop_enabled')))
+            IconButton(
+              tooltip: 'Inbox',
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const InboxScreen()),
+              ),
+              icon: const Icon(Icons.inbox_outlined),
+            ),
           IconButton(
             tooltip: 'Open on computer',
             onPressed: _computerHelp,
@@ -293,7 +305,11 @@ class _SavedChatScreenState extends ConsumerState<SavedChatScreen> {
                             for (final item in _items)
                               SavedLine(
                                 text: item.isMessage ? (item.text ?? item.name) : '${item.name} · ${_size(item.size)}',
-                                detail: item.src == 'computer' ? 'From computer' : 'From phone',
+                                detail: switch (item.src) {
+                                  'computer' => 'From computer',
+                                  'drop' => 'From your address',
+                                  _ => 'From phone',
+                                },
                                 status: 'Saved to Drive',
                               ),
                           ],
