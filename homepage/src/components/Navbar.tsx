@@ -1,12 +1,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Menu, X, ArrowUpRight } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import Link from "next/link";
 
 import { APP_URL } from "@/lib/links";
 import NoSusLogo from "./ui/Logo";
+import { ThemeToggle } from "./ui/ThemeToggle";
 import AppLink from "./AppLink";
+
+const navLinks = [
+  { name: "Address", href: "#doors" },
+  { name: "How it works", href: "#how-it-works" },
+  { name: "Try it", href: "#try" },
+  { name: "Security", href: "#security" },
+];
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -20,39 +28,39 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const navLinks = [
-    { name: "Features", href: "#features" },
-    { name: "How It Works", href: "#how-it-works" },
-    { name: "Use Cases", href: "#use-cases" },
-    { name: "Lux & Nox", href: "#mascots" },
-    { name: "Security", href: "#security" },
-    { name: "Under the Hood", href: "#developers" },
-    { name: "Developer", href: "#developer" },
-  ];
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mobileMenuOpen]);
 
   return (
     <>
       <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-200 ease-out border-b ${
           scrolled
-            ? "bg-brand-black/90 border-b border-brand-gray/80 py-4 backdrop-blur-md"
-            : "bg-transparent py-6"
+            ? "bg-background/90 border-border py-3 backdrop-blur-md"
+            : "bg-background/90 border-transparent py-5"
         }`}
       >
         <div className="mx-auto max-w-7xl px-6 md:px-8">
-          <nav className="flex items-center justify-between">
-            {/* Logo */}
-            <Link href="/" className="flex items-center shrink-0 group focus:outline-none">
-              <NoSusLogo sizeClass="text-lg md:text-xl" />
+          <nav className="flex items-center justify-between gap-4">
+            <Link href="/" className="flex shrink-0 items-center min-h-11">
+              <NoSusLogo
+                sizeClass="text-lg md:text-xl"
+                className="!text-foreground"
+              />
             </Link>
 
-            {/* Desktop Navigation */}
             <ul className="hidden xl:flex items-center gap-7">
               {navLinks.map((link) => (
                 <li key={link.name}>
                   <Link
                     href={link.href}
-                    className="text-xs font-medium text-brand-gray-light hover:text-white transition-colors tracking-wider uppercase focus:outline-none focus:text-white whitespace-nowrap"
+                    className="text-xs font-medium uppercase tracking-wider text-muted-foreground hover:text-foreground whitespace-nowrap"
                   >
                     {link.name}
                   </Link>
@@ -60,72 +68,98 @@ export default function Navbar() {
               ))}
             </ul>
 
-            {/* CTAs — Sign In goes to the web app; "Open the App" is
-                app-aware on Android (chooser: native app / APK / browser) */}
-            <div className="hidden xl:flex items-center gap-6">
+            <div className="hidden xl:flex items-center gap-4">
+              <ThemeToggle />
               <a
                 href={APP_URL}
-                className="text-xs font-semibold text-brand-gray-light hover:text-white transition-colors tracking-wider uppercase"
+                className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground min-h-11 inline-flex items-center"
               >
-                Sign In
+                Sign in
               </a>
-              <AppLink className="relative inline-flex items-center justify-center overflow-hidden border border-white bg-white px-5 py-2.5 text-xs font-bold tracking-wider uppercase text-black transition-all hover:bg-black hover:text-white group">
-                <span className="relative z-10 flex items-center gap-1.5">
-                  Open the App <ArrowUpRight className="h-3.5 w-3.5" />
-                </span>
+              <AppLink className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground min-h-11 inline-flex items-center">
+                Get the app
               </AppLink>
+              <Link
+                href="/go"
+                className="btn btn-primary min-h-11 px-5 text-xs"
+              >
+                Open on this computer
+              </Link>
             </div>
 
-            {/* Mobile Hamburger */}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="xl:hidden p-1 text-brand-gray-light hover:text-white focus:outline-none"
-              aria-label="Toggle mobile menu"
-            >
-              {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-            </button>
+            <div className="flex xl:hidden items-center gap-2">
+              <ThemeToggle />
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen((open) => !open)}
+                className="inline-flex h-11 w-11 items-center justify-center text-muted-foreground hover:text-foreground"
+                aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+                aria-expanded={mobileMenuOpen}
+              >
+                {mobileMenuOpen ? (
+                  <X className="h-6 w-6" aria-hidden="true" />
+                ) : (
+                  <Menu className="h-6 w-6" aria-hidden="true" />
+                )}
+              </button>
+            </div>
           </nav>
         </div>
       </header>
 
-      {/* Mobile Drawer */}
-      <>
-        {mobileMenuOpen && (
-          <div
-            className="fixed inset-0 z-40 bg-brand-black/98 pt-28 px-6 xl:hidden flex flex-col justify-between gap-8 pb-8 overflow-y-auto"
-          >
-            <ul className="flex flex-col gap-6">
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-40 bg-background/98 pt-28 px-6 xl:hidden flex flex-col justify-between gap-8 pb-8 overflow-y-auto">
+          <div className="flex flex-col gap-6">
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(false)}
+                className="inline-flex h-11 w-11 items-center justify-center text-muted-foreground hover:text-foreground"
+                aria-label="Close menu"
+              >
+                <X className="h-6 w-6" aria-hidden="true" />
+              </button>
+            </div>
+
+            <ul className="flex flex-col gap-1">
               {navLinks.map((link) => (
                 <li key={link.name}>
                   <Link
                     href={link.href}
                     onClick={() => setMobileMenuOpen(false)}
-                    className="text-lg font-bold text-brand-gray-light hover:text-white tracking-wider uppercase"
+                    className="flex min-h-11 items-center text-lg font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground"
                   >
                     {link.name}
                   </Link>
                 </li>
               ))}
             </ul>
-
-            <div className="flex flex-col gap-4">
-              <a
-                href={APP_URL}
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center justify-center border border-brand-gray py-3 text-sm font-bold tracking-wider uppercase text-white"
-              >
-                Sign In
-              </a>
-              <AppLink
-                onNavigate={() => setMobileMenuOpen(false)}
-                className="flex items-center justify-center bg-white py-3 text-sm font-bold tracking-wider uppercase text-black"
-              >
-                Open the App
-              </AppLink>
-            </div>
           </div>
-        )}
-      </>
+
+          <div className="flex flex-col gap-3">
+            <a
+              href={APP_URL}
+              onClick={() => setMobileMenuOpen(false)}
+              className="btn btn-ghost min-h-11 w-full"
+            >
+              Sign in
+            </a>
+            <AppLink
+              onNavigate={() => setMobileMenuOpen(false)}
+              className="btn btn-ghost min-h-11 w-full"
+            >
+              Get the app
+            </AppLink>
+            <Link
+              href="/go"
+              onClick={() => setMobileMenuOpen(false)}
+              className="btn btn-primary min-h-11 w-full"
+            >
+              Open on this computer
+            </Link>
+          </div>
+        </div>
+      )}
     </>
   );
 }
