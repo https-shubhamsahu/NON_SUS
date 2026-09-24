@@ -436,6 +436,10 @@ verify_jwt = true
 [functions.cleanup-drops]
 verify_jwt = false
 
+# Called by pg_cron through pg_net with no JWT; gated by x-cron-secret.
+[functions.cleanup-group-drops]
+verify_jwt = false
+
 [functions.account-manager]
 verify_jwt = true
 
