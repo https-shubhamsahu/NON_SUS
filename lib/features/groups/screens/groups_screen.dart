@@ -16,6 +16,7 @@ import '../widgets/empty_states.dart';
 import 'group_detail_screen.dart';
 import 'join_group_page.dart';
 import '../../../theme.dart';
+import '../../address/drop/address_screen.dart';
 import '../../address/saved_chat_screen.dart';
 import '../../config/presentation/providers/config_provider.dart';
 import '../../../components/shimmer_box.dart';
@@ -135,6 +136,19 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen>
           ),
         ],
 
+        if (ref.watch(authStateProvider).hasValue &&
+            ref.watch(featureFlagProvider('nosus_drop_enabled'))) ...[
+          const SizedBox(height: NoSusTheme.s8),
+          _PinRow(
+            icon: Icons.alternate_email,
+            title: 'Address & Inbox',
+            subtitle: 'Files people send you',
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const AddressScreen()),
+            ),
+          ),
+        ],
+
         const SizedBox(height: NoSusTheme.s16),
 
         // ── Group list ─────────────────────────────────────────────────────
@@ -199,6 +213,52 @@ class _SavedPin extends StatelessWidget {
                 children: [
                   Text('Saved', style: TextStyle(color: fg, fontSize: 16, fontWeight: FontWeight.w700)),
                   Text('Only you', style: TextStyle(color: subtle, fontSize: 13)),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PinRow extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _PinRow({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final fg = Theme.of(context).colorScheme.onSurface;
+    final subtle = fg.withValues(alpha: 0.62);
+    return Semantics(
+      button: true,
+      label: '$title, $subtitle',
+      excludeSemantics: true,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 56),
+          child: Row(
+            children: [
+              Icon(icon, color: fg),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(title, style: TextStyle(color: fg, fontSize: 16, fontWeight: FontWeight.w700)),
+                  Text(subtitle, style: TextStyle(color: subtle, fontSize: 13)),
                 ],
               ),
             ],

@@ -14,6 +14,9 @@
 //    exit report cannot carry it either. "spa": false keeps the beacon to one
 //    report per page load instead of following URL changes.
 //
+// 3. Private pages. /go (borrowed computer), /to (Drop), and every
+//    <handle>.nosus.foo address never load the beacon.
+//
 // Tested in scripts/legacy-link-shim.test.cjs — keep that in step.
 
 export const CLOUDFLARE_BEACON_SRC =
@@ -43,7 +46,9 @@ if(!next)return;
 try{w.history.replaceState(null,"",w.location.pathname+w.location.search);}catch(e){}
 w.location.replace(next);
 });
-if(/^\\/go\\/?$/.test(w.location.pathname||"/"))return;
+if(/^\\/(go|to)\\/?$/.test(w.location.pathname||"/"))return;
+var host=(w.location.hostname||"").toLowerCase();
+if(/\\.nosus\\.foo$/.test(host)&&!/^(www\\.)?nosus\\.foo$/.test(host))return;
 if(!token)return;
 var h=w.location.hash||"";
 if(h&&!/^#[A-Za-z][\\w-]*$/.test(h))return;
