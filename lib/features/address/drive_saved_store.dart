@@ -73,6 +73,11 @@ class DriveSavedStore {
   static const markerRoot = 'nosus_root';
   static const markerSaved = 'nosus_saved';
   static const markerMessages = 'nosus_messages';
+  static const markerInbox = 'nosus_inbox';
+  static const markerGroups = 'nosus_groups';
+
+  /// Marker for one group's folder under NO SUS/Groups.
+  static String groupMarker(String groupId) => 'nosus_group:$groupId';
 
   Future<DriveFolders> ensureFolders() async {
     final root = await _folder(
@@ -93,8 +98,102 @@ class DriveSavedStore {
     return DriveFolders(root: root, saved: saved, messages: messages);
   }
 
-  Future<List<SavedItem>> listTimeline(DriveFolders folders) async {
+  /// NO SUS/Inbox, where accepted drops land. With [create] false this
+  /// only looks, so opening Saved never creates an empty Inbox folder.
+  Future<String?> inboxFolder({bool create = true}) async {
+    if (!create) {
+      final found = await _list(
+        "appProperties has { key='nosus_marker' and value='$markerInbox' } and trashed = false",
+        orderBy: 'createdTime',
+      );
+      return found.isEmpty ? null : found.first.driveId;
+    }
+    final root = await _folder(name: 'NO SUS', parent: 'root', marker: markerRoot);
+    return _folder(name: 'Inbox', parent: root, marker: markerInbox);
+  }
+
+  /// `NO SUS/Groups/<group name>/`, found by marker so a renamed folder or
+  /// group is still the same folder.
+  Future<String> ensureGroupFolder({
+    required String groupId,
+    required String groupName,
+  }) async {
+    final root = await _folder(name: 'NO SUS', parent: 'root', marker: markerRoot);
+    final groups = await _folder(name: 'Groups', parent: root, marker: markerGroups);
+    return _folder(
+      name: groupFolderName(groupName),
+      parent: groups,
+      marker: groupMarker(groupId),
+    );
+  }
+
+  static String groupFolderName(String groupName) {
+    final cleaned = groupName.replaceAll(RegExp(r'[/\\\x00-\x1f]'), ' ').trim();
+    if (cleaned.isEmpty) return 'Group';
+    return cleaned.length > 100 ? cleaned.substring(0, 100) : cleaned;
+  }
+
+  /// Appends [lines] to the day file `YYYY-MM-DD.md` in [folderId], making
+  /// it with [header] first if needed. One writer per member (the phone),
+  /// so read-modify-write is safe. Lines already in the file are skipped,
+  /// which makes a retry harmless. Returns how many lines were added.
+  Future<int> appendTranscript({
+    required String folderId,
+    required String day,
+    required String header,
+    required List<String> lines,
+  }) async {
+    if (!RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(day)) {
+      throw ArgumentError.value(day, 'day');
+    }
+    if (lines.isEmpty) return 0;
+    final found = await _list(
+      "'${_q(folderId)}' in parents and "
+      "appProperties has { key='nosus_day' and value='$day' } and trashed = false",
+      orderBy: 'createdTime',
+    );
+    if (found.isEmpty) {
+      final unique = <String>[];
+      for (final line in lines) {
+        if (!unique.contains(line)) unique.add(line);
+      }
+      await _upload(
+        parent: folderId,
+        name: '$day.md',
+        mime: 'text/markdown',
+        bytes: Uint8List.fromList(utf8.encode('$header\n\n${unique.join('\n')}\n')),
+        appProperties: {
+          'nosus_kind': 'transcript',
+          'nosus_day': day,
+          'nosus_src': 'phone',
+        },
+      );
+      return unique.length;
+    }
+    final file = found.first;
+    var existing = utf8.decode(await download(file.driveId), allowMalformed: true);
+    final fresh = <String>[];
+    for (final line in lines) {
+      if (!existing.contains(line) && !fresh.contains(line)) fresh.add(line);
+    }
+    if (fresh.isEmpty) return 0;
+    if (existing.isNotEmpty && !existing.endsWith('\n')) existing = '$existing\n';
+    await _send(
+      'PATCH',
+      Uri.https('www.googleapis.com', '/upload/drive/v3/files/${file.driveId}', {
+        'uploadType': 'media',
+      }),
+      body: Uint8List.fromList(utf8.encode('$existing${fresh.join('\n')}\n')),
+      headers: {'Content-Type': 'text/markdown'},
+    );
+    return fresh.length;
+  }
+
+  Future<List<SavedItem>> listTimeline(DriveFolders folders, {String? inboxFolderId}) async {
     final saved = await _list("'${folders.saved}' in parents and trashed = false");
+    final inbox = inboxFolderId == null
+        ? const <SavedItem>[]
+        : await _list("'$inboxFolderId' in parents and trashed = false");
     final messages = await _list(
       "'${folders.messages}' in parents and trashed = false",
     );
@@ -103,6 +202,10 @@ class DriveSavedStore {
       if (file.driveId == folders.messages || file.mime.contains('folder')) {
         continue;
       }
+      items.add(file);
+    }
+    for (final file in inbox) {
+      if (file.mime.contains('folder')) continue;
       items.add(file);
     }
     for (final message in messages) {
@@ -134,9 +237,7 @@ class DriveSavedStore {
       name: '$nosusId.md',
       mime: 'text/markdown',
       bytes: bytes,
-      nosusId: nosusId,
-      kind: 'msg',
-      src: src,
+      appProperties: {'nosus_id': nosusId, 'nosus_kind': 'msg', 'nosus_src': src},
     );
   }
 
@@ -156,9 +257,7 @@ class DriveSavedStore {
       name: name,
       mime: mime,
       bytes: bytes,
-      nosusId: nosusId,
-      kind: 'file',
-      src: src,
+      appProperties: {'nosus_id': nosusId, 'nosus_kind': 'file', 'nosus_src': src},
     );
   }
 
@@ -176,7 +275,7 @@ class DriveSavedStore {
     required String marker,
   }) async {
     final found = await _list(
-      "appProperties has { key='nosus_marker' and value='$marker' } and trashed = false",
+      "appProperties has { key='nosus_marker' and value='${_q(marker)}' } and trashed = false",
       orderBy: 'createdTime',
     );
     if (found.isNotEmpty) return found.first.driveId;
@@ -202,20 +301,15 @@ class DriveSavedStore {
     required String name,
     required String mime,
     required Uint8List bytes,
-    required String nosusId,
-    required String kind,
-    required String src,
+    required Map<String, String> appProperties,
   }) async {
     const boundary = 'nosus_go_boundary';
+    final kind = appProperties['nosus_kind'];
     final meta = jsonEncode({
       'name': name,
       'mimeType': mime,
       'parents': [parent],
-      'appProperties': {
-        'nosus_id': nosusId,
-        'nosus_kind': kind,
-        'nosus_src': src,
-      },
+      'appProperties': appProperties,
     });
     final head = utf8.encode(
       '--$boundary\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n$meta\r\n'
@@ -237,11 +331,11 @@ class DriveSavedStore {
     final created = jsonDecode(res.body) as Map<String, dynamic>;
     return SavedItem(
       driveId: created['id'] as String,
-      nosusId: nosusId,
+      nosusId: appProperties['nosus_id'] ?? '',
       name: name,
       mime: mime,
       size: bytes.length,
-      src: src,
+      src: appProperties['nosus_src'] ?? 'phone',
       created: DateTime.now().toUtc(),
       isMessage: kind == 'msg',
       text: kind == 'msg' ? utf8.decode(bytes) : null,
@@ -331,6 +425,9 @@ class DriveSavedStore {
     throw DriveFailure('http', 'Drive request failed (${res.statusCode}).');
   }
 }
+
+/// Escapes a value for a Drive `q` string literal.
+String _q(String value) => value.replaceAll(r'\', r'\\').replaceAll("'", r"\'");
 
 void _id(String id) {
   if (!RegExp(r'^[A-Za-z0-9_-]{1,80}$').hasMatch(id)) {

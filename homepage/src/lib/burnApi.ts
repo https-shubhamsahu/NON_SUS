@@ -23,7 +23,7 @@ import {
   packBurnFilePayload,
 } from "./burnCrypto";
 
-export const NOTE_MAX_CHARS = 10000;
+export const NOTE_MAX_CHARS = 50000;
 // Kept in sync with remote_configs.burn_files_max_size_bytes (server is the
 // authoritative enforcement point — this is only the client-side pre-flight
 // check, so the browser fails fast instead of encrypting/uploading a file

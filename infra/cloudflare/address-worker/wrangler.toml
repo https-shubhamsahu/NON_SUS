@@ -1,0 +1,15 @@
+# <handle>.nosus.foo -> nosus.foo/to (the Drop page). Not deployed yet.
+# See README.md for the DNS steps that must happen first.
+name = "nosus-address"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+workers_dev = false
+
+# The route only fires for proxied (orange-cloud) records. Keep app.nosus.foo
+# and the apex DNS-only so GitHub Pages and Android App Links are untouched.
+routes = [
+  { pattern = "*.nosus.foo/*", zone_name = "nosus.foo" }
+]
+
+[vars]
+ORIGIN = "https://nosus.foo"

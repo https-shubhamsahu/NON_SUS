@@ -132,6 +132,8 @@ jobs:
           echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env
           echo "SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}" >> .env
           echo "SENTRY_DSN=${{ secrets.SENTRY_DSN }}" >> .env
+          # Public OAuth web client (project no-sus); turns on Drive connect.
+          echo "GO_WEB_CLIENT_ID=694624182770-6fr4s9hln4hkklvpqc1d4toadc8ptm4t.apps.googleusercontent.com" >> .env
 
       - name: Analyze
         run: flutter analyze

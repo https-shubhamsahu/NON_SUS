@@ -418,6 +418,28 @@ verify_jwt = false
 [functions.go-session-open]
 verify_jwt = false
 
+# Drop visitor endpoints: the sender has no account.
+[functions.drop-door]
+verify_jwt = false
+
+[functions.drop-init]
+verify_jwt = false
+
+[functions.drop-confirm]
+verify_jwt = false
+
+# Owner only; the function reads the user from the bearer token.
+[functions.drop-fetch]
+verify_jwt = true
+
+# Called by pg_cron through pg_net with x-cron-secret, not a user JWT.
+[functions.cleanup-drops]
+verify_jwt = false
+
+# Called by pg_cron through pg_net with no JWT; gated by x-cron-secret.
+[functions.cleanup-group-drops]
+verify_jwt = false
+
 [functions.account-manager]
 verify_jwt = true
 

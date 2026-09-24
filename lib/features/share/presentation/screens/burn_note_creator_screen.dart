@@ -12,6 +12,9 @@ import '../../../../core/utils/web_links.dart';
 import '../../../../services/burn_file_crypto.dart' show bytesToHex;
 import '../../data/redemption_code_client.dart';
 
+/// Longest burn note, in UTF-16 code units (what TextField counts).
+const int kBurnNoteMaxChars = 50000;
+
 class BurnNoteCreatorScreen extends ConsumerStatefulWidget {
   const BurnNoteCreatorScreen({super.key});
 
@@ -31,6 +34,39 @@ class _BurnNoteCreatorScreenState extends ConsumerState<BurnNoteCreatorScreen> {
   void dispose() {
     _textController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pasteNote() async {
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    final clip = data?.text;
+    if (clip == null || clip.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Nothing to paste.')),
+        );
+      }
+      return;
+    }
+    final value = _textController.value;
+    final sel = value.selection;
+    final start = sel.isValid ? sel.start : value.text.length;
+    final end = sel.isValid ? sel.end : value.text.length;
+    var next = value.text.replaceRange(start, end, clip);
+    var trimmed = false;
+    if (next.length > kBurnNoteMaxChars) {
+      next = next.substring(0, kBurnNoteMaxChars);
+      trimmed = true;
+    }
+    final caret = (start + clip.length).clamp(0, next.length);
+    _textController.value = TextEditingValue(
+      text: next,
+      selection: TextSelection.collapsed(offset: caret),
+    );
+    if (trimmed && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Trimmed to 50,000 characters.')),
+      );
+    }
   }
 
   Future<void> _generateLink() async {
@@ -222,9 +258,10 @@ class _BurnNoteCreatorScreenState extends ConsumerState<BurnNoteCreatorScreen> {
                         controller: _textController,
                         maxLines: null,
                         expands: true,
-                        // Well under the server's 100 KB ciphertext cap, so a
-                        // legitimate note can never hit the raw DB error.
-                        maxLength: 10000,
+                        // Fits the server's 200 KiB ciphertext cap even if
+                        // every character is 3 UTF-8 bytes (see migration
+                        // 20260924130000_burn_note_longer.sql).
+                        maxLength: kBurnNoteMaxChars,
                         style: const TextStyle(fontSize: 14),
                         decoration: InputDecoration(
                           hintText: 'Type your secret message here...',
@@ -237,7 +274,27 @@ class _BurnNoteCreatorScreenState extends ConsumerState<BurnNoteCreatorScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      TextButton.icon(
+                        onPressed: _pasteNote,
+                        icon: const Icon(Icons.content_paste, size: 16),
+                        label: const Text('Paste'),
+                      ),
+                      ValueListenableBuilder<TextEditingValue>(
+                        valueListenable: _textController,
+                        builder: (context, value, _) => value.text.isEmpty
+                            ? const SizedBox.shrink()
+                            : TextButton.icon(
+                                onPressed: _textController.clear,
+                                icon: const Icon(Icons.clear, size: 16),
+                                label: const Text('Clear'),
+                              ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton.icon(

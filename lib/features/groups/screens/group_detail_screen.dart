@@ -23,9 +23,13 @@ import '../../../components/shimmer_box.dart';
 import '../../../components/async_state_view.dart';
 import '../../../core/utils/web_links.dart';
 import '../../../components/content_report_sheet.dart';
+import '../../config/presentation/providers/config_provider.dart';
+import '../drops/group_drops_providers.dart';
+import '../drops/group_drops_tab.dart';
 
 /// Full-screen group detail page with tabbed content:
-/// Files | Notes | Members | Activity
+/// Files | Notes | Members | Activity, plus Chat (Group drops) when the
+/// `nosus_group_drops_enabled` flag is on.
 class GroupDetailScreen extends ConsumerStatefulWidget {
   final StudyGroup group;
   final String? highlightedFileId;
@@ -37,8 +41,21 @@ class GroupDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late TabController _tabController;
+
+  /// The flag can arrive after the first frame, so the tab count can change.
+  /// CHAT goes last so the indices of the existing tabs never move.
+  void _syncTabCount(int length) {
+    if (_tabController.length == length) return;
+    final old = _tabController;
+    _tabController = TabController(
+      length: length,
+      vsync: this,
+      initialIndex: old.index.clamp(0, length - 1),
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) => old.dispose());
+  }
 
   @override
   void initState() {
@@ -196,6 +213,9 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
           },
           orElse: () => widget.group,
         )));
+
+    final dropsOn = ref.watch(featureFlagProvider(groupDropsFlagKey));
+    _syncTabCount(dropsOn ? 5 : 4);
 
     return Scaffold(
       backgroundColor: bg,
@@ -415,11 +435,12 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
                     fontSize: 12,
                     fontWeight: FontWeight.w400,
                   ),
-                  tabs: const [
-                    Tab(text: 'FILES'),
-                    Tab(text: 'NOTES'),
-                    Tab(text: 'MEMBERS'),
-                    Tab(text: 'ACTIVITY'),
+                  tabs: [
+                    const Tab(text: 'FILES'),
+                    const Tab(text: 'NOTES'),
+                    const Tab(text: 'MEMBERS'),
+                    const Tab(text: 'ACTIVITY'),
+                    if (dropsOn) const Tab(text: 'CHAT'),
                   ],
                 ),
               ),
@@ -443,6 +464,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
             ),
             _MembersTab(groupId: group.id, fg: fg, subtle: subtle),
             _ActivityTab(groupId: group.id, fg: fg, subtle: subtle),
+            if (dropsOn) GroupDropsTab(group: group),
           ],
         ),
       ),

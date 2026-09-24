@@ -17,6 +17,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
 import foo.nosus.app.security.DeviceIntegrityManager
+import foo.nosus.app.security.DeviceKeyAgreement
 import foo.nosus.app.security.KeyAttestationManager
 import foo.nosus.app.security.PlayIntegrityManager
 import java.io.File
@@ -28,6 +29,7 @@ class MainActivity : FlutterFragmentActivity() {
     private val SHARE_CHANNEL = "co.nosus.app/share"
     private val INTEGRITY_CHANNEL = "co.nosus.app/device_integrity"
     private val PLAY_INTEGRITY_CHANNEL = "co.nosus.app/play_integrity"
+    private val DEVICE_KEYS_CHANNEL = "co.nosus.app/device_keys"
 
     private var screenshotObserver: ContentObserver? = null
     private var screenCaptureCallback: Activity.ScreenCaptureCallback? = null
@@ -179,6 +181,29 @@ class MainActivity : FlutterFragmentActivity() {
                         }
                     }
                     else -> result.notImplemented()
+                }
+            }
+
+        // ── MethodChannel: device ECDH key for Drop / Group drops ──
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, DEVICE_KEYS_CHANNEL)
+            .setMethodCallHandler { call, result ->
+                try {
+                    when (call.method) {
+                        "kind" -> result.success(DeviceKeyAgreement.kind())
+                        "publicKey" -> result.success(DeviceKeyAgreement.publicKey(applicationContext))
+                        "agree" -> {
+                            val peer = call.argument<ByteArray>("peer")
+                            if (peer == null) result.error("BAD_ARGS", "Missing peer", null)
+                            else result.success(DeviceKeyAgreement.agree(applicationContext, peer))
+                        }
+                        "reset" -> {
+                            DeviceKeyAgreement.reset(applicationContext)
+                            result.success(null)
+                        }
+                        else -> result.notImplemented()
+                    }
+                } catch (e: Exception) {
+                    result.error("DEVICE_KEY_FAILED", e.message, null)
                 }
             }
 

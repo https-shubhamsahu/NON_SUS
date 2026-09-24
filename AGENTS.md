@@ -36,14 +36,15 @@ the code wins — fix this file in the same commit.
 **NO SUS** — send a sensitive document and still see who opened it. Flutter app
 (web + Android) on a Supabase backend.
 
-Current version: **`1.4.0+11`** (`pubspec.yaml`). Latest migration: `20260826085740_secure_two_digit_redemption_pairing.sql`.
+Current version: **`1.4.0+11`** (`pubspec.yaml`). Latest migration: `20260924130000_burn_note_longer.sql`.
 
 Three sub-projects live in this repo:
 
 - **Root** — the Flutter app (`lib/`, `test/`, `android/`, `web/`).
 - **`supabase/`** — Postgres migrations + Deno Edge Functions (15 of them: `burn-file-{init,confirm,fetch}`,
   `share-fetch`, `share-heartbeat`, `create-redemption-code`, `redeem-code`, `storage-router`,
-  `drive-proxy`, `account-manager`, `cleanup-burn-files`, `verify-play-integrity`).
+  `drive-proxy`, `account-manager`, `cleanup-burn-files`, `verify-play-integrity`, plus Address:
+  `go-session-open`, `drop-{door,init,confirm,fetch}`, `cleanup-drops`, `cleanup-group-drops`).
 - **`homepage/`** — Next.js marketing landing page, statically exported (`output: "export"`), served
   at the **`nosus.foo` root**. The Flutter web app lives at **`app.nosus.foo`** (deployed to a
   separate `nosus-app` repo). `.github/workflows/gh-pages.yml` has two independent jobs: `landing`
@@ -288,7 +289,32 @@ ever ship.
 
 **Web↔Dart crypto compatibility.** `homepage/src/lib/burnCrypto.ts` and the Dart burn crypto must
 stay byte-compatible; `test/unit/burn_crypto_web_compat_test.dart` is the guard. Never change one
-side alone.
+side alone. The same rule covers `lib/core/crypto/nosus_seal.dart` ↔ `homepage/src/lib/nosusSeal.ts`
+(Go session, sealed box, group key seal), guarded by `test/unit/nosus_seal_test.dart` +
+`test/unit/nosus_box_test.dart` and `homepage/scripts/nosus-seal.test.cjs` + `nosus-box.test.cjs`,
+which pin the same hex vectors.
+
+**Go pairing link `#/go/1.<sid>.<dpk>` (Saved on a borrowed computer).** Minted only as a QR by
+`nosus.foo/go` (`homepage/src/components/go/GoDesk.tsx`). `sid` is b64url of 16 random bytes (22
+chars), `dpk` is the desk's ephemeral uncompressed P-256 key (87 chars). `extractGoPairing` in
+`lib/features/address/go_session.dart` parses it and is wired into both `_routeIncomingWebLink()`
+and the web `Uri.base` branch in `MyApp`; `test/unit/deep_link_parsing_test.dart` pins that it
+never matches burn/burnfile/burnfiles/redeem/v/join. The `1` is a protocol version — a new version
+must be a new prefix, and `1.` must keep parsing. The borrowed computer **never** receives a Google
+token: the phone keeps Drive access and sends only the items the user approves, sealed, through the
+Burn Files pipe (`go_transit.dart`). Realtime topic `go:<sid>` is private; `go_sessions` (sid stored
+as a hash) is what lets it be joined, and the flag `nosus_address_enabled` gates everything.
+
+**Device keys and sealed boxes (Drop, Group drops).** Each signed-in device publishes one P-256 key
+to `device_keys` via `register_device_key` (`lib/core/crypto/device_keys.dart`). On Android API 31+
+the private key is generated in Android Keystore with `PURPOSE_AGREE_KEY` and never leaves it
+(`android/.../security/DeviceKeyAgreement.kt`, channel `co.nosus.app/device_keys`; only the ECDH
+result crosses to Dart). Below API 31 it is a software key wrapped by a Keystore AES key; on web it
+is a software key in browser storage (kind `web`). Box format: `0x01 ‖ epk ‖ nonce ‖ AES-GCM`, key =
+HKDF(Z, salt=epk, info="nosus-box/1"‖0‖context‖0‖rpk). The `context` string binds a box to its use
+(`drop:<id>`, `group-key:<group>:<epoch>`) — never reuse a context for a different purpose. The
+server stores only public keys, so it could swap a key it serves; safety codes (`safetyCode()`) are
+the user-visible check. Don't claim more than that in copy.
 
 ---
 
@@ -483,6 +509,11 @@ codebase — assume still outstanding unless you know otherwise.
 | `migrate_device_id()` never exercised against a signed-in session | Open — needs a physical device; all `user_known_devices` rows are still legacy UUIDs |
 | Orphaned keystore `android/app/release_orphaned_2026-06-21.keystore` | On disk, git-ignored — delete once confirmed unneeded |
 | **Measure Android build never compiled locally** | Open — `flutter analyze` + `flutter test` are clean, and `Measure.init`/`MeasureConfig(autoStart, trackActivityIntentData)` were checked against the pinned `android-v0.18.0` tag, but `NoSusApplication.kt`, the manifest placeholders and the merged manifest have **not** been through a real Gradle build: this machine OOM'd (1.4 GB free of 15.6 GB, paging file too small for even a 1 GB JVM heap). First Android build after this must be watched |
+| **Address / Drop / Group drops rollout** | Code merged behind flags `nosus_address_enabled`, `nosus_drop_enabled`, `nosus_group_drops_enabled` — all `is_active=true`, **0%** rollout. Migrations `20260924100000`–`20260924130000` and functions `drop-*`, `cleanup-drops`, `cleanup-group-drops` are **deployed** (2026-09-24). Raise rollout or add tester ids in `feature_flags.targeted_user_ids` to try it |
+| **(manual)** Google Auth Platform for Drive (`drive.file`) | Project `no-sus`: add `https://app.nosus.foo` to the web client's Authorized JavaScript origins (needed for Drive connect in the web app / iPhone); confirm Data Access lists `drive.file`, the Drive API is enabled, the app is **In production**, and branding is verified; confirm the "NO SUS Android" client has the Play app-signing + upload + debug SHA-1s. Until then Drive connect can fail with `idpiframe`/`redirect_uri`/`DEVELOPER_ERROR` |
+| **(manual)** `<handle>.nosus.foo` wildcard | DNS is at name.com. Needs Cloudflare DNS + the Worker in `infra/cloudflare/address-worker/` (see its README; keep apex/`app` records DNS-only for App Links). Then set `remote_configs.address_subdomain_live = true`. Until then addresses are `nosus.foo/to?h=<handle>` |
+| Group drops per-member watermarks (Canary-style) | Not built — needs per-member file copies with keys sealed to each member's devices (a protocol change: today every file key rides in a message all members can read) |
+| Passkey proximity mode, Google Picker, Cloudflare for SaaS | Not built. Picker needs a Picker API key (console); proximity needs a passkey RP + a verify function; SaaS hostnames need Cloudflare |
 | **(manual)** Measure dashboard: disable `crash_take_screenshot` | Open — server-side setting, **not** controllable from app code. Until it's off, a crash in a burn/document viewer can upload decrypted content (§8). Only matters once `MEASURE_API_KEY`/`MEASURE_API_URL` are set |
 
 ---
@@ -518,6 +549,42 @@ codebase — assume still outstanding unless you know otherwise.
 > bottom rather than letting this section grow without bound.
 
 <!-- CHANGELOG:INSERT -->
+- **2026-09-24** · feat(burn): copy, paste, scrolling, 50,000-character notes (76fb8cb) — why: users
+  could not scroll long notes or copy them fast. Viewer scrolls inside the box with COPY NOTE; both
+  creators get Paste/Clear. Limit 10k→50k chars (`kBurnNoteMaxChars`, `NOTE_MAX_CHARS`); migration
+  `20260924130000_burn_note_longer.sql` raises `burn_notes_ciphertext_size` to 204,800 (applied).
+  The 60-second read window is unchanged — the gate copy now says "read it or copy it".
+- **2026-09-24** · feat(groups): Group drops (merge of `feat/nosus-group-drops`) — why: Phase 3.
+  CHAT tab (flag `nosus_group_drops_enabled`), group key per epoch wrapped per member device
+  (`group-key:<group>:<epoch>` boxes), messages sealed under the group key with AAD bound to group,
+  epoch and message id, files in private bucket `group-drops`, relay purge 30 d / files 7 d, each
+  member's copy to their own Drive `NO SUS/Groups/<name>/`. Removing/banning rotates the epoch;
+  voluntary leaves rotate on the next open. Safety codes in the info sheet. Migration
+  `20260924120000_group_drops.sql` + `cleanup-group-drops` deployed.
+- **2026-09-24** · feat(drop): address, closed-by-default door, Inbox (merge of `feat/nosus-drop`)
+  — why: Phase 2 ("share your address, not your number"). `address_handles`, `drop_doors`, `drops`,
+  `drop_envelopes`, `drop_senders` (sender IP hash kept off the owner-readable table), `drop_blocks`;
+  visitor page `nosus.foo/to`; manifest (name, note, sender, file key) sealed to each owner device
+  with context `drop:<id>`, so the server sees size, timing and an IP hash only. Door check code
+  on both sides guards against a swapped device key. Phone QR via new dep `qr_flutter` (rendered
+  on-device). Migration `20260924110000` + `drop-door`/`drop-init`/`drop-confirm`/`drop-fetch`/
+  `cleanup-drops` deployed. Worker for `<handle>.nosus.foo` is code only (§9).
+- **2026-09-24** · feat(address): Face ID / Touch ID gate on the web app (d532562) — why: iPhone
+  approves Go in Safari, where `local_auth` does nothing. `lib/core/security/platform_lock*.dart`
+  uses a local WebAuthn platform credential; it is a local presence check, never server-verified.
+- **2026-09-24** · ci: compile `GO_WEB_CLIENT_ID` into web and Play builds — why: it was empty in
+  every build, so Saved could never connect Drive. The id is the public web OAuth client
+  `694624182770-6fr4…` in Cloud project `no-sus` (694624182770), which also holds the Android client
+  "NO SUS Android" and the Supabase Google sign-in. All Google clients live in that one project —
+  keep it that way, because `drive.file` access belongs to the project.
+- **2026-09-24** · feat(keys): device ECDH keys + sealed box (79d3e77) — why: foundation for Drop and
+  Group drops. Adds `device_keys` (migration `20260924100000`), the Keystore ECDH channel, and the
+  Dart/TS box format. See §5 "Device keys and sealed boxes".
+- **2026-09-22** · feat: Saved chat + borrowed-computer Go (PR #11, dc3e2f0) — why: first phase of
+  "Your NO SUS Address". Adds `lib/features/address/`, `nosus.foo/go`, `go-session-open`, migration
+  `20260922050000_nosus_go.sql` (applied to production), the `#/go/` link (see §5), the flag
+  `nosus_address_enabled` (0% + testers), and deps `google_sign_in`, `local_auth`, `pointycastle`.
+  `MainActivity` became `FlutterFragmentActivity` because `local_auth` requires it.
 - **2026-09-17** · fix(copy): every single-target Burn share stores its key server-side — why: the
   listing, store copy and share screens said a plain link share keeps the key off the server.
   `mintPairing` (homepage) and `createCode` (app) run on every single note or single file share,

@@ -22,6 +22,7 @@ function load(url, token = 'abc123def456') {
     hash: start.hash,
     pathname: start.pathname,
     search: start.search,
+    hostname: start.hostname,
     replaced: null,
     replace(target) { this.replaced = { target, hashAtExit: this.hash }; },
   };
@@ -82,6 +83,24 @@ test('the Go desk does not load analytics', () => {
   const page = load('https://nosus.foo/go');
   assert.equal(page.location.replaced, null);
   assert.equal(page.scripts.length, 0);
+});
+
+test('the Drop page and handle subdomains do not load analytics', () => {
+  for (const url of [
+    'https://nosus.foo/to',
+    'https://nosus.foo/to/',
+    'https://nosus.foo/to?h=alice',
+    'https://nosus.foo/to#alice',
+    'https://alice.nosus.foo/',
+    'https://ALICE.nosus.foo/',
+  ]) {
+    const page = load(url);
+    assert.equal(page.location.replaced, null, url);
+    assert.equal(page.scripts.length, 0, url);
+  }
+  // The apex and www still count.
+  assert.equal(load('https://www.nosus.foo/').scripts.length, 1);
+  assert.equal(load('https://nosus.foo/tools').scripts.length, 1);
 });
 
 test('plain in-page anchors still count; any other fragment skips analytics', () => {

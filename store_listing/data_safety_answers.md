@@ -154,3 +154,15 @@ docs, collected, and shared with Google Drive because the user connected it,
 purpose App functionality. A borrowed computer does not receive the Google
 token. Do not describe the session as leaving no trace: downloads and prints
 can remain on that computer.
+
+## Address and Drop (feature flag `nosus_drop_enabled`, off until rollout)
+
+A visitor without an account can send a file to a user's address while the
+user's door is open. The visitor's browser seals the file, file name, sender
+name, and note to the owner's device keys. The server stores the sealed file,
+its size, timing, and an HMAC of the sender's IP (rate limits, blocks) for up
+to 24 hours. Accepted files go to the owner's Google Drive (`NO SUS/Inbox`).
+Declare at rollout: Files and docs, collected (sealed in the sender's browser; the server
+does not get the file key), deleted within 24 hours; the handle is
+collected as account info. Do not describe it as zero-knowledge or leaving no
+trace: size, timing, and the IP hash are visible to the server.
