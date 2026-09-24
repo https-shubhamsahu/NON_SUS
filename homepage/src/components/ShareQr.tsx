@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 
-/** Draws a QR code in-browser. The payload never leaves the device. */
+/** Draws a QR code in-browser with the local `qrcode` package. */
 export default function ShareQr({
   value,
   size = 112,
@@ -24,6 +24,7 @@ export default function ShareQr({
           width: size,
           margin: 1,
           errorCorrectionLevel: "M",
+          // Fixed high-contrast modules so scanners can read the code.
           color: { dark: "#000000", light: "#ffffff" },
         });
       } catch {
@@ -41,7 +42,7 @@ export default function ShareQr({
       ref={canvasRef}
       width={size}
       height={size}
-      className="rounded-md bg-white"
+      className="rounded-[12px] bg-card"
       aria-label="QR code for the share link"
     />
   );
