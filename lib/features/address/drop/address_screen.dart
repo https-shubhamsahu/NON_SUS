@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../core/crypto/device_keys.dart';
@@ -172,6 +173,37 @@ class _AddressScreenState extends ConsumerState<AddressScreen> {
     }
   }
 
+  void _showQr(String link) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Semantics(
+                label: 'QR code for your NO SUS address',
+                child: Container(
+                  color: Colors.white,
+                  padding: const EdgeInsets.all(12),
+                  child: QrImageView(data: link, size: 240, backgroundColor: Colors.white),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Anyone can scan this to send you a file while your door is open.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   String _linkText(String handle) {
     final live = ref.read(remoteConfigServiceProvider).getConfigValue<bool>('address_subdomain_live', false);
     return live ? 'https://${AddressHandle.subdomain(handle)}' : AddressHandle.link(handle).toString();
@@ -259,6 +291,11 @@ class _AddressScreenState extends ConsumerState<AddressScreen> {
                     ),
                     icon: const Icon(Icons.ios_share),
                     label: const Text('Share'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () => _showQr(_linkText(handle)),
+                    icon: const Icon(Icons.qr_code_2),
+                    label: const Text('QR'),
                   ),
                   TextButton(
                     onPressed: () => setState(() {
