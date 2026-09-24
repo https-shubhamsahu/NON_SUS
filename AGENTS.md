@@ -36,7 +36,7 @@ the code wins — fix this file in the same commit.
 **NO SUS** — send a sensitive document and still see who opened it. Flutter app
 (web + Android) on a Supabase backend.
 
-Current version: **`1.4.0+11`** (`pubspec.yaml`). Latest migration: `20260924130000_burn_note_longer.sql`.
+Current version: **`1.4.1+12`** (`pubspec.yaml`). Latest migration: `20260924130000_burn_note_longer.sql`.
 
 Three sub-projects live in this repo:
 
@@ -549,6 +549,11 @@ codebase — assume still outstanding unless you know otherwise.
 > bottom rather than letting this section grow without bound.
 
 <!-- CHANGELOG:INSERT -->
+- **2026-09-24** · chore(release): bump to 1.4.1+12 — why: ships Address (Saved/Go, Drop, Group
+  drops; all flags at 0%), device keys, the web Face ID gate, and the Burn note upgrades (copy,
+  paste, scrolling, 50,000 characters) to the Play internal track. `app_latest_version` in
+  `remote_configs` is deliberately **not** bumped: 1.4.1 is not in production yet, and bumping it
+  prompts every existing user.
 - **2026-09-24** · feat(burn): copy, paste, scrolling, 50,000-character notes (76fb8cb) — why: users
   could not scroll long notes or copy them fast. Viewer scrolls inside the box with COPY NOTE; both
   creators get Paste/Clear. Limit 10k→50k chars (`kBurnNoteMaxChars`, `NOTE_MAX_CHARS`); migration
