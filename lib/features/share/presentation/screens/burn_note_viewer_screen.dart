@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -42,6 +43,8 @@ class _BurnNoteViewerScreenState extends ConsumerState<BurnNoteViewerScreen> {
   String? _decryptedContent;
   String? _errorMessage;
   int _secondsLeft = 60;
+  bool _copied = false;
+  final _noteScroll = ScrollController();
   Timer? _timer;
   StreamSubscription? _blurSubscription;
   // Deliberately does NOT block copy/select: the note body below uses
@@ -61,6 +64,7 @@ class _BurnNoteViewerScreenState extends ConsumerState<BurnNoteViewerScreen> {
     _timer?.cancel();
     _blurSubscription?.cancel();
     _webGuard.detach();
+    _noteScroll.dispose();
     super.dispose();
   }
 
@@ -184,7 +188,7 @@ class _BurnNoteViewerScreenState extends ConsumerState<BurnNoteViewerScreen> {
         ),
         const SizedBox(height: 12),
         const Text(
-          'This is an encrypted burn note. Once you open it, it is permanently deleted. You will have exactly 60 seconds to read it.',
+          'This is an encrypted burn note. Opening it deletes it from the server. You then have 60 seconds to read it or copy it.',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 13, color: Colors.white70, height: 1.4),
         ),
@@ -270,31 +274,73 @@ class _BurnNoteViewerScreenState extends ConsumerState<BurnNoteViewerScreen> {
           ),
         ),
         const SizedBox(height: 24),
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.03),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.orangeAccent.withValues(alpha: 0.2)),
-          ),
-          child: SelectableText(
-            _decryptedContent ?? '',
-            style: const TextStyle(
-              fontSize: 14,
-              fontFamily: 'Courier',
-              height: 1.5,
-              color: Colors.white,
+        // Long notes scroll inside the box; the timer and buttons stay put.
+        Flexible(
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.03),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.orangeAccent.withValues(alpha: 0.2)),
+            ),
+            child: Scrollbar(
+              controller: _noteScroll,
+              thumbVisibility: true,
+              child: SingleChildScrollView(
+                controller: _noteScroll,
+                padding: const EdgeInsets.all(20),
+                child: SelectableText(
+                  _decryptedContent ?? '',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontFamily: 'Courier',
+                    height: 1.5,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
             ),
           ),
         ),
-        const SizedBox(height: 24),
-        OutlinedButton.icon(
-          onPressed: _burnImmediately,
-          icon: const Icon(Icons.delete_forever, size: 16, color: Colors.redAccent),
-          label: const Text('BURN IMMEDIATELY', style: TextStyle(color: Colors.redAccent, fontSize: 11)),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.orangeAccent,
+                  foregroundColor: Colors.black,
+                ),
+                onPressed: _copyNote,
+                icon: Icon(_copied ? Icons.check : Icons.copy, size: 16),
+                label: Text(
+                  _copied ? 'COPIED' : 'COPY NOTE',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _burnImmediately,
+                icon: const Icon(Icons.delete_forever, size: 16, color: Colors.redAccent),
+                label: const Text('BURN NOW', style: TextStyle(color: Colors.redAccent, fontSize: 11)),
+              ),
+            ),
+          ],
         ),
       ],
     );
+  }
+
+  Future<void> _copyNote() async {
+    final text = _decryptedContent;
+    if (text == null) return;
+    await Clipboard.setData(ClipboardData(text: text));
+    if (!mounted) return;
+    setState(() => _copied = true);
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _copied = false);
+    });
   }
 
   Widget _buildBurned() {

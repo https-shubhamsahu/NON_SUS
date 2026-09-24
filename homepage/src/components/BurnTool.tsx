@@ -5,6 +5,7 @@ import {
   FileUp,
   Lock,
   Check,
+  ClipboardPaste,
   Copy,
   AlertTriangle,
   RotateCcw,
@@ -54,6 +55,26 @@ export default function BurnTool() {
   const [directCopied, setDirectCopied] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
   const [copyError, setCopyError] = useState("");
+  const [pasteError, setPasteError] = useState("");
+  const noteRef = useRef<HTMLTextAreaElement>(null);
+
+  const pasteNote = async () => {
+    setPasteError("");
+    try {
+      const clip = await navigator.clipboard.readText();
+      const el = noteRef.current;
+      const start = el?.selectionStart ?? noteText.length;
+      const end = el?.selectionEnd ?? noteText.length;
+      const next = (noteText.slice(0, start) + clip + noteText.slice(end)).slice(0, NOTE_MAX_CHARS);
+      setNoteText(next);
+      if (clip.length + noteText.length - (end - start) > NOTE_MAX_CHARS) {
+        setPasteError(`Trimmed to ${NOTE_MAX_CHARS.toLocaleString()} characters.`);
+      }
+      requestAnimationFrame(() => el?.focus());
+    } catch {
+      setPasteError("Clipboard blocked. Long-press the box and paste.");
+    }
+  };
   const [noteText, setNoteText] = useState("");
   const [expiryHours, setExpiryHours] = useState(24);
   const [dragOver, setDragOver] = useState(false);
@@ -383,14 +404,35 @@ export default function BurnTool() {
               {tab === "note" ? (
                 <div className="flex flex-col items-center w-full">
                   <textarea
+                    ref={noteRef}
                     value={noteText}
                     onChange={(e) => setNoteText(e.target.value.slice(0, NOTE_MAX_CHARS))}
-                    placeholder="WRITE A SECRET NOTE…"
-                    className="w-[85%] h-[120px] bg-brand-black/50 border border-white/10 hover:border-white/30 focus:border-white focus:outline-none p-3.5 text-[10px] font-mono text-center text-white resize-none rounded-xl"
+                    placeholder="WRITE OR PASTE A SECRET NOTE…"
+                    aria-label="Secret note"
+                    className="w-[85%] h-[160px] overflow-y-auto bg-brand-black/50 border border-white/10 hover:border-white/30 focus:border-white focus:outline-none p-3.5 text-[10px] font-mono text-left text-white resize-y rounded-xl"
                   />
+                  <div className="flex items-center gap-2 w-[80%] mt-2">
+                    <button
+                      type="button"
+                      onClick={pasteNote}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded border border-white/15 text-[9px] font-bold uppercase tracking-wider text-white hover:bg-white/10"
+                    >
+                      <ClipboardPaste className="h-3 w-3" /> Paste
+                    </button>
+                    {noteText.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setNoteText("")}
+                        className="px-2.5 py-1 rounded border border-white/10 text-[9px] font-bold uppercase tracking-wider text-brand-gray-light hover:text-white"
+                      >
+                        Clear
+                      </button>
+                    )}
+                    {pasteError && <span className="text-[9px] text-brand-gray-light" role="alert">{pasteError}</span>}
+                  </div>
                   {/* Expiry & Counter */}
                   <div className="flex items-center justify-between w-[80%] mt-3 text-[8px] font-mono text-brand-gray-light">
-                    <span>{noteText.length}/{NOTE_MAX_CHARS}</span>
+                    <span>{noteText.length.toLocaleString()}/{NOTE_MAX_CHARS.toLocaleString()}</span>
                     <select
                       value={expiryHours}
                       onChange={(e) => setExpiryHours(Number(e.target.value))}
