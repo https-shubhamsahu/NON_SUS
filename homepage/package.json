@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test:burn": "node --test scripts/burn-performance.test.cjs scripts/legacy-link-shim.test.cjs",
-    "test:seal": "node --test scripts/nosus-seal.test.cjs"
+    "test:seal": "node --test scripts/nosus-seal.test.cjs scripts/nosus-box.test.cjs"
   },
   "dependencies": {
     "@supabase/realtime-js": "^2.116.0",

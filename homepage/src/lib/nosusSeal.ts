@@ -160,3 +160,66 @@ export async function openJson(key: Uint8Array, sid: Uint8Array, direction: numb
   if (!decoded || typeof decoded !== "object" || Array.isArray(decoded)) throw new Error("event");
   return decoded as Record<string, unknown>;
 }
+
+// ── Sealed box (Drop, Group drops). Locked to lib/core/crypto/nosus_seal.dart.
+//   box  = 0x01 ‖ epk (65) ‖ nonce (12) ‖ AES-256-GCM(ct ‖ tag)
+//   key  = HKDF-SHA256(ikm=Z, salt=epk, info="nosus-box/1" ‖ 0 ‖ context ‖ 0 ‖ rpk, L=32)
+//   aad  = "nosus-box/1" ‖ 0 ‖ context
+
+const BOX_TAG = new TextEncoder().encode("nosus-box/1");
+
+function concat(...parts: Uint8Array[]): Uint8Array {
+  const out = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
+  let o = 0;
+  for (const p of parts) {
+    out.set(p, o);
+    o += p.length;
+  }
+  return out;
+}
+
+function boxInfo(context: string, rpk: Uint8Array): Uint8Array {
+  return concat(BOX_TAG, new Uint8Array([0]), new TextEncoder().encode(context), new Uint8Array([0]), rpk);
+}
+
+function boxAad(context: string): Uint8Array {
+  return concat(BOX_TAG, new Uint8Array([0]), new TextEncoder().encode(context));
+}
+
+export async function sealBox(
+  recipientPublic: Uint8Array,
+  context: string,
+  plain: Uint8Array,
+  opts: { ephemeral?: GoKeyPair; nonce?: Uint8Array } = {},
+): Promise<Uint8Array> {
+  const eph = opts.ephemeral ?? (await generateGoKeyPair());
+  const iv = opts.nonce ?? randomBytes(12);
+  const z = await sharedSecret(eph.privateKey, eph.publicKey, recipientPublic);
+  const key = await hkdfSha256(z, eph.publicKey, boxInfo(context, recipientPublic), 32);
+  const ct = await gcm(true, key, iv, plain, boxAad(context));
+  return concat(new Uint8Array([1]), eph.publicKey, iv, ct);
+}
+
+export async function openBox(
+  recipientPrivate: Uint8Array,
+  recipientPublic: Uint8Array,
+  context: string,
+  box: Uint8Array,
+): Promise<Uint8Array> {
+  if (box.length < 78 + 16 || box[0] !== 1) throw new Error("box");
+  const epk = box.subarray(1, 66);
+  const z = await sharedSecret(recipientPrivate, recipientPublic, epk);
+  const key = await hkdfSha256(z, epk, boxInfo(context, recipientPublic), 32);
+  return gcm(false, key, box.subarray(66, 78), box.subarray(78), boxAad(context));
+}
+
+/** nonce (12) ‖ AES-256-GCM(ct ‖ tag). */
+export async function sealWithKey(key: Uint8Array, plain: Uint8Array, aad: Uint8Array, nonce?: Uint8Array): Promise<Uint8Array> {
+  const iv = nonce ?? randomBytes(12);
+  return concat(iv, await gcm(true, key, iv, plain, aad));
+}
+
+export async function openWithKey(key: Uint8Array, box: Uint8Array, aad: Uint8Array): Promise<Uint8Array> {
+  if (box.length < 28) throw new Error("box");
+  return gcm(false, key, box.subarray(0, 12), box.subarray(12), aad);
+}

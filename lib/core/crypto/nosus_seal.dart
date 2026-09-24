@@ -285,3 +285,142 @@ Map<String, dynamic> openJson({
   if (decoded is! Map) throw const FormatException('event');
   return Map<String, dynamic>.from(decoded);
 }
+
+// ── Sealed box (Drop, Group drops) ─────────────────────────────────────────
+//
+// Anyone with a device's public key can seal to it; only that device's
+// private key (Android Keystore on API 31+) can open it.
+//
+//   box   = 0x01 ‖ epk (65) ‖ nonce (12) ‖ AES-256-GCM(ct ‖ tag)
+//   key   = HKDF-SHA256(ikm=Z, salt=epk,
+//                       info="nosus-box/1" ‖ 0x00 ‖ context ‖ 0x00 ‖ rpk, L=32)
+//   aad   = "nosus-box/1" ‖ 0x00 ‖ context
+//
+// `context` binds the box to its use ("drop", "group-key:<group>:<epoch>")
+// so a box lifted from one place cannot be replayed into another.
+
+const int _boxVersion = 1;
+const int _boxHeader = 1 + 65 + 12;
+
+Uint8List _boxInfo(String context, Uint8List rpk) => (BytesBuilder(copy: false)
+      ..add(utf8.encode('nosus-box/1'))
+      ..addByte(0)
+      ..add(utf8.encode(context))
+      ..addByte(0)
+      ..add(rpk))
+    .toBytes();
+
+Uint8List _boxAad(String context) => (BytesBuilder(copy: false)
+      ..add(utf8.encode('nosus-box/1'))
+      ..addByte(0)
+      ..add(utf8.encode(context)))
+    .toBytes();
+
+Uint8List sealBox({
+  required Uint8List recipientPublic,
+  required String context,
+  required Uint8List plain,
+  GoKeyPair? ephemeral,
+  Uint8List? nonce,
+}) {
+  decodeGoPublic(recipientPublic);
+  final eph = ephemeral ?? generateGoKeyPair();
+  final iv = nonce ?? randomBytes(12);
+  if (iv.length != 12) throw const FormatException('nonce');
+  final z = sharedSecret(eph.privateKey, recipientPublic);
+  final key = hkdfSha256(
+    ikm: z,
+    salt: eph.publicKey,
+    info: _boxInfo(context, recipientPublic),
+    length: 32,
+  );
+  final ct = _gcm(encrypting: true, key: key, nonce: iv, data: plain, aad: _boxAad(context));
+  return (BytesBuilder(copy: false)
+        ..addByte(_boxVersion)
+        ..add(eph.publicKey)
+        ..add(iv)
+        ..add(ct))
+      .toBytes();
+}
+
+/// The ephemeral public key the device must run ECDH against.
+Uint8List boxEphemeralPublic(Uint8List box) {
+  if (box.length < _boxHeader + 16 || box[0] != _boxVersion) {
+    throw const FormatException('box');
+  }
+  return Uint8List.sublistView(box, 1, 66);
+}
+
+/// Opens a box once the device has computed [z] = ECDH(own private,
+/// [boxEphemeralPublic]). Split this way so the private key can stay in
+/// Android Keystore.
+Uint8List openBoxWithSecret({
+  required Uint8List z,
+  required Uint8List recipientPublic,
+  required String context,
+  required Uint8List box,
+}) {
+  final epk = boxEphemeralPublic(box);
+  final key = hkdfSha256(
+    ikm: z,
+    salt: epk,
+    info: _boxInfo(context, recipientPublic),
+    length: 32,
+  );
+  return _gcm(
+    encrypting: false,
+    key: key,
+    nonce: Uint8List.sublistView(box, 66, _boxHeader),
+    data: Uint8List.sublistView(box, _boxHeader),
+    aad: _boxAad(context),
+  );
+}
+
+Uint8List openBox({
+  required Uint8List recipientPrivate,
+  required Uint8List recipientPublic,
+  required String context,
+  required Uint8List box,
+}) =>
+    openBoxWithSecret(
+      z: sharedSecret(recipientPrivate, boxEphemeralPublic(box)),
+      recipientPublic: recipientPublic,
+      context: context,
+      box: box,
+    );
+
+// ── Symmetric message seal (group messages under a group key) ──────────────
+//   out = nonce (12) ‖ AES-256-GCM(ct ‖ tag), aad supplied by the caller.
+
+Uint8List sealWithKey(Uint8List key, Uint8List plain, Uint8List aad, {Uint8List? nonce}) {
+  final iv = nonce ?? randomBytes(12);
+  final ct = _gcm(encrypting: true, key: key, nonce: iv, data: plain, aad: aad);
+  return (BytesBuilder(copy: false)
+        ..add(iv)
+        ..add(ct))
+      .toBytes();
+}
+
+Uint8List openWithKey(Uint8List key, Uint8List box, Uint8List aad) {
+  if (box.length < 12 + 16) throw const FormatException('box');
+  return _gcm(
+    encrypting: false,
+    key: key,
+    nonce: Uint8List.sublistView(box, 0, 12),
+    data: Uint8List.sublistView(box, 12),
+    aad: aad,
+  );
+}
+
+/// Short human-comparable code for a set of public keys (safety codes).
+/// 12 digits in groups of 4, from SHA-256 over the sorted keys.
+String safetyCode(List<Uint8List> publicKeys) {
+  final sorted = publicKeys.map(b64url).toList()..sort();
+  final digest = sha256.convert(utf8.encode('nosus-safety/1:${sorted.join('.')}')).bytes;
+  var n = BigInt.zero;
+  for (final b in digest.take(8)) {
+    n = (n << 8) | BigInt.from(b);
+  }
+  final digits = (n % BigInt.from(1000000000000)).toString().padLeft(12, '0');
+  return '${digits.substring(0, 4)} ${digits.substring(4, 8)} ${digits.substring(8)}';
+}
