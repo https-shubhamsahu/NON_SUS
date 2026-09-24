@@ -1,12 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { Moon, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const STORAGE_KEY = "nosus-theme";
 
 type Theme = "light" | "dark";
+
+const listeners = new Set<() => void>();
+
+function emitThemeChange() {
+  listeners.forEach((listener) => listener());
+}
 
 function readStoredTheme(): Theme | null {
   try {
@@ -24,24 +30,48 @@ function systemTheme(): Theme {
     : "dark";
 }
 
+function subscribeTheme(onStoreChange: () => void) {
+  listeners.add(onStoreChange);
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === STORAGE_KEY || event.key === null) onStoreChange();
+  };
+  window.addEventListener("storage", onStorage);
+  const mq = window.matchMedia("(prefers-color-scheme: light)");
+  mq.addEventListener("change", onStoreChange);
+  return () => {
+    listeners.delete(onStoreChange);
+    window.removeEventListener("storage", onStorage);
+    mq.removeEventListener("change", onStoreChange);
+  };
+}
+
+function getThemeSnapshot(): Theme {
+  return readStoredTheme() ?? systemTheme();
+}
+
+function getServerThemeSnapshot(): Theme {
+  return "dark";
+}
+
 /**
  * Light/dark control. Persists to localStorage (`nosus-theme`).
  * If nothing is stored, leaves `data-theme` unset so CSS media query owns the look.
  */
 export function ThemeToggle({ className }: { className?: string }) {
-  // Dark-first SSR default; sync from storage / system after mount.
-  const [theme, setTheme] = useState<Theme>("dark");
+  const theme = useSyncExternalStore(
+    subscribeTheme,
+    getThemeSnapshot,
+    getServerThemeSnapshot,
+  );
 
   useEffect(() => {
     const stored = readStoredTheme();
     if (stored) {
       document.documentElement.dataset.theme = stored;
-      setTheme(stored);
     } else {
       delete document.documentElement.dataset.theme;
-      setTheme(systemTheme());
     }
-  }, []);
+  }, [theme]);
 
   function toggle() {
     const next: Theme = theme === "dark" ? "light" : "dark";
@@ -51,7 +81,7 @@ export function ThemeToggle({ className }: { className?: string }) {
     } catch {
       /* ignore */
     }
-    setTheme(next);
+    emitThemeChange();
   }
 
   return (
