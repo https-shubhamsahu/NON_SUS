@@ -21,21 +21,20 @@ const geistMono = Geist_Mono({
 });
 
 // Comprehensive Technical SEO and AI Answer Engine Optimization (AEO).
-// Copy is aligned to what the page actually leads with (the real, working
-// Burn Note/File tool in the hero) — not generic file-sharing copy.
+// Copy is aligned to Saved-on-any-screen + honest burn/watermark claims.
 export const metadata: Metadata = {
-  title: "NO SUS - Know Who Leaked Your Document",
-  // Kept under ~155 characters so Google does not truncate it.
-  description: "Every document you share is watermarked to whoever opens it, so a leak traces back to one name. Self-destructing notes and files, no login required.",
+  title: "NO SUS — Your Drive on any screen",
+  // 130 characters — under the 155-char soft limit so Google does not truncate it.
+  description:
+    "Open Saved on a borrowed computer without signing Google in there. Watermarked documents and self-destructing notes stay in the app.",
   keywords: [
+    "google drive on borrowed computer",
     "self-destructing notes",
     "anonymous file sharing",
     "no login file sharing",
-    "one-time file share",
-    "temporary file sharing",
+    "document watermarking",
     "secure file sharing",
     "encrypted document sharing",
-    "document watermarking",
     "study group collaboration",
     "privacy-first file sharing",
   ],
@@ -48,8 +47,9 @@ export const metadata: Metadata = {
     apple: "/apple-touch-icon.png",
   },
   openGraph: {
-    title: "NO SUS - Know Who Leaked Your Document",
-    description: "Every shared document is watermarked to whoever opens it, with a tamper-evident audit ledger behind it. Self-destructing notes and files leave nothing behind at all.",
+    title: "NO SUS — Your Drive on any screen",
+    description:
+      "Open Saved on a borrowed computer without signing Google in there. Watermarked documents and self-destructing notes stay in the app.",
     url: "https://nosus.foo",
     siteName: "NO SUS",
     locale: "en_US",
@@ -59,14 +59,15 @@ export const metadata: Metadata = {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "NO SUS: self-destructing notes, no-login file drops, watermarked document sharing",
+        alt: "NO SUS: open Saved on any screen, watermarked documents, self-destructing notes",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "NO SUS - Know Who Leaked Your Document",
-    description: "Every document you share is watermarked to whoever opens it. Try the self-destructing note and file tools right on the page.",
+    title: "NO SUS — Your Drive on any screen",
+    description:
+      "Open Saved on a borrowed computer without signing Google in there. Watermarked documents and self-destructing notes stay in the app.",
     images: ["/og-image.png"],
   },
   robots: {
@@ -131,12 +132,12 @@ const structuredData = {
       name: "NO SUS",
       url: APP_URL,
       applicationCategory: "SecurityApplication",
-      operatingSystem: "Android, Web",
+      operatingSystem: "Android",
       image: `${SITE_URL}og-image.png`,
       offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
       publisher: { "@id": `${SITE_URL}#organization` },
       description:
-        "Share documents watermarked to each person who opens them, and send self-destructing notes and files without an account.",
+        "Open Saved on a borrowed computer without signing Google in there. Watermarked documents and self-destructing notes stay in the app.",
     },
   ],
 };
