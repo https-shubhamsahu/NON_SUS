@@ -13,6 +13,8 @@ import '../../auth/presentation/providers/auth_providers.dart';
 import '../../files/domain/models/secure_file_metadata.dart';
 import '../../files/presentation/providers/secure_file_providers.dart';
 import '../../../core/utils/debug_logger.dart';
+import '../../config/presentation/providers/config_provider.dart';
+import '../drops/group_drops_providers.dart';
 
 // ─── Search query ─────────────────────────────────────────────────────────────
 
@@ -163,6 +165,20 @@ class GroupsNotifier extends AsyncNotifier<List<StudyGroup>> {
   Future<void> removeMember(String groupId, String memberId) async {
     await ref.read(studyGroupRepositoryProvider).removeMember(groupId, memberId);
     ref.invalidate(groupMembersProvider(groupId));
+    await _rotateGroupDropsKey(groupId);
+  }
+
+  /// Group drops: after a removal or ban, start a new group key wrapped only
+  /// for who remains. A failure here is logged, not surfaced: the member is
+  /// already out, and the next member to open the chat rotates anyway
+  /// (group_key_needs_rotation).
+  Future<void> _rotateGroupDropsKey(String groupId) async {
+    if (!ref.read(featureFlagProvider(groupDropsFlagKey))) return;
+    try {
+      await ref.read(groupKeyServiceProvider).rotateAfterRemoval(groupId);
+    } catch (e) {
+      debugLog('GroupsNotifier: group drops key rotation failed: $e');
+    }
   }
 
   Future<void> setMemberRole(String groupId, String memberId, bool isAdmin) async {
@@ -178,6 +194,7 @@ class GroupsNotifier extends AsyncNotifier<List<StudyGroup>> {
         .banMember(groupId, memberId, reason: reason);
     ref.invalidate(groupMembersProvider(groupId));
     ref.invalidate(groupBansProvider(groupId));
+    await _rotateGroupDropsKey(groupId);
   }
 
   Future<void> unbanMember(String groupId, String memberId) async {
