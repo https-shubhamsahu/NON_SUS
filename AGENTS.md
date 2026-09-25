@@ -553,6 +553,15 @@ codebase — assume still outstanding unless you know otherwise.
 > bottom rather than letting this section grow without bound.
 
 <!-- CHANGELOG:INSERT -->
+- **2026-09-25** · feat(landing): makeover — tighter story, section system, light CSS motion
+  (6d77954, on `feat/landing-makeover`, not deployed) — why: 16 sections repeated the same Go
+  facts. Now 11: Pillars/TrustMetrics fold into Security (always-visible "what stays where"
+  ledger), FeaturesGrid into Try it, Testimonials into SecureSend scenario tiles.
+  DeviceScreenshots is gone: it implied native tablet/laptop apps and a `nosus.foo/vault` URL.
+  Motion is CSS-only (hero pairing loop, spec strip, `animation-timeline: view()` reveals behind
+  `@supports`), documented in `homepage/DESIGN.md`. Local mobile Lighthouse: median perf 96 vs 80
+  for the live site. Builds on 2b5fbea, which carries the paper-theme/App Link homepage work that
+  was uncommitted in the main checkout.
 - **2026-09-24** · feat(landing): retell nosus.foo as Your NO SUS Address — why: the homepage still
   led with leak attribution. The first screen is now Saved on a borrowed computer, Drop and
   Group drops are marked coming soon, and burn / SecureSend stay as supporting sections.
