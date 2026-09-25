@@ -13,7 +13,7 @@ const statements = [
   {
     icon: CheckSquare,
     title: "You approve every item.",
-    desc: "The other screen shows only what your phone sends. The two-digit match code is a check you read on the screen in front of you — not a password.",
+    desc: "The other screen shows only what your phone sends. To connect, you pick the two-digit code that screen shows from three on your phone — a check, not a password.",
   },
   {
     icon: Timer,
@@ -30,10 +30,10 @@ const statements = [
 const ledger = [
   { item: "Go session traffic", where: "AES-256-GCM after the P-256 hello" },
   { item: "Your Google token", where: "On your phone — never the borrowed PC" },
-  { item: "Go relay", where: "Ciphertext + a hash of the session id" },
+  { item: "Go relay", where: "Ciphertext, account id, session times; session id hashed" },
   { item: "Saved files", where: "Your Drive, NO SUS/ folder (drive.file)" },
-  { item: "Burn link key", where: "URL fragment (#…), never sent to us" },
-  { item: "Pairing-code key", where: "On the server ≤ 20 min, then deleted" },
+  { item: "Burn direct link", where: "Key in the URL fragment (#…)" },
+  { item: "Two-digit code", where: "Also holds the key server-side while valid (20 min default)" },
   { item: "Multi-file shares", where: "Link only — no pairing code" },
 ];
 

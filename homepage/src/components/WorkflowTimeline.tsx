@@ -1,4 +1,4 @@
-import { Monitor, QrCode, Fingerprint, MessageSquare } from "lucide-react";
+import { Monitor, QrCode, LockKeyhole, MessageSquare } from "lucide-react";
 
 import PairingDemo from "./PairingDemo";
 import SectionHeader from "./ui/SectionHeader";
@@ -15,9 +15,9 @@ const steps = [
     text: "Scan the QR on that screen with the NO SUS phone app.",
   },
   {
-    icon: Fingerprint,
+    icon: LockKeyhole,
     title: "Approve",
-    text: "Check that both screens show the same two-digit code, then approve with fingerprint or face unlock.",
+    text: "Pick the two-digit code the computer shows from the three on your phone, then approve with your phone's screen lock.",
   },
   {
     icon: MessageSquare,

@@ -90,7 +90,7 @@ No Google Fonts CDN, no second family, no emoji icons.
 
 ## Helpers
 
-- `.swiss-grid`, `.pixel-divider`, `.paper-card` — theme-variable colors
+- `.swiss-grid`, `.paper-card` — theme-variable colors. All custom classes live in `@layer components`, so Tailwind utilities on the same element override them.
 - `.btn`, `.btn-primary`, `.btn-ghost` — optional control chrome; add `.group` + an icon with `.nudge` for the hover arrow
 - `ThemeToggle` — `src/components/ui/ThemeToggle.tsx`
 - `SectionHeader` — `src/components/ui/SectionHeader.tsx`: every section opens with `NN — Eyebrow`, a sentence-case H2 and an optional lede. Number sections in page order.
@@ -104,7 +104,7 @@ No Google Fonts CDN, no second family, no emoji icons.
 | `.reveal` | Scroll reveal via `animation-timeline: view()`, behind `@supports` + `prefers-reduced-motion: no-preference`. Unsupported browsers just show the content. |
 | `.rail-fill` | How-it-works rail that fills on scroll (same guards as `.reveal`). |
 | `.marquee` / `.marquee-track` | Hero spec strip. The list is rendered twice; the copy is `aria-hidden`. Every item must be true of what ships. |
-| `.pg-*` | Hero pairing loop (10s: scan → match → live). Opacity/transform only; step labels swap colour, not opacity, to keep contrast. Reduced motion holds on the finished state. |
+| `.pg-*` | Pairing loop in How Go works (`PairingDemo.tsx`) (10s: scan → match → live). Opacity/transform only; step labels swap colour, not opacity, to keep contrast. Reduced motion holds on the finished state. |
 
 Animate only `opacity`/`transform` (or colour on a few small labels). No JS scroll listeners for motion.
 

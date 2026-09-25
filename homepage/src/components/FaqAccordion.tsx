@@ -19,7 +19,7 @@ export default function FaqAccordion() {
     },
     {
       q: "What happens on a borrowed computer?",
-      a: "You open nosus.foo/go, scan, match the 2-digit code, approve with fingerprint or face. The computer does not get your Google password or token. It only shows items you approve, for at most 60 minutes. Downloads and prints may stay on that computer. Only approve a code on a screen in front of you.",
+      a: "You open nosus.foo/go, scan, pick the 2-digit code that computer shows, and approve with your phone's screen lock. The computer does not get your Google password or token. It only shows items you approve, for at most 60 minutes. Downloads and prints may stay on that computer. Only approve a code on a screen in front of you.",
     },
     {
       q: "Is Drop available?",
@@ -35,7 +35,7 @@ export default function FaqAccordion() {
     },
     {
       q: "How do Burn Notes and Burn Files work?",
-      a: "They are encrypted in your browser with 256-bit AES (CTR for notes, CBC for files). A normal burn link keeps the key in the URL fragment. A single note or file that uses the two-digit pairing code stores the key on the server for up to 20 minutes, then deletes it when the code is used or expires.",
+      a: "They are encrypted in your browser with 256-bit AES (CTR for notes, CBC for files). The direct link keeps the key in the URL fragment. Each single note or file also gets a two-digit pairing code, and while that code is valid (20 minutes by default) its key is stored on the server too. The key is swept within about 10 minutes after the code is used or expires.",
     },
     {
       q: "Can I share files without creating an account?",
@@ -47,15 +47,15 @@ export default function FaqAccordion() {
     },
     {
       q: "Can I prevent screenshots?",
-      a: "On mobile clients, native screenshots and screen recorders are blocked with OS flag overrides. In browsers, screenshot blocking is not possible, so we use touch-to-reveal blur overlays and personalized identity watermarks to deter and trace leaks. That is deterrence and attribution, not a guarantee that nothing can be captured.",
+      a: "In the Android app, native screenshots and screen recorders are blocked with OS flag overrides. In browsers, screenshot blocking is not possible, so we use touch-to-reveal blur overlays and personalized identity watermarks to deter and trace leaks. That is deterrence and attribution, not a guarantee that nothing can be captured.",
     },
     {
       q: "Can governments read my files?",
-      a: "It depends on the feature. Burn Notes and Burn Files are encrypted in your browser. A single note or file that uses the two-digit pairing code stores the key on the server for up to 20 minutes, so a legal order in that window could in theory reach it; a normal burn link keeps the key in the URL fragment, and after the pairing window we hold only ciphertext with no key. Other shared documents (SecureSend, study group files) aren't end-to-end encrypted; they're protected by access-control policies, but a valid legal order compelling our infrastructure provider could theoretically reach them, the same as with any cloud storage service.",
+      a: "It depends on the feature. Burn Notes and Burn Files are encrypted in your browser. Each single note or file also gets a two-digit pairing code that keeps its key on the server while the code is valid (20 minutes by default), so a legal order in that window could in theory reach it. Once the code is used or expires and the key is swept, we hold only ciphertext with no key. Other shared documents (SecureSend, study group files) aren't end-to-end encrypted; they're protected by access-control policies, but a valid legal order compelling our infrastructure provider could theoretically reach them, the same as with any cloud storage service.",
     },
     {
       q: "What happens if your servers get hacked?",
-      a: "For Burn Notes and Burn Files, an attacker who breaks in while a drop's two-digit pairing code is still valid could find its key (stored for up to 20 minutes). Once the code is used or expires, only ciphertext with no key is left. A normal burn link keeps the key in the URL fragment, so it was never on the server. For other stored documents, access-control policies would need to be bypassed too, and since those files aren't end-to-end encrypted, a full breach of the storage layer could expose their contents.",
+      a: "For Burn Notes and Burn Files, an attacker who breaks in while a drop's two-digit pairing code is still valid (20 minutes by default) could find its key, whichever link you shared. Once the code is used or expires and the key is swept, only ciphertext with no key is left. For other stored documents, access-control policies would need to be bypassed too, and since those files aren't end-to-end encrypted, a full breach of the storage layer could expose their contents.",
     },
     {
       q: "Can AI companies train on my files?",

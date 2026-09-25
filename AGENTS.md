@@ -51,7 +51,8 @@ Three sub-projects live in this repo:
   (this repo's gh-pages) and `app` (needs `APP_DEPLOY_TOKEN`). A pre-paint shim in
   `homepage/src/app/layout.tsx` forwards legacy `nosus.foo/#/burn|burnfile|redeem|v|join/…` links and
   Supabase auth callbacks to the app subdomain (fragment preserved — **the AES key lives there**).
-  The hero pitches a NO SUS Address (Saved on a borrowed computer). The real Burn Note/File tools sit in the Try it section; their WebCrypto (`homepage/src/lib/burnCrypto.ts`)
+  The hero is the real Burn Note/File tool (`#try`, inside its circle); the NO SUS Address (Saved on
+  a borrowed computer) follows in Doors and How Go works. The tools' WebCrypto (`homepage/src/lib/burnCrypto.ts`)
   is kept byte-compatible with the Dart app by `test/unit/burn_crypto_web_compat_test.dart` — never
   change one side without the other. Cross-product URLs + dev identity live in
   `homepage/src/lib/links.ts`. It has its own `homepage/CLAUDE.md` / `homepage/AGENTS.md`; the
@@ -553,6 +554,14 @@ codebase — assume still outstanding unless you know otherwise.
 > bottom rather than letting this section grow without bound.
 
 <!-- CHANGELOG:INSERT -->
+- **2026-09-26** · fix(landing): review pass — honest burn/Go copy, CSS layering, a11y, lighter JS
+  — why: a five-agent review found copy that was already false on the live site. Every single
+  note/file mints a pairing code (`mintPairing`), so its key is always server-side while the code
+  is valid; the note expiry picker was never sent (`createBurnNote` has no expiry, notes live
+  7 days), so it is removed; Go approval is the phone's screen lock (`biometricOnly: false`) and
+  the phone shows the real code plus two decoys. Custom CSS moved into `@layer components` so
+  Tailwind utilities win. Dropped framer-motion, clsx, tailwind-merge and three dead files.
+  Theme choice is applied before paint (inline script after the legacy-link shim).
 - **2026-09-25** · feat(landing): burn tool is the hero again, back in its circle — why: the
   user wanted the working tool first ("Send something that burns after reading"), in the circular
   frame removed in 9f6be72. It is a circle from `sm` up (rounded card on phones, rounded rect once

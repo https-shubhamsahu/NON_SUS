@@ -26,8 +26,14 @@ export default function Navbar() {
     const handleScroll = () => {
       setScrolled(window.scrollY > 20);
     };
+    // A deep link (/#faq) or restored scroll position lands below the top
+    // without firing a scroll event, so read the position once after mount.
+    const frame = requestAnimationFrame(handleScroll);
     window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", handleScroll);
+    };
   }, []);
 
   useEffect(() => {
@@ -42,10 +48,10 @@ export default function Navbar() {
   return (
     <>
       <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-200 ease-out border-b ${
+        className={`fixed top-0 left-0 right-0 z-50 py-4 border-b transition-[background-color,border-color] duration-200 ease-out motion-reduce:transition-none ${
           scrolled
-            ? "bg-background/85 border-border py-3 backdrop-blur-md"
-            : "bg-transparent border-transparent py-5"
+            ? "bg-background/95 border-border"
+            : "bg-transparent border-transparent"
         }`}
       >
         <div className="mx-auto max-w-7xl px-6 md:px-8">

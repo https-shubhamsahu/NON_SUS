@@ -3,12 +3,13 @@ import { ArrowRight, Flame, FileUp, Link2, Key } from "lucide-react";
 
 import BurnTool from "./BurnTool";
 
-// Keep in step with burnApi.ts (NOTE/FILE caps, pairing-code key window).
+// Keep in step with burnApi.ts: every single note/file also mints a pairing
+// code (mintPairing), so its key is held server-side while that code is valid.
 const BURN_FACTS = [
   {
     icon: Flame,
     title: "Burn Notes",
-    text: "Opens once, then the row is deleted. Unread notes expire in 1 hour, 24 hours or 7 days.",
+    text: "Opens once, then the row is deleted. A note nobody opens expires after 7 days.",
   },
   {
     icon: FileUp,
@@ -18,19 +19,19 @@ const BURN_FACTS = [
   {
     icon: Link2,
     title: "The key rides in the link",
-    text: "A normal link keeps the key after the # — browsers never send that part to a server.",
+    text: "The direct link keeps the key after the # — browsers never send that part to a server.",
   },
   {
     icon: Key,
-    title: "Optional two-digit code",
-    text: "For a single note or file, the key waits on the server for up to 20 minutes, then is deleted.",
+    title: "Plus a two-digit code",
+    text: "Each note or file also gets a code, so its key is held on our server while the code is valid (20 minutes by default), then swept.",
   },
 ];
 
 // Every item here must stay true of what ships (AGENTS.md §0.3).
 const SPEC_STRIP = [
   "AES-256 in your browser",
-  "Keys in the #fragment by default",
+  "Link keys ride after the #",
   "Opens once, then burns",
   "No account on either side",
   "No Google token on a borrowed PC",
@@ -78,7 +79,7 @@ export default function Hero() {
                 <li key={f.title} className="flex gap-3">
                   <f.icon className="mt-0.5 h-5 w-5 shrink-0 text-foreground" strokeWidth={1.5} aria-hidden />
                   <div>
-                    <h2 className="text-sm font-bold text-foreground">{f.title}</h2>
+                    <p className="text-sm font-bold text-foreground">{f.title}</p>
                     <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{f.text}</p>
                   </div>
                 </li>

@@ -15,11 +15,21 @@ export default function DevSection() {
     { id: "ledger", name: "Audit Chain", icon: ListTree },
   ];
 
+  const onTabKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+    if (!step) return;
+    e.preventDefault();
+    const i = tabs.findIndex((t) => t.id === activeTab);
+    const next = tabs[(i + step + tabs.length) % tabs.length].id as typeof activeTab;
+    setActiveTab(next);
+    document.getElementById(`dev-tab-${next}`)?.focus();
+  };
+
   // Real mechanics, verbatim from the open-source client and schema — not a
   // product API. NO SUS has no public HTTP API, SDK, or CLI today.
   const codeBlocks = {
     link: `# A real Burn Note link, piece by piece:
-https://nosus.foo/#/burn/<uuid>?k=<key>&v=<iv>
+https://app.nosus.foo/#/burn/<uuid>?k=<key>&v=<iv>
               │       │        │       │
               │       │        │       └─ 128-bit AES IV (32 hex chars)
               │       │        └─ 256-bit AES key (64 hex chars)
@@ -29,8 +39,9 @@ https://nosus.foo/#/burn/<uuid>?k=<key>&v=<iv>
                  only in your and your recipient's browsers.
 
 # The ciphertext in the database is useless without the
-# fragment. (Opt in to a two-digit pairing code and the
-# key is also held server-side for up to 20 minutes.)`,
+# fragment. (Each single note or file also mints a
+# two-digit pairing code, which holds the key server-side
+# while the code is valid: 20 minutes by default.)`,
     claim: `-- Claiming a burn note is one atomic statement:
 DELETE FROM burn_notes
  WHERE id = <note_id>
@@ -49,9 +60,9 @@ entry_hash = sha256(
 )
 
 -- Inserted only via a SECURITY DEFINER RPC; direct
--- writes and edits are revoked. Tampering with any row
--- breaks every hash after it, so the chain can be
--- re-verified end-to-end at any time.`,
+-- writes and edits are revoked. Changing a row's actor,
+-- event type or time breaks every hash after it, so the
+-- chain can be re-verified end-to-end at any time.`,
   };
 
   return (
@@ -90,15 +101,18 @@ entry_hash = sha256(
           <div className="reveal lg:col-span-8 border border-border bg-card rounded-[12px] overflow-hidden flex flex-col justify-between min-h-[380px] paper-card">
             
             {/* Tabs Header menu */}
-            <div role="tablist" aria-label="Mechanics" className="flex overflow-x-auto border-b border-border bg-muted/30">
+            <div role="tablist" aria-label="Mechanics" onKeyDown={onTabKey} className="flex overflow-x-auto border-b border-border bg-muted/30">
               {tabs.map((tab) => {
                 const isActive = activeTab === tab.id;
                 return (
                   <button
                     key={tab.id}
+                    id={`dev-tab-${tab.id}`}
                     type="button"
                     role="tab"
                     aria-selected={isActive}
+                    aria-controls="dev-panel"
+                    tabIndex={isActive ? 0 : -1}
                     onClick={() => setActiveTab(tab.id as "link" | "claim" | "ledger")}
                     className={`flex shrink-0 items-center gap-2 whitespace-nowrap px-5 py-4 text-xs font-bold uppercase tracking-widest transition-colors border-r border-border ${
                       isActive
@@ -114,8 +128,14 @@ entry_hash = sha256(
             </div>
 
             {/* Code Panel contents */}
-            <div className="flex-1 bg-brand-black p-6 font-mono text-xs text-white/90 leading-relaxed overflow-x-auto relative">
-              <div className="absolute right-4 top-4 text-[10px] text-white/40 select-none uppercase font-bold">
+            <div
+              id="dev-panel"
+              role="tabpanel"
+              aria-labelledby={`dev-tab-${activeTab}`}
+              tabIndex={0}
+              className="flex-1 bg-brand-black p-6 font-mono text-xs text-white/90 leading-relaxed overflow-x-auto relative"
+            >
+              <div aria-hidden="true" className="absolute right-4 top-4 text-[10px] text-white/60 select-none uppercase font-bold">
                 {activeTab} block
               </div>
               <>

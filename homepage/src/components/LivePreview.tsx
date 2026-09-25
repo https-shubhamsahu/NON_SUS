@@ -46,7 +46,7 @@ export default function LivePreview() {
   };
 
   const handleSimulateLeak = () => {
-    const timestamp = new Date().toLocaleTimeString();
+    const timestamp = new Date().toTimeString().slice(0, 8);
     const newLog = {
       time: timestamp,
       event: "VIEW_LIMIT_REACHED",
@@ -76,52 +76,52 @@ export default function LivePreview() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
           <div className="lg:col-span-4 flex flex-col gap-4">
-            <button type="button" onClick={() => setActiveTab("watermark")} className={tabBtn("watermark")}>
-              <Eye className="h-5 w-5 text-foreground shrink-0 mt-0.5" />
-              <div>
-                <h3 className="text-base font-bold uppercase tracking-wider text-foreground">
+            <button type="button" onClick={() => setActiveTab("watermark")} aria-pressed={activeTab === "watermark"} className={tabBtn("watermark")}>
+              <Eye className="h-5 w-5 text-foreground shrink-0 mt-0.5" aria-hidden />
+              <span className="block">
+                <span className="block text-base font-bold uppercase tracking-wider text-foreground">
                   Viewer watermarks
-                </h3>
-                <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                </span>
+                <span className="block text-sm text-muted-foreground mt-1 leading-relaxed">
                   Overlay the recipient’s identity on shared documents.
-                </p>
-              </div>
+                </span>
+              </span>
             </button>
 
-            <button type="button" onClick={() => setActiveTab("revoke")} className={tabBtn("revoke")}>
-              <Ban className="h-5 w-5 text-foreground shrink-0 mt-0.5" />
-              <div>
-                <h3 className="text-base font-bold uppercase tracking-wider text-foreground">
+            <button type="button" onClick={() => setActiveTab("revoke")} aria-pressed={activeTab === "revoke"} className={tabBtn("revoke")}>
+              <Ban className="h-5 w-5 text-foreground shrink-0 mt-0.5" aria-hidden />
+              <span className="block">
+                <span className="block text-base font-bold uppercase tracking-wider text-foreground">
                   Instant revocation
-                </h3>
-                <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                </span>
+                <span className="block text-sm text-muted-foreground mt-1 leading-relaxed">
                   Turn off a share when you no longer want it open.
-                </p>
-              </div>
+                </span>
+              </span>
             </button>
 
-            <button type="button" onClick={() => setActiveTab("audit")} className={tabBtn("audit")}>
-              <ShieldAlert className="h-5 w-5 text-foreground shrink-0 mt-0.5" />
-              <div>
-                <h3 className="text-base font-bold uppercase tracking-wider text-foreground">
+            <button type="button" onClick={() => setActiveTab("audit")} aria-pressed={activeTab === "audit"} className={tabBtn("audit")}>
+              <ShieldAlert className="h-5 w-5 text-foreground shrink-0 mt-0.5" aria-hidden />
+              <span className="block">
+                <span className="block text-base font-bold uppercase tracking-wider text-foreground">
                   Activity log
-                </h3>
-                <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                </span>
+                <span className="block text-sm text-muted-foreground mt-1 leading-relaxed">
                   See opens and flagged attempt events on a share.
-                </p>
-              </div>
+                </span>
+              </span>
             </button>
 
-            <button type="button" onClick={() => setActiveTab("device")} className={tabBtn("device")}>
-              <Smartphone className="h-5 w-5 text-foreground shrink-0 mt-0.5" />
-              <div>
-                <h3 className="text-base font-bold uppercase tracking-wider text-foreground">
+            <button type="button" onClick={() => setActiveTab("device")} aria-pressed={activeTab === "device"} className={tabBtn("device")}>
+              <Smartphone className="h-5 w-5 text-foreground shrink-0 mt-0.5" aria-hidden />
+              <span className="block">
+                <span className="block text-base font-bold uppercase tracking-wider text-foreground">
                   Device checks
-                </h3>
-                <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                </span>
+                <span className="block text-sm text-muted-foreground mt-1 leading-relaxed">
                   Basic checks before opening sensitive material on mobile.
-                </p>
-              </div>
+                </span>
+              </span>
             </button>
           </div>
 
@@ -296,7 +296,7 @@ export default function LivePreview() {
 
         <div className="mt-16 grid grid-cols-1 gap-px overflow-hidden rounded-[12px] border border-border bg-border md:grid-cols-3">
           {SCENARIOS.map((s) => (
-            <div key={s.who} className="reveal flex flex-col gap-2 bg-background p-6 md:p-8">
+            <div key={s.who} className="flex flex-col gap-2 bg-background p-6 md:p-8">
               <h3 className="font-mono text-xs font-bold uppercase tracking-widest text-foreground">{s.who}</h3>
               <p className="text-base leading-relaxed text-muted-foreground">{s.what}</p>
             </div>

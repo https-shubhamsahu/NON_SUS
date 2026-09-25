@@ -47,11 +47,11 @@ export default function Footer() {
         <div className="hero-glow pointer-events-none absolute inset-0" aria-hidden="true" />
         <div className="relative mx-auto flex max-w-7xl flex-col items-start gap-8 px-6 py-20 md:px-8 md:py-28">
           <p className="eyebrow">
-            <span className="eyebrow-index">→</span>
+            <span className="eyebrow-index" aria-hidden="true">→</span>
             <span className="eyebrow-rule" aria-hidden="true" />
             <span>Start here</span>
           </p>
-          <h2 className="reveal max-w-4xl text-[40px] font-black leading-[1] tracking-[-0.04em] text-foreground md:text-7xl">
+          <h2 className="max-w-4xl text-[40px] font-black leading-[1] tracking-[-0.04em] text-foreground md:text-7xl">
             Your files. Your phone.
             <br />
             <span className="text-muted-foreground">Any screen.</span>
@@ -79,8 +79,8 @@ export default function Footer() {
         <div className="col-span-2 flex flex-col gap-4">
           <NoSusLogo sizeClass="text-xl" />
           <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
-            Your Drive on any screen — plus watermarked documents and
-            self-destructing notes. Designed, built and run by one developer.
+            Self-destructing notes and files, watermarked documents, and your
+            Drive on a borrowed screen. Designed, built and run by one developer.
           </p>
         </div>
 

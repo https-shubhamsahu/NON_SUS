@@ -150,7 +150,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      // The theme script below sets data-theme before React hydrates.
+      suppressHydrationWarning
     >
       <head>
         <link rel="preconnect" href={SUPABASE_URL} crossOrigin="anonymous" />
@@ -165,6 +167,14 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: legacyLinkShim(CLOUDFLARE_WEB_ANALYTICS_TOKEN),
+          }}
+        />
+        {/* Saved theme choice (ThemeToggle, key nosus-theme) applied before
+            first paint, so a light pick on a dark OS doesn't flash dark. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              'try{var t=localStorage.getItem("nosus-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}',
           }}
         />
         {/* Structured Data / JSON-LD for Search & AI Engines */}

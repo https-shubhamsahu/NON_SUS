@@ -45,7 +45,7 @@ export default function PairingDemo() {
     <div
       className="pg paper-card overflow-hidden"
       role="img"
-      aria-label="Animated demo: the computer shows a QR, the phone scans it, both show the same two-digit code, you approve on the phone, and the items you send appear on the computer."
+      aria-label="Animated demo: the computer shows a QR, the phone scans it, you pick the two-digit code the computer shows from three on the phone, approve, and the items you send appear on the computer."
     >
       <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
         <span className="flex min-w-0 items-center gap-2">
@@ -74,7 +74,7 @@ export default function PairingDemo() {
         <g className="pg-s2">
           <text x="172" y="84" className="pg-mono" fontSize="8" fill="currentColor" opacity="0.6" textAnchor="middle" letterSpacing="1.5">MATCH CODE</text>
           <text x="172" y="134" className="pg-mono" fontSize="44" fontWeight="800" fill="currentColor" textAnchor="middle" letterSpacing="6">42</text>
-          <text x="172" y="160" className="pg-mono" fontSize="7.5" fill="currentColor" opacity="0.6" textAnchor="middle">Same digits on your phone? Approve there.</text>
+          <text x="172" y="160" className="pg-mono" fontSize="7.5" fill="currentColor" opacity="0.6" textAnchor="middle">Pick these digits on your phone.</text>
         </g>
 
         {/* Laptop · stage 3: Saved chat */}
@@ -107,12 +107,28 @@ export default function PairingDemo() {
 
         {/* Phone · stage 2: approve */}
         <g className="pg-s2">
-          <text x="410" y="66" className="pg-mono" fontSize="7" fill="currentColor" opacity="0.6" textAnchor="middle" letterSpacing="1">MATCH CODE</text>
-          <text x="410" y="100" className="pg-mono" fontSize="28" fontWeight="800" fill="currentColor" textAnchor="middle" letterSpacing="4">42</text>
-          <g className="pg-press">
-            <circle cx="410" cy="140" r="17" className="fill-card stroke-border" strokeWidth="1" />
-            <path d="M404 137 c0-7 12-7 12 0 M401 141 c0-12 18-12 18 0 M406 145 c0 4 8 4 8 0 M410 137 v6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-          </g>
+          <text x="410" y="66" className="pg-mono" fontSize="7" fill="currentColor" opacity="0.6" textAnchor="middle" letterSpacing="1">PICK THE CODE</text>
+          {/* The real code plus two decoys, as in go_session.dart. */}
+          {[["17", 382], ["42", 410], ["85", 438]].map(([code, cx]) => (
+            <g key={code} className={code === "42" ? "pg-press" : undefined}>
+              <rect
+                x={Number(cx) - 12}
+                y={80}
+                width={24}
+                height={22}
+                rx={4}
+                className={code === "42" ? "fill-card stroke-foreground" : "stroke-border"}
+                strokeWidth={code === "42" ? 1.5 : 1}
+              />
+              <text x={cx} y={95} className="pg-mono" fontSize="10" fontWeight="800" fill="currentColor" opacity={code === "42" ? 1 : 0.5} textAnchor="middle">
+                {code}
+              </text>
+            </g>
+          ))}
+          <rect x="394" y="124" width="32" height="26" rx="4" className="fill-card stroke-border" strokeWidth="1" />
+          <path d="M402 124 v-5 a8 8 0 0 1 16 0 v5" stroke="currentColor" strokeWidth="1.2" />
+          <circle cx="410" cy="137" r="2" fill="currentColor" />
+          <text x="410" y="166" className="pg-mono" fontSize="6.5" fill="currentColor" opacity="0.7" textAnchor="middle">Screen lock</text>
           <rect x="376" y="178" width="68" height="20" rx="4" className="fill-foreground" />
           <text x="410" y="191" className="pg-mono fill-background" fontSize="7.5" fontWeight="700" textAnchor="middle" letterSpacing="1">APPROVE</text>
         </g>

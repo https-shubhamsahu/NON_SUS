@@ -36,7 +36,7 @@ export default function ThreeDoors() {
 
         <div className="mt-12 grid grid-cols-1 gap-6 md:mt-16 lg:grid-cols-12">
           {/* Door 01 — Go (the one that works today, when enabled) */}
-          <article className="reveal paper-card paper-card-interactive flex flex-col gap-6 p-6 md:p-10 lg:col-span-7 lg:row-span-2">
+          <article className="paper-card paper-card-interactive flex flex-col gap-6 p-6 md:p-10 lg:col-span-7 lg:row-span-2">
             <div className="flex items-start justify-between gap-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-[10px] border border-border bg-muted">
                 <DoorOpen className="h-5 w-5 text-foreground" strokeWidth={1.5} aria-hidden />
