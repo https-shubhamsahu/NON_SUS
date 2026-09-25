@@ -560,8 +560,9 @@ codebase — assume still outstanding unless you know otherwise.
   none sent `Access-Control-Max-Age`. `warmBurnBackend` (burnApi.ts) sends `{}` POSTs — rejected
   400 before any DB read or rate counter — when a user points at, taps or focuses the tool, so the
   real share hits warm isolates and a primed preflight. Pairing is still minted only after
-  confirm (burn-performance test pins it). **Needs deploy:** `Access-Control-Max-Age: 7200` added to
-  burn-file-init, burn-file-confirm, create-redemption-code and redeem-code. FAQ is native
+  confirm (burn-performance test pins it). `Access-Control-Max-Age: 7200` added to
+  burn-file-init, burn-file-confirm, create-redemption-code and redeem-code — **deployed
+  2026-09-26 from this branch** (verified live); merge it, or the next deploy from `main` drops it. FAQ is native
   `<details>`, Lux & Nox is a server component, Geist Mono is not preloaded, speculation rules
   prefetch /go, /to and the web app on hover. Title/description now cover every feature.
 - **2026-09-26** · fix(landing): review pass — honest burn/Go copy, CSS layering, a11y, lighter JS
