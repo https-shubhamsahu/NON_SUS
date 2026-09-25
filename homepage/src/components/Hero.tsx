@@ -1,39 +1,54 @@
 import Link from "next/link";
-import { ArrowRight, Flame, FileUp, Link2, Key } from "lucide-react";
+import { ArrowRight, Flame, Stamp, MonitorSmartphone, Inbox, Users } from "lucide-react";
 
 import BurnTool from "./BurnTool";
 
-// Keep in step with burnApi.ts: every single note/file also mints a pairing
-// code (mintPairing), so its key is held server-side while that code is valid.
-const BURN_FACTS = [
+// Every feature gets the same row. Status must match what ships (AGENTS.md
+// §0.3): Go is flag-gated early access; Drop and Group drops are not public.
+const FEATURES = [
   {
     icon: Flame,
-    title: "Burn Notes",
-    text: "Opens once, then the row is deleted. A note nobody opens expires after 7 days.",
+    name: "Burn Notes & Files",
+    text: "Encrypted in your browser, opened once, then gone.",
+    status: "Try it here",
+    href: "/#try",
   },
   {
-    icon: FileUp,
-    title: "Burn Files",
-    text: "One file up to 25 MB here (up to 10 in the app), wiped within minutes of being claimed.",
+    icon: Stamp,
+    name: "SecureSend",
+    text: "Documents watermarked to whoever opens them. Revoke any time.",
+    status: "In the app",
+    href: "/#sharing",
   },
   {
-    icon: Link2,
-    title: "The key rides in the link",
-    text: "The direct link keeps the key after the # — browsers never send that part to a server.",
+    icon: MonitorSmartphone,
+    name: "Go",
+    text: "Your Drive on a borrowed computer, without signing Google in.",
+    status: "Early access",
+    href: "/#how-it-works",
   },
   {
-    icon: Key,
-    title: "Plus a two-digit code",
-    text: "Each note or file also gets a code, so its key is held on our server while the code is valid (20 minutes by default), then swept.",
+    icon: Inbox,
+    name: "Drop",
+    text: "People send files to your address, not your number.",
+    status: "Coming soon",
+    href: "/#doors",
+  },
+  {
+    icon: Users,
+    name: "Group drops",
+    text: "Each member's copy lands in their own Drive.",
+    status: "Coming soon",
+    href: "/#doors",
   },
 ];
 
 // Every item here must stay true of what ships (AGENTS.md §0.3).
 const SPEC_STRIP = [
   "AES-256 in your browser",
-  "Link keys ride after the #",
   "Opens once, then burns",
   "No account on either side",
+  "Watermarked to the viewer",
   "No Google token on a borrowed PC",
   "Open-source client",
   "Android app + web app",
@@ -47,54 +62,57 @@ export default function Hero() {
       <div className="swiss-grid pointer-events-none absolute inset-0 [mask-image:linear-gradient(to_bottom,#000_40%,transparent)]" aria-hidden="true" />
 
       <div className="relative mx-auto w-full max-w-7xl px-6 pt-28 pb-16 md:px-8 md:pt-36 md:pb-24">
-        {/* Phones read copy → tool → facts; xl puts the tool in its own column. */}
+        {/* Phones read copy → tool → features; xl puts the tool in its own column. */}
         <div className="grid grid-cols-1 items-center gap-x-10 gap-y-10 xl:grid-cols-12 xl:grid-rows-[auto_auto]">
           <div className="flex flex-col gap-6 xl:col-span-5 xl:row-start-1 xl:self-end">
             <div className="rise flex flex-wrap items-center gap-2">
               <span className="tech-badge">
                 <span className="eink-live text-foreground" />
-                No account · encrypted in your browser
+                Private sharing · Android + web
               </span>
             </div>
 
             <h1 className="max-w-2xl text-[44px] font-black leading-[0.98] tracking-[-0.035em] text-foreground sm:text-6xl xl:text-[60px]">
-              Send something that burns after reading.
+              Burn it. Trace it. Open it anywhere.
             </h1>
 
             <p className="rise max-w-xl text-lg leading-relaxed text-muted-foreground sm:text-xl" style={{ animationDelay: "60ms" }}>
-              Encrypted in this browser before it leaves. Nobody needs an
-              account — not you, not the person you send it to.
+              Self-destructing notes and files, documents watermarked to
+              whoever opens them, and your Drive on a borrowed computer. Try
+              the burn tool right here — no account.
             </p>
           </div>
 
           {/* The working tool is in the initial HTML — never gated on an animation. */}
-          <div className="flex justify-center py-2 sm:py-6 xl:col-span-7 xl:col-start-6 xl:row-span-2 xl:row-start-1 xl:justify-end xl:py-6">
+          <div className="flex flex-col items-center gap-5 py-2 sm:py-6 xl:col-span-7 xl:col-start-6 xl:row-span-2 xl:row-start-1 xl:items-end xl:py-6">
             <BurnTool />
+            <p className="max-w-[480px] text-center text-xs leading-relaxed text-muted-foreground xl:max-w-[520px]">
+              Each note or file also gets a two-digit code; while it is valid
+              (20 minutes by default) its key is held on our server too.
+            </p>
           </div>
 
-          <div className="flex flex-col gap-6 xl:col-span-5 xl:row-start-2 xl:self-start">
-
-            <ul className="rise grid grid-cols-1 gap-x-8 gap-y-5 border-t border-border pt-6 sm:grid-cols-2" style={{ animationDelay: "120ms" }}>
-              {BURN_FACTS.map((f) => (
-                <li key={f.title} className="flex gap-3">
-                  <f.icon className="mt-0.5 h-5 w-5 shrink-0 text-foreground" strokeWidth={1.5} aria-hidden />
-                  <div>
-                    <p className="text-sm font-bold text-foreground">{f.title}</p>
-                    <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{f.text}</p>
-                  </div>
+          <nav aria-label="Features" className="rise xl:col-span-5 xl:row-start-2 xl:self-start" style={{ animationDelay: "120ms" }}>
+            <ul className="flex flex-col border-t border-border">
+              {FEATURES.map((f) => (
+                <li key={f.name} className="border-b border-border">
+                  <Link href={f.href} className="group flex items-start gap-3 py-3.5 hover:bg-card/60">
+                    <f.icon className="mt-0.5 h-5 w-5 shrink-0 text-foreground" strokeWidth={1.5} aria-hidden />
+                    <span className="flex min-w-0 flex-1 flex-col">
+                      <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <span className="text-sm font-bold text-foreground">{f.name}</span>
+                        <span className="rounded-pill border border-border px-2 py-0.5 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+                          {f.status}
+                        </span>
+                      </span>
+                      <span className="mt-1 text-sm leading-relaxed text-muted-foreground">{f.text}</span>
+                    </span>
+                    <ArrowRight className="nudge mt-1 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                  </Link>
                 </li>
               ))}
             </ul>
-
-            <Link
-              href="/#doors"
-              className="rise group inline-flex min-h-11 w-fit items-center gap-2 text-sm font-bold uppercase tracking-wider text-foreground hover:text-muted-foreground"
-              style={{ animationDelay: "180ms" }}
-            >
-              Borrowing a computer? Open your Drive there
-              <ArrowRight className="nudge h-4 w-4" aria-hidden="true" />
-            </Link>
-          </div>
+          </nav>
         </div>
       </div>
 

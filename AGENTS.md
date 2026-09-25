@@ -51,8 +51,8 @@ Three sub-projects live in this repo:
   (this repo's gh-pages) and `app` (needs `APP_DEPLOY_TOKEN`). A pre-paint shim in
   `homepage/src/app/layout.tsx` forwards legacy `nosus.foo/#/burn|burnfile|redeem|v|join/…` links and
   Supabase auth callbacks to the app subdomain (fragment preserved — **the AES key lives there**).
-  The hero is the real Burn Note/File tool (`#try`, inside its circle); the NO SUS Address (Saved on
-  a borrowed computer) follows in Doors and How Go works. The tools' WebCrypto (`homepage/src/lib/burnCrypto.ts`)
+  The hero names every feature with equal weight (Burn, SecureSend, Go, Drop, Group drops, each
+  with its real status) beside the real Burn Note/File tool (`#try`, inside its circle). The tools' WebCrypto (`homepage/src/lib/burnCrypto.ts`)
   is kept byte-compatible with the Dart app by `test/unit/burn_crypto_web_compat_test.dart` — never
   change one side without the other. Cross-product URLs + dev identity live in
   `homepage/src/lib/links.ts`. It has its own `homepage/CLAUDE.md` / `homepage/AGENTS.md`; the
@@ -82,8 +82,8 @@ Flutter app. It is disclosed in `web/privacy.html`; change both together.
 
 Homepage SEO: `layout.tsx` holds the metadata and one JSON-LD `@graph` (WebSite,
 Organization, Person, SoftwareApplication). `FaqAccordion.tsx` holds the FAQPage
-schema, so its answers stay in the static HTML and are only `hidden` while
-collapsed. Structured data follows the same honesty rule as the copy: no
+schema; it is native `<details>` (no JS), so every answer stays in the static
+HTML while collapsed. Structured data follows the same honesty rule as the copy: no
 ratings, reviews, or platforms that do not exist (the only native app is
 Android). `sitemap.ts` lists the home page and the three legal pages. Those
 pages come from `web/` and also ship in the app build, so their canonical and
@@ -554,6 +554,16 @@ codebase — assume still outstanding unless you know otherwise.
 > bottom rather than letting this section grow without bound.
 
 <!-- CHANGELOG:INSERT -->
+- **2026-09-26** · perf(landing): equal-weight hero, warm burn backend on intent, lighter page —
+  why: the user asked for every feature to get equal weight and for sharing to be as fast as
+  possible. Measured from India: cold edge functions answer in ~450-650ms, warm in ~100-130ms, and
+  none sent `Access-Control-Max-Age`. `warmBurnBackend` (burnApi.ts) sends `{}` POSTs — rejected
+  400 before any DB read or rate counter — when a user points at, taps or focuses the tool, so the
+  real share hits warm isolates and a primed preflight. Pairing is still minted only after
+  confirm (burn-performance test pins it). **Needs deploy:** `Access-Control-Max-Age: 7200` added to
+  burn-file-init, burn-file-confirm, create-redemption-code and redeem-code. FAQ is native
+  `<details>`, Lux & Nox is a server component, Geist Mono is not preloaded, speculation rules
+  prefetch /go, /to and the web app on hover. Title/description now cover every feature.
 - **2026-09-26** · fix(landing): review pass — honest burn/Go copy, CSS layering, a11y, lighter JS
   — why: a five-agent review found copy that was already false on the live site. Every single
   note/file mints a pairing code (`mintPairing`), so its key is always server-side while the code

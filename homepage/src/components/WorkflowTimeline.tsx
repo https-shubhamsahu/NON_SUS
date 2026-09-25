@@ -33,7 +33,7 @@ export default function WorkflowTimeline() {
         <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-12 lg:gap-16">
           <div className="flex flex-col gap-6 lg:col-span-5">
             <SectionHeader
-              index="02"
+              index="03"
               eyebrow="How Go works"
               title="Four steps. No password typed."
               lede="The phone does the signing-in. The borrowed computer only ever shows what you send it."

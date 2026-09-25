@@ -10,10 +10,10 @@ import { ThemeToggle } from "./ui/ThemeToggle";
 import AppLink from "./AppLink";
 
 const navLinks = [
-  { name: "Address", href: "/#doors" },
-  { name: "How it works", href: "/#how-it-works" },
   { name: "Try it", href: "/#try" },
-  { name: "Sharing", href: "/#sharing" },
+  { name: "SecureSend", href: "/#sharing" },
+  { name: "Address", href: "/#doors" },
+  { name: "Go", href: "/#how-it-works" },
   { name: "Security", href: "/#security" },
   { name: "FAQ", href: "/#faq" },
 ];

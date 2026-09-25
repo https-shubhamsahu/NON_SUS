@@ -1,7 +1,4 @@
-"use client";
-
 import Image from "next/image";
-import { useState } from "react";
 import { Sun, Moon } from "lucide-react";
 
 import SectionHeader from "./ui/SectionHeader";
@@ -15,8 +12,6 @@ import SectionHeader from "./ui/SectionHeader";
  * the mascots' reducedMotion input.
  */
 export default function LuxNoxSection() {
-  const [awake, setAwake] = useState(false);
-
   const characters = [
     {
       icon: Sun,
@@ -40,12 +35,8 @@ export default function LuxNoxSection() {
     <section id="mascots" className="relative border-b border-border bg-background py-20 md:py-28">
       <div className="mx-auto max-w-7xl px-6 md:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-          <div className="lg:col-span-5 flex flex-col items-center gap-6">
-            <div
-              className="relative flex items-center justify-center select-none"
-              onMouseEnter={() => setAwake(true)}
-              onMouseLeave={() => setAwake(false)}
-            >
+          <div className="group/mark lg:col-span-5 flex flex-col items-center gap-6">
+            <div className="group relative flex items-center justify-center select-none">
               <div className="absolute inset-[-28px] rounded-full border border-dashed border-border luxnox-ring motion-reduce:animate-none" />
               <div className="absolute inset-[-14px] rounded-full border border-border/60" />
               <div className="luxnox-breathe motion-reduce:animate-none rounded-full overflow-hidden bg-card border border-border">
@@ -59,7 +50,8 @@ export default function LuxNoxSection() {
               </div>
             </div>
             <span className="text-xs font-mono text-muted-foreground uppercase tracking-widest">
-              {awake ? "MOOD 02 · WAKE" : "MOOD 00 · IDLE (BREATHING)"}
+              <span className="group-hover/mark:hidden">MOOD 00 · IDLE (BREATHING)</span>
+              <span className="hidden group-hover/mark:inline">MOOD 02 · WAKE</span>
             </span>
           </div>
 

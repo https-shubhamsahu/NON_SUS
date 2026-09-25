@@ -28,7 +28,7 @@ export default function ThreeDoors() {
     <section id="doors" className="relative border-b border-border bg-background py-20 md:py-28">
       <div className="mx-auto w-full max-w-7xl px-6 md:px-8">
         <SectionHeader
-          index="01"
+          index="02"
           eyebrow="NO SUS Address"
           title="One address. Three doors."
           lede="Share your address, not your number. Each door opens onto your own Google Drive — and only when you say so."

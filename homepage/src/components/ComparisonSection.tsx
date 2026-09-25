@@ -44,7 +44,7 @@ export default function ComparisonSection() {
     <section id="compare" className="relative border-b border-border bg-background py-20 md:py-28">
       <div className="mx-auto max-w-7xl px-6 md:px-8">
         <SectionHeader
-          index="03"
+          index="04"
           eyebrow="Versus signing in"
           title="Why not just log in on the shared PC?"
           lede="Honest contrasts only — including the one limit NO SUS shares with everything else."

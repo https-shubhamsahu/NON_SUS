@@ -1,12 +1,8 @@
-"use client";
-
-import { useState } from "react";
 import { Plus } from "lucide-react";
 
 import SectionHeader from "./ui/SectionHeader";
 
 export default function FaqAccordion() {
-  const [openIdx, setOpenIdx] = useState<number | null>(null);
 
   const faqs = [
     {
@@ -63,10 +59,6 @@ export default function FaqAccordion() {
     },
   ];
 
-  const handleToggle = (idx: number) => {
-    setOpenIdx(openIdx === idx ? null : idx);
-  };
-
   // Structured FAQ Schema for SEO / AEO — must match visible answers.
   const faqSchema = {
     "@context": "https://schema.org",
@@ -104,40 +96,25 @@ export default function FaqAccordion() {
         />
 
         <div className="flex flex-col border-t border-border">
-          {faqs.map((faq, idx) => {
-            const isOpen = openIdx === idx;
-            return (
-              <div key={idx} className="border-b border-border">
-                <h3>
-                  <button
-                    type="button"
-                    onClick={() => handleToggle(idx)}
-                    className="group w-full min-h-[56px] py-5 text-left flex items-center justify-between gap-6 text-foreground text-base md:text-lg font-bold tracking-[-0.01em] hover:text-muted-foreground transition-colors duration-150"
-                    aria-expanded={isOpen}
-                    aria-controls={`faq-answer-${idx}`}
-                  >
-                    <span>{faq.q}</span>
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border text-foreground">
-                      <Plus
-                        className={`h-4 w-4 transition-transform duration-200 ease-out motion-reduce:transition-none ${isOpen ? "rotate-45" : ""}`}
-                        aria-hidden
-                      />
-                    </span>
-                  </button>
-                </h3>
-
-                {/* Always in the static HTML, only hidden while collapsed, so
-                    crawlers can read the answers the FAQPage schema describes. */}
-                <div
-                  id={`faq-answer-${idx}`}
-                  hidden={!isOpen}
-                  className="max-w-3xl pb-6 pr-12 text-base text-muted-foreground leading-relaxed"
-                >
-                  {faq.a}
-                </div>
-              </div>
-            );
-          })}
+          {/* Native <details>: no JavaScript, and every answer the FAQPage schema
+              describes is in the static HTML. name="faq" keeps one open at a
+              time where supported. */}
+          {faqs.map((faq, idx) => (
+            <details key={idx} name="faq" className="group border-b border-border">
+              <summary className="flex min-h-[56px] cursor-pointer list-none items-center justify-between gap-6 py-5 text-left text-base font-bold tracking-[-0.01em] text-foreground transition-colors duration-150 hover:text-muted-foreground md:text-lg [&::-webkit-details-marker]:hidden">
+                <h3>{faq.q}</h3>
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border text-foreground">
+                  <Plus
+                    className="h-4 w-4 transition-transform duration-200 ease-out group-open:rotate-45 motion-reduce:transition-none"
+                    aria-hidden
+                  />
+                </span>
+              </summary>
+              <p className="max-w-3xl pb-6 pr-12 text-base leading-relaxed text-muted-foreground">
+                {faq.a}
+              </p>
+            </details>
+          ))}
         </div>
       </div>
     </section>

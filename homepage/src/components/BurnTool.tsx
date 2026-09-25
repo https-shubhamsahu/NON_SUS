@@ -17,6 +17,7 @@ import {
   createBurnNote,
   linkToShare,
   redeemCode,
+  warmBurnBackend,
   FILE_MAX_BYTES,
   NOTE_MAX_CHARS,
   type RedemptionPairing,
@@ -106,9 +107,21 @@ export default function BurnTool() {
     setPasteError("");
   };
 
+  // Intent (pointer, touch, focus, tab switch) warms exactly the edge
+  // functions this tab is about to call — see warmBurnBackend.
+  const warmFor = (t: Tab) =>
+    warmBurnBackend(
+      t === "file"
+        ? ["burn-file-init", "burn-file-confirm", "create-redemption-code"]
+        : t === "note"
+          ? ["create-redemption-code"]
+          : ["redeem-code"],
+    );
+
   const switchTab = (next: Tab) => {
     setTab(next);
     reset();
+    warmFor(next);
   };
 
   // WAI-ARIA tabs: arrow keys move between tabs (one Tab stop for the set).
@@ -248,7 +261,12 @@ export default function BurnTool() {
   };
 
   return (
-    <div className="relative mx-auto flex w-full items-center justify-center sm:w-fit">
+    <div
+      className="relative mx-auto flex w-full items-center justify-center sm:w-fit"
+      onPointerEnter={() => warmFor(tab)}
+      onTouchStart={() => warmFor(tab)}
+      onFocusCapture={() => warmFor(tab)}
+    >
       <div
         className={`relative z-10 flex w-full flex-col items-center justify-center border-4 border-foreground/85 bg-card p-6 text-left shadow-[8px_8px_0_0_var(--muted)] transition-[border-radius,border-color] duration-200 ease-out motion-reduce:transition-none sm:w-[480px] xl:w-[520px] ${
           phase === "done"

@@ -18,15 +18,17 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  // Labels only, never the LCP text: don't compete with Geist Sans for bandwidth.
+  preload: false,
 });
 
 // Comprehensive Technical SEO and AI Answer Engine Optimization (AEO).
-// Copy is aligned to Saved-on-any-screen + honest burn/watermark claims.
+// Copy gives every feature equal weight and stays inside the real crypto.
 export const metadata: Metadata = {
-  title: "NO SUS — Your Drive on any screen",
-  // 130 characters — under the 155-char soft limit so Google does not truncate it.
+  title: "NO SUS — Burn notes, watermarked shares, your Drive anywhere",
+  // 137 characters — under the 155-char soft limit so Google does not truncate it.
   description:
-    "Open Saved on a borrowed computer without signing Google in there. Watermarked documents and self-destructing notes stay in the app.",
+    "Send self-destructing notes and files from your browser, watermark documents to whoever opens them, and open your Drive on a borrowed PC.",
   keywords: [
     "google drive on borrowed computer",
     "self-destructing notes",
@@ -47,9 +49,9 @@ export const metadata: Metadata = {
     apple: "/apple-touch-icon.png",
   },
   openGraph: {
-    title: "NO SUS — Your Drive on any screen",
+    title: "NO SUS — Burn notes, watermarked shares, your Drive anywhere",
     description:
-      "Open Saved on a borrowed computer without signing Google in there. Watermarked documents and self-destructing notes stay in the app.",
+      "Send self-destructing notes and files from your browser, watermark documents to whoever opens them, and open your Drive on a borrowed PC.",
     url: "https://nosus.foo",
     siteName: "NO SUS",
     locale: "en_US",
@@ -59,15 +61,15 @@ export const metadata: Metadata = {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "NO SUS: open Saved on any screen, watermarked documents, self-destructing notes",
+        alt: "NO SUS: self-destructing notes, watermarked documents, Saved on any screen",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "NO SUS — Your Drive on any screen",
+    title: "NO SUS — Burn notes, watermarked shares, your Drive anywhere",
     description:
-      "Open Saved on a borrowed computer without signing Google in there. Watermarked documents and self-destructing notes stay in the app.",
+      "Send self-destructing notes and files from your browser, watermark documents to whoever opens them, and open your Drive on a borrowed PC.",
     images: ["/og-image.png"],
   },
   robots: {
@@ -137,7 +139,7 @@ const structuredData = {
       offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
       publisher: { "@id": `${SITE_URL}#organization` },
       description:
-        "Watermarked documents and self-destructing notes in the app. Open Saved on a borrowed computer when Go is enabled for your account, without signing Google in there. Web app at app.nosus.foo; native Android app.",
+        "Self-destructing notes and files encrypted in the browser, documents watermarked to whoever opens them, and Saved on a borrowed computer when Go is enabled for your account, without signing Google in there. Web app at app.nosus.foo; native Android app.",
     },
   ],
 };
@@ -175,6 +177,22 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html:
               'try{var t=localStorage.getItem("nosus-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}',
+          }}
+        />
+        {/* Speculation Rules (Chromium): prefetch /go, /to and the web app when
+            a link to them is hovered or pressed. Plain JSON — no JS cost;
+            other browsers ignore it. app.nosus.foo is same-site. */}
+        <script
+          type="speculationrules"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              prefetch: [
+                {
+                  urls: ["/go", "/to", APP_URL],
+                  eagerness: "moderate",
+                },
+              ],
+            }),
           }}
         />
         {/* Structured Data / JSON-LD for Search & AI Engines */}

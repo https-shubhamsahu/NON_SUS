@@ -18,10 +18,10 @@ export default function Home() {
 
       <main className="flex-1 w-full bg-background text-foreground">
         <Hero />
+        <LivePreview />
         <ThreeDoors />
         <WorkflowTimeline />
         <ComparisonSection />
-        <LivePreview />
         <SecurityEditorial />
         <DevSection />
         <LuxNoxSection />
