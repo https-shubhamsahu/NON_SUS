@@ -21,20 +21,24 @@ export default function ThreeDoors() {
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3 md:gap-8">
           {/* 1. You (Go) — in app when flag enabled */}
           <article
-            className="paper-card door-card flex flex-col gap-6 p-6 md:p-8"
+            className="paper-card paper-card-interactive door-card flex flex-col gap-6 p-6 md:p-8"
             style={{ animationDelay: "0ms" }}
           >
             <div className="flex items-start justify-between gap-4">
-              <div className="flex h-11 w-11 items-center justify-center border border-border bg-muted">
+              <div className="flex h-11 w-11 items-center justify-center border border-border bg-muted rounded-[8px]">
                 <DoorOpen
                   className="h-5 w-5 text-foreground"
                   strokeWidth={1.5}
                   aria-hidden
                 />
               </div>
-              <span className="rounded-pill bg-muted px-3 py-1 text-xs font-semibold uppercase tracking-wider text-foreground">
-                In app when enabled
-              </span>
+              <div className="flex flex-col items-end gap-1.5">
+                <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">[ DOOR 01 ]</span>
+                <span className="rounded-pill bg-muted px-3 py-1 text-xs font-semibold uppercase tracking-wider text-foreground border border-border/80 flex items-center gap-1.5">
+                  <span className="eink-live text-foreground" />
+                  In app when enabled
+                </span>
+              </div>
             </div>
 
             <div className="flex flex-1 flex-col gap-3">
@@ -56,9 +60,10 @@ export default function ThreeDoors() {
                 {limits.map((line) => (
                   <li
                     key={line}
-                    className="text-sm leading-relaxed text-muted-foreground"
+                    className="text-sm leading-relaxed text-muted-foreground flex items-start gap-2"
                   >
-                    {line}
+                    <span className="text-foreground font-mono text-xs select-none">›</span>
+                    <span>{line}</span>
                   </li>
                 ))}
               </ul>
@@ -71,20 +76,23 @@ export default function ThreeDoors() {
 
           {/* 2. Drop — coming soon */}
           <article
-            className="paper-card door-card flex flex-col gap-6 p-6 md:p-8"
+            className="paper-card paper-card-interactive door-card flex flex-col gap-6 p-6 md:p-8"
             style={{ animationDelay: "80ms" }}
           >
             <div className="flex items-start justify-between gap-4">
-              <div className="flex h-11 w-11 items-center justify-center border border-border bg-muted">
+              <div className="flex h-11 w-11 items-center justify-center border border-border bg-muted rounded-[8px]">
                 <Inbox
                   className="h-5 w-5 text-foreground"
                   strokeWidth={1.5}
                   aria-hidden
                 />
               </div>
-              <span className="rounded-pill bg-muted px-3 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Coming soon
-              </span>
+              <div className="flex flex-col items-end gap-1.5">
+                <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">[ DOOR 02 ]</span>
+                <span className="rounded-pill bg-muted px-3 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground border border-border">
+                  Coming soon
+                </span>
+              </div>
             </div>
 
             <div className="flex flex-1 flex-col gap-3">
@@ -101,20 +109,23 @@ export default function ThreeDoors() {
 
           {/* 3. Group drops — coming soon */}
           <article
-            className="paper-card door-card flex flex-col gap-6 p-6 md:p-8"
+            className="paper-card paper-card-interactive door-card flex flex-col gap-6 p-6 md:p-8"
             style={{ animationDelay: "160ms" }}
           >
             <div className="flex items-start justify-between gap-4">
-              <div className="flex h-11 w-11 items-center justify-center border border-border bg-muted">
+              <div className="flex h-11 w-11 items-center justify-center border border-border bg-muted rounded-[8px]">
                 <Users
                   className="h-5 w-5 text-foreground"
                   strokeWidth={1.5}
                   aria-hidden
                 />
               </div>
-              <span className="rounded-pill bg-muted px-3 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Coming soon
-              </span>
+              <div className="flex flex-col items-end gap-1.5">
+                <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">[ DOOR 03 ]</span>
+                <span className="rounded-pill bg-muted px-3 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground border border-border">
+                  Coming soon
+                </span>
+              </div>
             </div>
 
             <div className="flex flex-1 flex-col gap-3">

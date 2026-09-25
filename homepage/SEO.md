@@ -2,6 +2,13 @@
 
 Local source fixes for https://nosus.foo. **Not live until deploy.** Do not treat this doc as Search Console or Lighthouse results.
 
+## Measured PSI snapshot (z9yt7i1zqn, Sep 25, 2026, 12:04 AM)
+
+Mobile: Performance 87, Accessibility 97, Best Practices 100, SEO 100. Lab: FCP 1.4s, LCP 3.8s, TBT 0ms, CLS 0, Speed Index 4.2s.
+Desktop: Performance 100, Accessibility 97, Best Practices 100, SEO 100. Lab: FCP 0.4s, LCP 0.6s, TBT 10ms, CLS 0, Speed Index 0.4s.
+Field CrUX: No Data. Core Web Vitals not assessed.
+This change only addresses contrast and llms.txt links. Cache TTL, unused JS, and LCP render delay were not changed.
+
 ## Changes made (second pass follow-up)
 
 | Change | Why |

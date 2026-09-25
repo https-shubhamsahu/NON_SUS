@@ -49,11 +49,15 @@ export default function Navbar() {
       >
         <div className="mx-auto max-w-7xl px-6 md:px-8">
           <nav className="flex items-center justify-between gap-4">
-            <Link href="/" className="flex shrink-0 items-center min-h-11">
+            <Link href="/" className="flex shrink-0 items-center gap-2.5 min-h-11">
               <NoSusLogo
                 sizeClass="text-lg md:text-xl"
                 className="!text-foreground"
               />
+              <span className="hidden sm:inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground border border-border px-2 py-0.5 rounded-[4px] bg-muted/40">
+                <span className="eink-live text-foreground" />
+                <span>v1.4.1</span>
+              </span>
             </Link>
 
             <ul className="hidden xl:flex items-center gap-7">
@@ -61,7 +65,7 @@ export default function Navbar() {
                 <li key={link.name}>
                   <Link
                     href={link.href}
-                    className="text-xs font-medium uppercase tracking-wider text-muted-foreground hover:text-foreground whitespace-nowrap"
+                    className="text-xs font-mono font-medium uppercase tracking-wider text-muted-foreground hover:text-foreground whitespace-nowrap transition-colors duration-150"
                   >
                     {link.name}
                   </Link>

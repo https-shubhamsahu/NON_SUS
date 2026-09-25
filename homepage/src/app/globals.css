@@ -308,3 +308,63 @@ main > section:not(:first-child) {
     opacity: 0;
   }
 }
+
+/* E-Ink Paper display & instrument micro-interactions */
+@keyframes einkBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+.eink-live {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+  animation: einkBlink 2.2s ease-in-out infinite;
+}
+
+.paper-card-interactive {
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), border-color 180ms ease-out;
+}
+
+.paper-card-interactive:hover {
+  transform: translateY(-2px);
+  border-color: var(--foreground);
+}
+
+.btn {
+  transition: transform 120ms ease-out, background-color 180ms ease-out, color 180ms ease-out, border-color 180ms ease-out, opacity 180ms ease-out;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.tech-badge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  background: var(--muted);
+  color: var(--foreground);
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eink-live {
+    animation: none;
+  }
+  .paper-card-interactive:hover {
+    transform: none;
+  }
+  .btn:active {
+    transform: none;
+  }
+}

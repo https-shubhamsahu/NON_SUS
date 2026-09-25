@@ -53,7 +53,7 @@ entry_hash = sha256(
   };
 
   return (
-    <section id="developers" className="py-24 bg-brand-black border-b border-brand-gray/80 relative">
+    <section id="developers" className="py-24 bg-background border-b border-border relative">
       <div className="mx-auto max-w-7xl px-6 md:px-8">
         
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
@@ -61,27 +61,27 @@ entry_hash = sha256(
           {/* Left Text Detail column */}
           <div className="lg:col-span-4 flex flex-col gap-6">
             <div>
-              <span className="text-[10px] font-bold tracking-widest text-brand-gray-light uppercase mb-2 block">
+              <span className="text-xs font-bold tracking-widest text-muted-foreground uppercase mb-2 block">
                 Under the Hood
               </span>
-              <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tight text-white leading-none">
+              <h2 className="text-[32px] md:text-4xl font-black uppercase tracking-tight text-foreground leading-none">
                 Open Mechanics. <br />
                 No Trust Required.
               </h2>
             </div>
 
-            <p className="text-xs text-brand-gray-light leading-relaxed font-medium">
+            <p className="text-sm text-muted-foreground leading-relaxed font-medium">
               Security claims you can check, not marketing copy. These are the actual
               link format, claim semantics, and ledger construction used in production.
               The client is open source, so every one of them is inspectable.
             </p>
 
-            <div className="flex gap-4 border-t border-brand-gray/60 pt-6">
+            <div className="flex gap-4 border-t border-border pt-6">
               <a
                 href={GITHUB_URL}
                 target="_blank"
                 rel="noreferrer"
-                className="text-xs font-bold uppercase tracking-wider text-white hover:text-brand-gray-light transition-colors"
+                className="text-xs font-bold uppercase tracking-wider text-foreground hover:text-muted-foreground transition-colors"
               >
                 Read the Source on GitHub
               </a>
@@ -89,23 +89,23 @@ entry_hash = sha256(
           </div>
 
           {/* Right Code Display Tab View (Column 8) */}
-          <div className="lg:col-span-8 border border-brand-gray bg-brand-gray-dark/40 rounded overflow-hidden flex flex-col justify-between min-h-[380px]">
+          <div className="lg:col-span-8 border border-border bg-card rounded-[12px] overflow-hidden flex flex-col justify-between min-h-[380px] paper-card">
             
             {/* Tabs Header menu */}
-            <div className="flex border-b border-brand-gray bg-brand-black/30">
+            <div className="flex border-b border-border bg-muted/30">
               {tabs.map((tab) => {
                 const isActive = activeTab === tab.id;
                 return (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as "link" | "claim" | "ledger")}
-                    className={`flex items-center gap-2 px-6 py-4 text-[10px] font-bold uppercase tracking-widest transition-colors border-r border-brand-gray focus:outline-none ${
+                    className={`flex items-center gap-2 px-6 py-4 text-xs font-bold uppercase tracking-widest transition-colors border-r border-border focus:outline-none ${
                       isActive
-                        ? "bg-brand-gray-dark text-white border-b-2 border-b-white"
-                        : "text-brand-gray-light hover:text-white bg-transparent"
+                        ? "bg-card text-foreground border-b-2 border-b-foreground"
+                        : "text-muted-foreground hover:text-foreground bg-transparent"
                     }`}
                   >
-                    <tab.icon className="h-3.5 w-3.5" />
+                    <tab.icon className="h-4 w-4" />
                     {tab.name}
                   </button>
                 );
@@ -113,14 +113,14 @@ entry_hash = sha256(
             </div>
 
             {/* Code Panel contents */}
-            <div className="flex-1 bg-brand-black p-6 font-mono text-[11px] text-brand-gray-light leading-relaxed overflow-x-auto relative">
-              <div className="absolute right-4 top-4 text-[9px] text-brand-gray/40 select-none uppercase font-bold">
+            <div className="flex-1 bg-brand-black p-6 font-mono text-xs text-white/90 leading-relaxed overflow-x-auto relative">
+              <div className="absolute right-4 top-4 text-[10px] text-white/40 select-none uppercase font-bold">
                 {activeTab} block
               </div>
               <>
                 <pre
                   key={activeTab}
-                  className="whitespace-pre"
+                  className="whitespace-pre font-mono text-xs text-white/90"
                 >
                   <code>{codeBlocks[activeTab]}</code>
                 </pre>

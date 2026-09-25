@@ -38,13 +38,20 @@ var appPath=/^\\/(burn|burnfiles|burnfile|redeem|v|join)\\//.test(p);
 var authCb=/(access_token|refresh_token|error_description|type=recovery)/.test(h)||/[?&]code=/.test(s);
 return appHash||appPath||authCb?APP+(appPath?p:"/")+s+h:null;
 }
+function handoff(url){
+var ua="";
+try{ua=(w.navigator&&w.navigator.userAgent)||"";}catch(e){}
+if(!/android/i.test(ua)){w.location.replace(url);return;}
+var enc=encodeURIComponent(url);
+w.location.replace("intent://open?u="+enc+"#Intent;scheme=foo.nosus.app;package=foo.nosus.app;S.browser_fallback_url="+enc+";end");
+}
 var t=appTarget();
-if(t){w.location.replace(t);return;}
+if(t){handoff(t);return;}
 w.addEventListener("hashchange",function(){
 var next=appTarget();
 if(!next)return;
 try{w.history.replaceState(null,"",w.location.pathname+w.location.search);}catch(e){}
-w.location.replace(next);
+handoff(next);
 });
 if(/^\\/(go|to)\\/?$/.test(w.location.pathname||"/"))return;
 var host=(w.location.hostname||"").toLowerCase();

@@ -49,7 +49,7 @@ export default function WorkflowTimeline() {
                     aria-hidden
                   />
                 </div>
-                <span className="font-mono text-2xl font-black text-muted-foreground/40">
+                <span className="font-mono text-2xl font-black text-muted-foreground">
                   {step.num}
                 </span>
               </div>

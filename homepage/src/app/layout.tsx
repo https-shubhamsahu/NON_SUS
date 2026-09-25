@@ -156,7 +156,7 @@ export default function RootLayout({
         <link rel="preconnect" href={SUPABASE_URL} crossOrigin="anonymous" />
         <link rel="dns-prefetch" href={SUPABASE_URL} />
       </head>
-      <body className="min-h-full flex flex-col bg-brand-black text-white">
+      <body className="min-h-full flex flex-col bg-background text-foreground">
         {/* Legacy-link shim + analytics gate — MUST run before anything
             paints. Forwards legacy app links (key material in the fragment)
             to app.nosus.foo, and is the only place Cloudflare Web Analytics

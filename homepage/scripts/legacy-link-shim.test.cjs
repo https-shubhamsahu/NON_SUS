@@ -29,6 +29,7 @@ function load(url, token = 'abc123def456') {
   const scripts = [];
   const listeners = {};
   const window = {
+    navigator: { userAgent: start.searchParams.get('ua') || '' },
     location,
     history: {
       replaceState(_state, _title, next) {
@@ -51,6 +52,16 @@ function load(url, token = 'abc123def456') {
     changeHash(hash) { location.hash = hash; listeners.hashchange?.(); },
   };
 }
+
+test('an Android burn link asks the installed app to open, and falls back to the web app', () => {
+  const page = load('https://nosus.foo/?ua=Android' + KEY_LINK);
+  const target = page.location.replaced.target;
+  assert.match(target, /^intent:\/\/open\?u=/);
+  assert.match(target, /scheme=foo\.nosus\.app/);
+  assert.match(target, /package=foo\.nosus\.app/);
+  assert.match(decodeURIComponent(target), new RegExp('browser_fallback_url=.*app\\.nosus\\.foo/'));
+  assert.equal(page.scripts.length, 0);
+});
 
 test('a legacy burn link forwards to the app with its key and never loads analytics', () => {
   const page = load('https://nosus.foo/' + KEY_LINK);

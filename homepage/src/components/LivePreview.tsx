@@ -10,9 +10,9 @@ export default function LivePreview() {
   const [deviceScanState, setDeviceScanState] = useState<"idle" | "scanning" | "clean">("clean");
 
   const [previewLogs, setPreviewLogs] = useState([
-    { time: "11:23:05", event: "FILE_VIEWED", actor: "stud_01@tsec.edu", status: "Clean" },
-    { time: "11:23:18", event: "SCREENSHOT_ATTEMPT", actor: "stud_01@tsec.edu", status: "Blocked" },
-    { time: "11:23:20", event: "COPY_ATTEMPT", actor: "stud_01@tsec.edu", status: "Blocked" },
+    { time: "11:23:05", event: "LINK_OPENED", actor: "stud_01@tsec.edu", status: "Logged" },
+    { time: "11:23:18", event: "WATERMARK_STAMPED", actor: "stud_01@tsec.edu", status: "Active" },
+    { time: "11:23:20", event: "NEW_DEVICE_FLAGGED", actor: "stud_01@tsec.edu", status: "Alert" },
   ]);
 
   const triggerDeviceScan = () => {
@@ -30,9 +30,9 @@ export default function LivePreview() {
     const timestamp = new Date().toLocaleTimeString();
     const newLog = {
       time: timestamp,
-      event: "SCREENSHOT_ATTEMPT",
+      event: "VIEW_LIMIT_REACHED",
       actor: "stud_01@tsec.edu",
-      status: "Blocked",
+      status: "Closed",
     };
     setPreviewLogs((prev) => [newLog, ...prev].slice(0, 4));
   };
@@ -239,7 +239,7 @@ export default function LivePreview() {
                           <td className="py-2 text-muted-foreground">{log.actor}</td>
                           <td
                             className={`py-2 ${
-                              log.status === "Blocked" ? "text-destructive" : "text-foreground"
+                              log.status === "Alert" || log.status === "Closed" ? "text-destructive font-semibold" : "text-foreground"
                             }`}
                           >
                             {log.status}

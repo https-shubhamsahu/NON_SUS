@@ -233,10 +233,14 @@ export default function BurnTool() {
   return (
     <section id="try" className="relative w-full max-w-xl mx-auto py-6">
       <div className="mb-8 text-center px-2">
+        <div className="inline-flex items-center gap-2 tech-badge mb-3">
+          <span className="eink-live text-foreground" />
+          <span>IN-BROWSER CRYPTOGRAPHY</span>
+        </div>
         <h2 className="text-[32px] font-black uppercase tracking-tight text-foreground leading-tight">
           No account needed. Try it now.
         </h2>
-        <p className="mt-4 text-base leading-relaxed text-muted-foreground max-w-md mx-auto">
+        <p className="mt-3 text-base leading-relaxed text-muted-foreground max-w-md mx-auto">
           Burn a note or file in the browser. The key for a normal link stays in
           the URL fragment. If you use a two-digit pairing code on a single note
           or file, that key is stored for up to 20 minutes.
@@ -388,46 +392,46 @@ export default function BurnTool() {
               <div
                 role="tablist"
                 aria-label="Burn tool mode"
-                className="flex border border-border bg-muted rounded-full overflow-hidden mb-6"
+                className="flex border border-border bg-muted/70 p-1 rounded-[10px] overflow-hidden mb-6 max-w-sm w-full"
               >
                 <button
                   type="button"
                   role="tab"
                   aria-selected={tab === "note"}
                   onClick={() => switchTab("note")}
-                  className={`min-h-[44px] px-5 text-sm font-bold uppercase tracking-wider transition-colors duration-200 ease-out motion-reduce:transition-none ${
+                  className={`flex-1 min-h-[38px] px-3 text-xs font-mono font-bold uppercase tracking-wider transition-all duration-150 rounded-[6px] ${
                     tab === "note"
-                      ? "bg-accent text-accent-foreground"
+                      ? "bg-card text-foreground shadow-sm border border-border/80"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  Note
+                  01 // Note
                 </button>
                 <button
                   type="button"
                   role="tab"
                   aria-selected={tab === "file"}
                   onClick={() => switchTab("file")}
-                  className={`min-h-[44px] px-5 text-sm font-bold uppercase tracking-wider transition-colors duration-200 ease-out motion-reduce:transition-none ${
+                  className={`flex-1 min-h-[38px] px-3 text-xs font-mono font-bold uppercase tracking-wider transition-all duration-150 rounded-[6px] ${
                     tab === "file"
-                      ? "bg-accent text-accent-foreground"
+                      ? "bg-card text-foreground shadow-sm border border-border/80"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  File
+                  02 // File
                 </button>
                 <button
                   type="button"
                   role="tab"
                   aria-selected={tab === "redeem"}
                   onClick={() => switchTab("redeem")}
-                  className={`min-h-[44px] px-5 text-sm font-bold uppercase tracking-wider transition-colors duration-200 ease-out motion-reduce:transition-none ${
+                  className={`flex-1 min-h-[38px] px-3 text-xs font-mono font-bold uppercase tracking-wider transition-all duration-150 rounded-[6px] ${
                     tab === "redeem"
-                      ? "bg-accent text-accent-foreground"
+                      ? "bg-card text-foreground shadow-sm border border-border/80"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  Redeem
+                  03 // Redeem
                 </button>
               </div>
 

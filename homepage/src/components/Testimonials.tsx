@@ -24,14 +24,14 @@ export default function Testimonials() {
   ];
 
   return (
-    <section id="use-cases" className="py-24 bg-brand-gray-dark/20 border-b border-brand-gray/80 relative">
+    <section id="use-cases" className="py-24 bg-background border-b border-border relative">
       <div className="mx-auto max-w-7xl px-6 md:px-8">
 
         <div className="text-center max-w-2xl mx-auto mb-16">
-          <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tight text-white leading-none">
+          <h2 className="text-[32px] md:text-5xl font-black uppercase tracking-tight text-foreground leading-none">
             Where a Leak Actually Costs Something
           </h2>
-          <p className="text-xs text-brand-gray-light mt-3 leading-relaxed font-medium">
+          <p className="text-sm text-muted-foreground mt-4 leading-relaxed font-medium">
             Scenarios the product is built for, not customer testimonials.
           </p>
         </div>
@@ -40,17 +40,17 @@ export default function Testimonials() {
           {scenarios.map((item, idx) => (
             <div
               key={idx}
-              className="border border-brand-gray p-8 bg-brand-black flex flex-col justify-between min-h-[220px] rounded relative paper-card"
+              className="border border-border p-8 bg-card flex flex-col justify-between min-h-[220px] rounded relative paper-card"
             >
-              <p className="text-xs text-brand-gray-light leading-relaxed font-medium">
+              <p className="text-sm text-muted-foreground leading-relaxed font-medium">
                 {item.scenario}
               </p>
               
-              <div className="mt-6 border-t border-brand-gray/50 pt-4">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-white">
+              <div className="mt-6 border-t border-border pt-4">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">
                   {item.author}
                 </h3>
-                <span className="text-[10px] font-mono text-brand-gray-light uppercase mt-0.5 block">
+                <span className="text-xs font-mono text-muted-foreground uppercase mt-0.5 block">
                   {item.role}
                 </span>
               </div>
