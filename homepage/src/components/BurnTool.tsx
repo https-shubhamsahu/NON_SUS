@@ -231,23 +231,6 @@ export default function BurnTool() {
 
   return (
     <div className="burn-stage relative mx-auto flex w-full items-center justify-center sm:w-fit">
-      {/* Orbit ring: decorative, sm+ only, still under reduced motion. */}
-      <svg
-        viewBox="0 0 100 100"
-        className="burn-orbit pointer-events-none absolute inset-[-44px] hidden text-muted-foreground sm:block"
-        aria-hidden="true"
-      >
-        <defs>
-          <path id="burn-orbit-path" d="M50 50 m-47 0 a47 47 0 1 1 94 0 a47 47 0 1 1 -94 0" />
-        </defs>
-        <circle cx="50" cy="50" r="49.5" fill="none" stroke="currentColor" strokeOpacity="0.35" strokeWidth="0.15" strokeDasharray="0.3 1.2" />
-        <text className="font-mono" fontSize="2.1" fill="currentColor" letterSpacing="0.35">
-          <textPath href="#burn-orbit-path" textLength="293" lengthAdjust="spacing">
-            ENCRYPTED IN YOUR BROWSER · OPENS ONCE · THEN IT BURNS · NO ACCOUNT NEEDED · ENCRYPTED IN YOUR BROWSER · OPENS ONCE · THEN IT BURNS · NO ACCOUNT NEEDED ·
-          </textPath>
-        </text>
-      </svg>
-
       <div
         className={`relative z-10 flex w-full flex-col items-center justify-center border-4 border-foreground/85 bg-card p-6 text-left shadow-[8px_8px_0_0_var(--muted)] transition-[border-radius,border-color] duration-200 ease-out motion-reduce:transition-none sm:w-[480px] xl:w-[520px] ${
           phase === "done"

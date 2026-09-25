@@ -67,7 +67,7 @@ export default function Hero() {
           </div>
 
           {/* The working tool is in the initial HTML — never gated on an animation. */}
-          <div className="flex justify-center py-2 sm:py-12 xl:col-span-7 xl:col-start-6 xl:row-span-2 xl:row-start-1 xl:justify-end xl:py-10">
+          <div className="flex justify-center py-2 sm:py-6 xl:col-span-7 xl:col-start-6 xl:row-span-2 xl:row-start-1 xl:justify-end xl:py-6">
             <BurnTool />
           </div>
 

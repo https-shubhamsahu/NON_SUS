@@ -556,7 +556,7 @@ codebase — assume still outstanding unless you know otherwise.
 - **2026-09-25** · feat(landing): burn tool is the hero again, back in its circle — why: the
   user wanted the working tool first ("Send something that burns after reading"), in the circular
   frame removed in 9f6be72. It is a circle from `sm` up (rounded card on phones, rounded rect once
-  a link is ready) with a CSS-only orbiting text ring; the note tab was compacted (counter inside
+  a link is ready), with no text ring around it (the user turned that down); the note tab was compacted (counter inside
   the textarea, expiry beside Paste) to fit. The Go pairing loop moved to How Go works
   (`PairingDemo.tsx`). Sections renumbered 01–09. `layout.tsx` title/OG still say "Your Drive on
   any screen" — not changed here.
