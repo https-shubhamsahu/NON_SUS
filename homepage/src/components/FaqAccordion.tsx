@@ -95,7 +95,7 @@ export default function FaqAccordion() {
         />
 
         <SectionHeader
-          index="10"
+          index="09"
           eyebrow="FAQ"
           title="Straight answers."
           lede="Including the uncomfortable ones: legal orders, breaches, and what a browser can't stop."

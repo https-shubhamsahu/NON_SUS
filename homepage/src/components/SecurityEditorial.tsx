@@ -44,7 +44,7 @@ export default function SecurityEditorial() {
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-16">
           <div className="flex flex-col gap-10 lg:col-span-6">
             <SectionHeader
-              index="06"
+              index="05"
               eyebrow="Security"
               title={
                 <>

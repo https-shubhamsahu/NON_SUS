@@ -553,6 +553,13 @@ codebase — assume still outstanding unless you know otherwise.
 > bottom rather than letting this section grow without bound.
 
 <!-- CHANGELOG:INSERT -->
+- **2026-09-25** · feat(landing): burn tool is the hero again, back in its circle — why: the
+  user wanted the working tool first ("Send something that burns after reading"), in the circular
+  frame removed in 9f6be72. It is a circle from `sm` up (rounded card on phones, rounded rect once
+  a link is ready) with a CSS-only orbiting text ring; the note tab was compacted (counter inside
+  the textarea, expiry beside Paste) to fit. The Go pairing loop moved to How Go works
+  (`PairingDemo.tsx`). Sections renumbered 01–09. `layout.tsx` title/OG still say "Your Drive on
+  any screen" — not changed here.
 - **2026-09-25** · feat(landing): makeover — tighter story, section system, light CSS motion
   (6d77954, on `feat/landing-makeover`, not deployed) — why: 16 sections repeated the same Go
   facts. Now 11: Pillars/TrustMetrics fold into Security (always-visible "what stays where"

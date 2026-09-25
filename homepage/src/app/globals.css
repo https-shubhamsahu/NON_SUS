@@ -399,7 +399,15 @@ main > section:not(:first-child) {
   mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
 }
 
-/* Pairing loop (hero): one 10s cycle — scan, match, approve, connected.
+/* Burn tool orbit: slow rotating text ring around the circle */
+@keyframes orbit {
+  to { transform: rotate(360deg); }
+}
+.burn-orbit {
+  animation: orbit 90s linear infinite;
+}
+
+/* Pairing loop (How Go works): one 10s cycle — scan, match, approve, connected.
    Stage groups cross-fade; labels under the device track the stage. */
 .pg { --pg: 10s; }
 .pg-mono { font-family: var(--font-mono); }
@@ -483,7 +491,8 @@ main > section:not(:first-child) {
 @media (prefers-reduced-motion: reduce) {
   .eink-live,
   .rise,
-  .marquee-track {
+  .marquee-track,
+  .burn-orbit {
     animation: none;
   }
   .paper-card-interactive:hover,

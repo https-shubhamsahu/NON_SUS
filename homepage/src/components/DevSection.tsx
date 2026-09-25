@@ -62,7 +62,7 @@ entry_hash = sha256(
           
           <div className="lg:col-span-4 flex flex-col gap-6">
             <SectionHeader
-              index="07"
+              index="06"
               eyebrow="Under the hood"
               title="Open mechanics."
             />

@@ -19,7 +19,7 @@ export default function DeveloperSection() {
     <section id="developer" className="relative border-b border-border bg-background py-20 md:py-28">
       <div className="mx-auto max-w-5xl px-6 md:px-8">
         <SectionHeader
-          index="09"
+          index="08"
           eyebrow="The maker"
           title="One person, directly accountable."
           align="center"

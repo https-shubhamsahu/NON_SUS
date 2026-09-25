@@ -3,7 +3,6 @@ import Hero from "@/components/Hero";
 import ThreeDoors from "@/components/ThreeDoors";
 import WorkflowTimeline from "@/components/WorkflowTimeline";
 import ComparisonSection from "@/components/ComparisonSection";
-import BurnTool from "@/components/BurnTool";
 import LivePreview from "@/components/LivePreview";
 import SecurityEditorial from "@/components/SecurityEditorial";
 import DevSection from "@/components/DevSection";
@@ -22,7 +21,6 @@ export default function Home() {
         <ThreeDoors />
         <WorkflowTimeline />
         <ComparisonSection />
-        <BurnTool />
         <LivePreview />
         <SecurityEditorial />
         <DevSection />

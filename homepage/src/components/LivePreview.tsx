@@ -67,7 +67,7 @@ export default function LivePreview() {
     <section id="sharing" className="relative border-b border-border bg-background py-20 md:py-28">
       <div className="mx-auto max-w-7xl px-6 md:px-8">
         <SectionHeader
-          index="05"
+          index="04"
           eyebrow="SecureSend · in the app"
           title="Share a document. See who opened it."
           lede="Each viewer's identity is stamped across the page, so a leak traces back to a person. Set view limits and expiry, revoke any time, and read the log. The panel below is a mock — not a live dashboard."

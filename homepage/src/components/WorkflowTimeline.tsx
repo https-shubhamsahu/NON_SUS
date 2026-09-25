@@ -1,5 +1,6 @@
 import { Monitor, QrCode, Fingerprint, MessageSquare } from "lucide-react";
 
+import PairingDemo from "./PairingDemo";
 import SectionHeader from "./ui/SectionHeader";
 
 const steps = [
@@ -29,12 +30,23 @@ export default function WorkflowTimeline() {
   return (
     <section id="how-it-works" className="relative border-b border-border bg-background py-20 md:py-28">
       <div className="mx-auto w-full max-w-7xl px-6 md:px-8">
-        <SectionHeader
-          index="02"
-          eyebrow="How Go works"
-          title="Four steps. No password typed."
-          lede="The phone does the signing-in. The borrowed computer only ever shows what you send it."
-        />
+        <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-12 lg:gap-16">
+          <div className="flex flex-col gap-6 lg:col-span-5">
+            <SectionHeader
+              index="02"
+              eyebrow="How Go works"
+              title="Four steps. No password typed."
+              lede="The phone does the signing-in. The borrowed computer only ever shows what you send it."
+            />
+            <p className="reveal text-sm leading-relaxed text-muted-foreground">
+              Go is in early access. It shows up in the app once it&apos;s
+              enabled for your account.
+            </p>
+          </div>
+          <div className="reveal lg:col-span-7">
+            <PairingDemo />
+          </div>
+        </div>
 
         <div className="relative mt-12 md:mt-16">
           {/* Rail behind the step markers (desktop) */}

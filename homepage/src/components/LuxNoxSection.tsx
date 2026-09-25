@@ -65,7 +65,7 @@ export default function LuxNoxSection() {
 
           <div className="lg:col-span-7 flex flex-col gap-8">
             <SectionHeader
-              index="08"
+              index="07"
               eyebrow="The mark"
               title="Meet Lux & Nox."
               lede="Two cats, one mark. Inside the app they are living characters with a 19-mood animation language, from a breathing idle loop to a sentinel guard stance, driven by what is actually happening to your documents. And they respect your reduced-motion settings, always."

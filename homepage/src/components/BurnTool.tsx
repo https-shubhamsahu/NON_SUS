@@ -10,8 +10,6 @@ import {
   AlertTriangle,
   RotateCcw,
   Key,
-  Flame,
-  Link2,
 } from "lucide-react";
 import {
   appLinkFromPaste,
@@ -24,32 +22,6 @@ import {
   type RedemptionPairing,
 } from "@/lib/burnApi";
 import ShareQr from "./ShareQr";
-import SectionHeader from "./ui/SectionHeader";
-
-// Keep in step with burnApi.ts (NOTE/FILE caps, pairing-code key window).
-const BURN_FACTS = [
-  {
-    icon: Flame,
-    title: "Burn Notes",
-    text: "The note opens once, then the row is deleted. Pick 1 hour, 24 hours or 7 days before it expires unread.",
-  },
-  {
-    icon: FileUp,
-    title: "Burn Files",
-    text: "One file up to 25 MB here (up to 10 files in the app). The encrypted blob is wiped within minutes of being claimed.",
-  },
-  {
-    icon: Link2,
-    title: "The key rides in the link",
-    text: "A normal link keeps the key after the # — browsers never send that part to a server.",
-  },
-  {
-    icon: Key,
-    title: "Optional two-digit code",
-    text: "For a single note or file, a pairing code stores the key on the server for up to 20 minutes, then deletes it.",
-  },
-];
-
 type Tab = "note" | "file" | "redeem";
 type Phase = "idle" | "working" | "done" | "error";
 
@@ -258,32 +230,30 @@ export default function BurnTool() {
   };
 
   return (
-    <section id="try" className="relative border-b border-border bg-background py-20 md:py-28">
-      <div className="mx-auto grid w-full max-w-7xl grid-cols-1 items-start gap-12 px-6 md:px-8 lg:grid-cols-12 lg:gap-16">
-      <div className="flex flex-col gap-8 lg:col-span-5 lg:sticky lg:top-28">
-        <SectionHeader
-          index="04"
-          eyebrow="Try it · no account"
-          title="Send something that burns after reading."
-          lede="Encrypted in this browser before it leaves. Nobody needs an account — not you, not the person you send it to."
-        />
-        <ul className="reveal flex flex-col border-t border-border">
-          {BURN_FACTS.map((f) => (
-            <li key={f.title} className="flex gap-4 border-b border-border py-4">
-              <f.icon className="mt-0.5 h-5 w-5 shrink-0 text-foreground" strokeWidth={1.5} aria-hidden />
-              <div>
-                <h3 className="text-base font-bold text-foreground">{f.title}</h3>
-                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{f.text}</p>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </div>
+    <div className="burn-stage relative mx-auto flex w-full items-center justify-center sm:w-fit">
+      {/* Orbit ring: decorative, sm+ only, still under reduced motion. */}
+      <svg
+        viewBox="0 0 100 100"
+        className="burn-orbit pointer-events-none absolute inset-[-44px] hidden text-muted-foreground sm:block"
+        aria-hidden="true"
+      >
+        <defs>
+          <path id="burn-orbit-path" d="M50 50 m-47 0 a47 47 0 1 1 94 0 a47 47 0 1 1 -94 0" />
+        </defs>
+        <circle cx="50" cy="50" r="49.5" fill="none" stroke="currentColor" strokeOpacity="0.35" strokeWidth="0.15" strokeDasharray="0.3 1.2" />
+        <text className="font-mono" fontSize="2.1" fill="currentColor" letterSpacing="0.35">
+          <textPath href="#burn-orbit-path" textLength="293" lengthAdjust="spacing">
+            ENCRYPTED IN YOUR BROWSER · OPENS ONCE · THEN IT BURNS · NO ACCOUNT NEEDED · ENCRYPTED IN YOUR BROWSER · OPENS ONCE · THEN IT BURNS · NO ACCOUNT NEEDED ·
+          </textPath>
+        </text>
+      </svg>
 
       <div
-        className={`reveal relative z-10 w-full paper-card text-left flex flex-col items-center justify-center p-6 sm:p-8 lg:col-span-7 transition-colors duration-200 ease-out motion-reduce:transition-none ${
-          phase === "done" ? "min-h-[380px] py-8" : "min-h-[380px]"
-        } ${dragOver ? "ring-2 ring-ring" : ""}`}
+        className={`relative z-10 flex w-full flex-col items-center justify-center border-4 border-foreground/85 bg-card p-6 text-left shadow-[8px_8px_0_0_var(--muted)] transition-[border-radius,border-color] duration-200 ease-out motion-reduce:transition-none sm:w-[480px] xl:w-[520px] ${
+          phase === "done"
+            ? "min-h-[380px] rounded-[40px] py-8 sm:min-h-[480px] sm:rounded-[56px] xl:min-h-[520px]"
+            : "min-h-[400px] rounded-[40px] sm:h-[480px] sm:rounded-full sm:px-14 xl:h-[520px]"
+        } ${dragOver ? "border-foreground ring-4 ring-ring/30" : ""}`}
       >
           {phase === "working" ? (
             <div
@@ -425,59 +395,64 @@ export default function BurnTool() {
               <div
                 role="tablist"
                 aria-label="Burn tool mode"
-                className="flex border border-border bg-muted/70 p-1 rounded-[10px] overflow-hidden mb-6 max-w-sm w-full"
+                className="flex border border-border bg-muted/70 p-1 rounded-[10px] overflow-hidden mb-4 max-w-sm w-full"
               >
                 <button
                   type="button"
                   role="tab"
                   aria-selected={tab === "note"}
                   onClick={() => switchTab("note")}
-                  className={`flex-1 min-h-[38px] px-3 text-xs font-mono font-bold uppercase tracking-wider transition-all duration-150 rounded-[6px] ${
+                  className={`flex-1 min-h-[38px] whitespace-nowrap px-2 sm:px-3 text-xs font-mono font-bold uppercase tracking-wider transition-all duration-150 rounded-[6px] ${
                     tab === "note"
                       ? "bg-card text-foreground shadow-sm border border-border/80"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  01 // Note
+                  <span className="hidden sm:inline">01 // </span>Note
                 </button>
                 <button
                   type="button"
                   role="tab"
                   aria-selected={tab === "file"}
                   onClick={() => switchTab("file")}
-                  className={`flex-1 min-h-[38px] px-3 text-xs font-mono font-bold uppercase tracking-wider transition-all duration-150 rounded-[6px] ${
+                  className={`flex-1 min-h-[38px] whitespace-nowrap px-2 sm:px-3 text-xs font-mono font-bold uppercase tracking-wider transition-all duration-150 rounded-[6px] ${
                     tab === "file"
                       ? "bg-card text-foreground shadow-sm border border-border/80"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  02 // File
+                  <span className="hidden sm:inline">02 // </span>File
                 </button>
                 <button
                   type="button"
                   role="tab"
                   aria-selected={tab === "redeem"}
                   onClick={() => switchTab("redeem")}
-                  className={`flex-1 min-h-[38px] px-3 text-xs font-mono font-bold uppercase tracking-wider transition-all duration-150 rounded-[6px] ${
+                  className={`flex-1 min-h-[38px] whitespace-nowrap px-2 sm:px-3 text-xs font-mono font-bold uppercase tracking-wider transition-all duration-150 rounded-[6px] ${
                     tab === "redeem"
                       ? "bg-card text-foreground shadow-sm border border-border/80"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  03 // Redeem
+                  <span className="hidden sm:inline">03 // </span>Redeem
                 </button>
               </div>
 
               {tab === "note" ? (
                 <div className="flex flex-col items-center w-full">
-                  <textarea
-                    ref={noteRef}
-                    value={noteText}
-                    onChange={(e) => setNoteText(e.target.value.slice(0, NOTE_MAX_CHARS))}
-                    placeholder="Write or paste a secret note…"
-                    aria-label="Secret note"
-                    className="w-full max-w-[360px] h-[160px] overflow-y-auto bg-background border border-border hover:border-foreground/40 focus:border-foreground p-4 text-base font-mono text-left text-foreground resize-y rounded-[12px] leading-relaxed"
-                  />
+                  <div className="relative w-full max-w-[360px]">
+                    <textarea
+                      ref={noteRef}
+                      value={noteText}
+                      onChange={(e) => setNoteText(e.target.value.slice(0, NOTE_MAX_CHARS))}
+                      placeholder="Write or paste a secret note…"
+                      aria-label="Secret note"
+                      className="block w-full h-[128px] overflow-y-auto bg-background border border-border hover:border-foreground/40 focus:border-foreground p-4 pb-7 text-base font-mono text-left text-foreground resize-y rounded-[12px] leading-relaxed"
+                    />
+                    <span className="pointer-events-none absolute bottom-2 right-3 font-mono text-xs text-muted-foreground">
+                      {noteText.length.toLocaleString()}/{NOTE_MAX_CHARS.toLocaleString()}
+                    </span>
+                  </div>
                   <div className="flex flex-wrap items-center gap-2 w-full max-w-[360px] mt-3">
                     <button
                       type="button"
@@ -495,25 +470,23 @@ export default function BurnTool() {
                         Clear
                       </button>
                     )}
-                    {pasteError && <span className="text-sm text-muted-foreground" role="alert">{pasteError}</span>}
-                  </div>
-                  <div className="flex items-center justify-between w-full max-w-[360px] mt-3 text-sm font-mono text-muted-foreground">
-                    <span>{noteText.length.toLocaleString()}/{NOTE_MAX_CHARS.toLocaleString()}</span>
                     <select
                       value={expiryHours}
                       onChange={(e) => setExpiryHours(Number(e.target.value))}
-                      className="min-h-[44px] bg-background border border-border text-foreground rounded-[12px] px-3 py-2"
+                      aria-label="Expires in"
+                      className="ml-auto min-h-[44px] bg-background border border-border text-sm font-mono text-foreground rounded-[12px] px-3 py-2"
                     >
                       {EXPIRY_CHOICES.map((c) => (
                         <option key={c.hours} value={c.hours}>{c.label}</option>
                       ))}
                     </select>
+                    {pasteError && <span className="w-full text-sm text-muted-foreground" role="alert">{pasteError}</span>}
                   </div>
                   <button
                     type="button"
                     onClick={handleCreateNote}
                     disabled={!noteText.trim()}
-                    className={`btn mt-6 ${
+                    className={`btn mt-4 ${
                       noteText.trim()
                         ? "btn-primary"
                         : "opacity-40 cursor-not-allowed"
@@ -537,7 +510,7 @@ export default function BurnTool() {
                     }}
                     role="button"
                     tabIndex={0}
-                    className={`w-full max-w-[360px] min-h-[160px] border-2 border-dashed rounded-[12px] flex flex-col items-center justify-center cursor-pointer transition-colors duration-200 ease-out motion-reduce:transition-none p-6 ${
+                    className={`w-full max-w-[360px] min-h-[140px] border-2 border-dashed rounded-[12px] flex flex-col items-center justify-center cursor-pointer transition-colors duration-200 ease-out motion-reduce:transition-none p-6 ${
                       dragOver
                         ? "border-foreground bg-muted"
                         : "border-border hover:border-foreground/40 bg-transparent"
@@ -558,7 +531,7 @@ export default function BurnTool() {
                     </p>
                   </div>
 
-                  <div className="flex flex-wrap items-center justify-center gap-2 mt-5">
+                  <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
                     <span className="text-sm font-mono text-muted-foreground uppercase tracking-wider">
                       Expires in:
                     </span>
@@ -612,7 +585,6 @@ export default function BurnTool() {
             </div>
           )}
       </div>
-      </div>
-    </section>
+    </div>
   );
 }
