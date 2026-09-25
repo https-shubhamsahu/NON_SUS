@@ -3,6 +3,25 @@
 import { useState } from "react";
 import { Eye, ShieldAlert, Ban, CheckCircle, RefreshCw, Smartphone } from "lucide-react";
 
+import SectionHeader from "./ui/SectionHeader";
+
+// What the product is built for — not customer quotes. Never add invented
+// testimonials or usage numbers here.
+const SCENARIOS = [
+  {
+    who: "Researchers",
+    what: "Send a preprint to reviewers with each page tied to the person it was sent to.",
+  },
+  {
+    who: "Study groups",
+    what: "Share solution sets behind touch-to-reveal blur, with a ledger of who opened what.",
+  },
+  {
+    who: "Freelancers",
+    what: "Close the deck after the pitch. Expiry and view limits keep it from living forever.",
+  },
+];
+
 export default function LivePreview() {
   const [activeTab, setActiveTab] = useState<"watermark" | "revoke" | "audit" | "device">("watermark");
   const [isWatermarked, setIsWatermarked] = useState(true);
@@ -10,9 +29,9 @@ export default function LivePreview() {
   const [deviceScanState, setDeviceScanState] = useState<"idle" | "scanning" | "clean">("clean");
 
   const [previewLogs, setPreviewLogs] = useState([
-    { time: "11:23:05", event: "LINK_OPENED", actor: "stud_01@tsec.edu", status: "Logged" },
-    { time: "11:23:18", event: "WATERMARK_STAMPED", actor: "stud_01@tsec.edu", status: "Active" },
-    { time: "11:23:20", event: "NEW_DEVICE_FLAGGED", actor: "stud_01@tsec.edu", status: "Alert" },
+    { time: "11:23:05", event: "LINK_OPENED", actor: "viewer_01@example.edu", status: "Logged" },
+    { time: "11:23:18", event: "WATERMARK_STAMPED", actor: "viewer_01@example.edu", status: "Active" },
+    { time: "11:23:20", event: "NEW_DEVICE_FLAGGED", actor: "viewer_01@example.edu", status: "Alert" },
   ]);
 
   const triggerDeviceScan = () => {
@@ -31,7 +50,7 @@ export default function LivePreview() {
     const newLog = {
       time: timestamp,
       event: "VIEW_LIMIT_REACHED",
-      actor: "stud_01@tsec.edu",
+      actor: "viewer_01@example.edu",
       status: "Closed",
     };
     setPreviewLogs((prev) => [newLog, ...prev].slice(0, 4));
@@ -45,19 +64,15 @@ export default function LivePreview() {
     }`;
 
   return (
-    <section id="live-preview" className="py-24 bg-background border-b border-border relative">
+    <section id="sharing" className="relative border-b border-border bg-background py-20 md:py-28">
       <div className="mx-auto max-w-7xl px-6 md:px-8">
-        <div className="text-center max-w-2xl mx-auto mb-16">
-          <span className="text-xs font-bold tracking-widest text-muted-foreground uppercase mb-2 block">
-            Lightweight preview
-          </span>
-          <h2 className="text-[32px] md:text-5xl font-black uppercase tracking-tight text-foreground">
-            How sharing feels
-          </h2>
-          <p className="text-base text-muted-foreground mt-4 leading-relaxed">
-            A simple mock of watermarks, revocation, and activity — not a live dashboard.
-          </p>
-        </div>
+        <SectionHeader
+          index="05"
+          eyebrow="SecureSend · in the app"
+          title="Share a document. See who opened it."
+          lede="Each viewer's identity is stamped across the page, so a leak traces back to a person. Set view limits and expiry, revoke any time, and read the log. The panel below is a mock — not a live dashboard."
+          className="mb-12 md:mb-16"
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
           <div className="lg:col-span-4 flex flex-col gap-4">
@@ -110,7 +125,7 @@ export default function LivePreview() {
             </button>
           </div>
 
-          <div className="lg:col-span-8 paper-card p-6 flex flex-col justify-between min-h-[450px] relative overflow-hidden">
+          <div className="reveal lg:col-span-8 paper-card p-6 flex flex-col justify-between min-h-[450px] relative overflow-hidden">
             <div className="flex items-center justify-between border-b border-border pb-4 mb-6">
               <div className="flex items-center gap-2">
                 <span className="w-3 h-3 rounded-full bg-muted" />
@@ -178,7 +193,7 @@ export default function LivePreview() {
                           key={i}
                           className="text-xs font-mono text-foreground text-center flex items-center justify-center font-bold"
                         >
-                          stud_01@tsec.edu
+                          viewer_01@example.edu
                         </div>
                       ))}
                     </div>
@@ -278,6 +293,19 @@ export default function LivePreview() {
             </div>
           </div>
         </div>
+
+        <div className="mt-16 grid grid-cols-1 gap-px overflow-hidden rounded-[12px] border border-border bg-border md:grid-cols-3">
+          {SCENARIOS.map((s) => (
+            <div key={s.who} className="reveal flex flex-col gap-2 bg-background p-6 md:p-8">
+              <h3 className="font-mono text-xs font-bold uppercase tracking-widest text-foreground">{s.who}</h3>
+              <p className="text-base leading-relaxed text-muted-foreground">{s.what}</p>
+            </div>
+          ))}
+        </div>
+        <p className="mt-6 text-sm leading-relaxed text-muted-foreground">
+          Also in the app: invite-only study groups and a vault for documents your
+          group opens under access control.
+        </p>
       </div>
     </section>
   );

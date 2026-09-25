@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Link2, Flame, ListTree } from "lucide-react";
+import { Link2, Flame, ListTree, ArrowRight } from "lucide-react";
 
 import { GITHUB_URL } from "@/lib/links";
+import SectionHeader from "./ui/SectionHeader";
 
 export default function DevSection() {
   const [activeTab, setActiveTab] = useState<"link" | "claim" | "ledger">("link");
@@ -28,7 +29,8 @@ https://nosus.foo/#/burn/<uuid>?k=<key>&v=<iv>
                  only in your and your recipient's browsers.
 
 # The ciphertext in the database is useless without the
-# fragment: the server cannot decrypt what it stores.`,
+# fragment. (Opt in to a two-digit pairing code and the
+# key is also held server-side for up to 20 minutes.)`,
     claim: `-- Claiming a burn note is one atomic statement:
 DELETE FROM burn_notes
  WHERE id = <note_id>
@@ -53,24 +55,19 @@ entry_hash = sha256(
   };
 
   return (
-    <section id="developers" className="py-24 bg-background border-b border-border relative">
+    <section id="developers" className="relative border-b border-border bg-background py-20 md:py-28">
       <div className="mx-auto max-w-7xl px-6 md:px-8">
         
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           
-          {/* Left Text Detail column */}
           <div className="lg:col-span-4 flex flex-col gap-6">
-            <div>
-              <span className="text-xs font-bold tracking-widest text-muted-foreground uppercase mb-2 block">
-                Under the Hood
-              </span>
-              <h2 className="text-[32px] md:text-4xl font-black uppercase tracking-tight text-foreground leading-none">
-                Open Mechanics. <br />
-                No Trust Required.
-              </h2>
-            </div>
+            <SectionHeader
+              index="07"
+              eyebrow="Under the hood"
+              title="Open mechanics."
+            />
 
-            <p className="text-sm text-muted-foreground leading-relaxed font-medium">
+            <p className="reveal text-base text-muted-foreground leading-relaxed">
               Security claims you can check, not marketing copy. These are the actual
               link format, claim semantics, and ledger construction used in production.
               The client is open source, so every one of them is inspectable.
@@ -81,25 +78,29 @@ entry_hash = sha256(
                 href={GITHUB_URL}
                 target="_blank"
                 rel="noreferrer"
-                className="text-xs font-bold uppercase tracking-wider text-foreground hover:text-muted-foreground transition-colors"
+                className="group inline-flex min-h-11 items-center gap-2 text-sm font-bold uppercase tracking-wider text-foreground hover:text-muted-foreground transition-colors"
               >
-                Read the Source on GitHub
+                Read the source on GitHub
+                <ArrowRight className="nudge h-4 w-4" aria-hidden />
               </a>
             </div>
           </div>
 
           {/* Right Code Display Tab View (Column 8) */}
-          <div className="lg:col-span-8 border border-border bg-card rounded-[12px] overflow-hidden flex flex-col justify-between min-h-[380px] paper-card">
+          <div className="reveal lg:col-span-8 border border-border bg-card rounded-[12px] overflow-hidden flex flex-col justify-between min-h-[380px] paper-card">
             
             {/* Tabs Header menu */}
-            <div className="flex border-b border-border bg-muted/30">
+            <div role="tablist" aria-label="Mechanics" className="flex overflow-x-auto border-b border-border bg-muted/30">
               {tabs.map((tab) => {
                 const isActive = activeTab === tab.id;
                 return (
                   <button
                     key={tab.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
                     onClick={() => setActiveTab(tab.id as "link" | "claim" | "ledger")}
-                    className={`flex items-center gap-2 px-6 py-4 text-xs font-bold uppercase tracking-widest transition-colors border-r border-border focus:outline-none ${
+                    className={`flex shrink-0 items-center gap-2 whitespace-nowrap px-5 py-4 text-xs font-bold uppercase tracking-widest transition-colors border-r border-border ${
                       isActive
                         ? "bg-card text-foreground border-b-2 border-b-foreground"
                         : "text-muted-foreground hover:text-foreground bg-transparent"

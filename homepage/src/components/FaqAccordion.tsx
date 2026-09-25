@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Minus } from "lucide-react";
+import { Plus } from "lucide-react";
+
+import SectionHeader from "./ui/SectionHeader";
 
 export default function FaqAccordion() {
   const [openIdx, setOpenIdx] = useState<number | null>(null);
@@ -37,7 +39,7 @@ export default function FaqAccordion() {
     },
     {
       q: "Can I share files without creating an account?",
-      a: "Yes. Burn Files and Burn Notes require no account on either the sender or recipient side. Sharing limits apply dynamically.",
+      a: "Yes. Burn Files and Burn Notes require no account on either the sender or recipient side. Size limits apply: one file up to 25 MB on this page.",
     },
     {
       q: "Can I revoke access?",
@@ -82,7 +84,7 @@ export default function FaqAccordion() {
   return (
     <section
       id="faq"
-      className="py-24 bg-background border-b border-border relative"
+      className="relative border-b border-border bg-background py-20 md:py-28"
     >
       <div className="mx-auto max-w-4xl px-6 md:px-8">
         <script
@@ -92,36 +94,35 @@ export default function FaqAccordion() {
           }}
         />
 
-        <div className="text-center mb-16">
-          <h2 className="text-[32px] md:text-5xl font-black uppercase tracking-tight text-foreground leading-none">
-            Frequently Asked Questions
-          </h2>
-        </div>
+        <SectionHeader
+          index="10"
+          eyebrow="FAQ"
+          title="Straight answers."
+          lede="Including the uncomfortable ones: legal orders, breaches, and what a browser can't stop."
+          align="center"
+          className="mb-12 md:mb-16"
+        />
 
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col border-t border-border">
           {faqs.map((faq, idx) => {
             const isOpen = openIdx === idx;
             return (
-              <div
-                key={idx}
-                className={`paper-card border overflow-hidden transition-colors duration-200 ease-out ${
-                  isOpen ? "border-foreground" : "border-border"
-                }`}
-              >
+              <div key={idx} className="border-b border-border">
                 <h3>
                   <button
                     type="button"
                     onClick={() => handleToggle(idx)}
-                    className="w-full min-h-[44px] px-6 py-4 text-left flex items-center justify-between gap-4 text-foreground font-bold uppercase text-xs tracking-wider focus-visible:ring-2 focus-visible:ring-ring"
+                    className="group w-full min-h-[56px] py-5 text-left flex items-center justify-between gap-6 text-foreground text-base md:text-lg font-bold tracking-[-0.01em] hover:text-muted-foreground transition-colors duration-150"
                     aria-expanded={isOpen}
                     aria-controls={`faq-answer-${idx}`}
                   >
                     <span>{faq.q}</span>
-                    {isOpen ? (
-                      <Minus className="h-4 w-4 shrink-0" aria-hidden />
-                    ) : (
-                      <Plus className="h-4 w-4 shrink-0" aria-hidden />
-                    )}
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border text-foreground">
+                      <Plus
+                        className={`h-4 w-4 transition-transform duration-200 ease-out motion-reduce:transition-none ${isOpen ? "rotate-45" : ""}`}
+                        aria-hidden
+                      />
+                    </span>
                   </button>
                 </h3>
 
@@ -130,7 +131,7 @@ export default function FaqAccordion() {
                 <div
                   id={`faq-answer-${idx}`}
                   hidden={!isOpen}
-                  className="px-6 pb-6 pt-1 text-base text-muted-foreground leading-[1.5] border-t border-border font-medium"
+                  className="max-w-3xl pb-6 pr-12 text-base text-muted-foreground leading-relaxed"
                 >
                   {faq.a}
                 </div>

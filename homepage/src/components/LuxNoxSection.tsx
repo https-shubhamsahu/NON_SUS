@@ -4,6 +4,8 @@ import Image from "next/image";
 import { useState } from "react";
 import { Sun, Moon } from "lucide-react";
 
+import SectionHeader from "./ui/SectionHeader";
+
 /**
  * The lab mark: Lux (light guide) and Nox (dark guard) — the app's mascot
  * duo, documented in MASCOT_GUIDE.md at the repo root. The animation
@@ -35,7 +37,7 @@ export default function LuxNoxSection() {
   ];
 
   return (
-    <section id="mascots" className="py-24 bg-background border-b border-border relative">
+    <section id="mascots" className="relative border-b border-border bg-background py-20 md:py-28">
       <div className="mx-auto max-w-7xl px-6 md:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           <div className="lg:col-span-5 flex flex-col items-center gap-6">
@@ -62,23 +64,18 @@ export default function LuxNoxSection() {
           </div>
 
           <div className="lg:col-span-7 flex flex-col gap-8">
-            <div>
-              <h2 className="text-[32px] md:text-5xl font-black uppercase tracking-tight text-foreground leading-none">
-                Meet Lux &amp; Nox.
-              </h2>
-              <p className="text-base text-muted-foreground mt-4 leading-relaxed max-w-lg">
-                Two cats, one mark. Inside the app they are living characters with a
-                19-mood animation language, from a breathing idle loop to a sentinel
-                guard stance, driven by what is actually happening to your documents.
-                And they respect your reduced-motion settings, always.
-              </p>
-            </div>
+            <SectionHeader
+              index="08"
+              eyebrow="The mark"
+              title="Meet Lux & Nox."
+              lede="Two cats, one mark. Inside the app they are living characters with a 19-mood animation language, from a breathing idle loop to a sentinel guard stance, driven by what is actually happening to your documents. And they respect your reduced-motion settings, always."
+            />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               {characters.map((c) => (
                 <div
                   key={c.name}
-                  className="paper-card p-6 flex flex-col gap-3"
+                  className="reveal paper-card p-6 flex flex-col gap-3"
                 >
                   <div className="flex items-center gap-2.5">
                     <c.icon className="h-5 w-5 text-foreground stroke-[1.5]" />

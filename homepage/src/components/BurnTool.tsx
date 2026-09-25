@@ -10,6 +10,8 @@ import {
   AlertTriangle,
   RotateCcw,
   Key,
+  Flame,
+  Link2,
 } from "lucide-react";
 import {
   appLinkFromPaste,
@@ -22,6 +24,31 @@ import {
   type RedemptionPairing,
 } from "@/lib/burnApi";
 import ShareQr from "./ShareQr";
+import SectionHeader from "./ui/SectionHeader";
+
+// Keep in step with burnApi.ts (NOTE/FILE caps, pairing-code key window).
+const BURN_FACTS = [
+  {
+    icon: Flame,
+    title: "Burn Notes",
+    text: "The note opens once, then the row is deleted. Pick 1 hour, 24 hours or 7 days before it expires unread.",
+  },
+  {
+    icon: FileUp,
+    title: "Burn Files",
+    text: "One file up to 25 MB here (up to 10 files in the app). The encrypted blob is wiped within minutes of being claimed.",
+  },
+  {
+    icon: Link2,
+    title: "The key rides in the link",
+    text: "A normal link keeps the key after the # — browsers never send that part to a server.",
+  },
+  {
+    icon: Key,
+    title: "Optional two-digit code",
+    text: "For a single note or file, a pairing code stores the key on the server for up to 20 minutes, then deletes it.",
+  },
+];
 
 type Tab = "note" | "file" | "redeem";
 type Phase = "idle" | "working" | "done" | "error";
@@ -231,24 +258,30 @@ export default function BurnTool() {
   };
 
   return (
-    <section id="try" className="relative w-full max-w-xl mx-auto py-6">
-      <div className="mb-8 text-center px-2">
-        <div className="inline-flex items-center gap-2 tech-badge mb-3">
-          <span className="eink-live text-foreground" />
-          <span>IN-BROWSER CRYPTOGRAPHY</span>
-        </div>
-        <h2 className="text-[32px] font-black uppercase tracking-tight text-foreground leading-tight">
-          No account needed. Try it now.
-        </h2>
-        <p className="mt-3 text-base leading-relaxed text-muted-foreground max-w-md mx-auto">
-          Burn a note or file in the browser. The key for a normal link stays in
-          the URL fragment. If you use a two-digit pairing code on a single note
-          or file, that key is stored for up to 20 minutes.
-        </p>
+    <section id="try" className="relative border-b border-border bg-background py-20 md:py-28">
+      <div className="mx-auto grid w-full max-w-7xl grid-cols-1 items-start gap-12 px-6 md:px-8 lg:grid-cols-12 lg:gap-16">
+      <div className="flex flex-col gap-8 lg:col-span-5 lg:sticky lg:top-28">
+        <SectionHeader
+          index="04"
+          eyebrow="Try it · no account"
+          title="Send something that burns after reading."
+          lede="Encrypted in this browser before it leaves. Nobody needs an account — not you, not the person you send it to."
+        />
+        <ul className="reveal flex flex-col border-t border-border">
+          {BURN_FACTS.map((f) => (
+            <li key={f.title} className="flex gap-4 border-b border-border py-4">
+              <f.icon className="mt-0.5 h-5 w-5 shrink-0 text-foreground" strokeWidth={1.5} aria-hidden />
+              <div>
+                <h3 className="text-base font-bold text-foreground">{f.title}</h3>
+                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{f.text}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
       </div>
 
       <div
-        className={`relative z-10 w-full paper-card text-left flex flex-col items-center justify-center p-6 sm:p-8 transition-colors duration-200 ease-out motion-reduce:transition-none ${
+        className={`reveal relative z-10 w-full paper-card text-left flex flex-col items-center justify-center p-6 sm:p-8 lg:col-span-7 transition-colors duration-200 ease-out motion-reduce:transition-none ${
           phase === "done" ? "min-h-[380px] py-8" : "min-h-[380px]"
         } ${dragOver ? "ring-2 ring-ring" : ""}`}
       >
@@ -578,6 +611,7 @@ export default function BurnTool() {
               )}
             </div>
           )}
+      </div>
       </div>
     </section>
   );

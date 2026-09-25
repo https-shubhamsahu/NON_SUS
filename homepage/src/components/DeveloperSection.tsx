@@ -4,6 +4,7 @@ import Image from "next/image";
 
 import { Mail, ArrowUpRight } from "lucide-react";
 import { DEVELOPER, GITHUB_URL } from "@/lib/links";
+import SectionHeader from "./ui/SectionHeader";
 
 const stack = [
   "Flutter / Dart",
@@ -15,19 +16,18 @@ const stack = [
 
 export default function DeveloperSection() {
   return (
-    <section id="developer" className="py-24 bg-background border-b border-border relative">
+    <section id="developer" className="relative border-b border-border bg-background py-20 md:py-28">
       <div className="mx-auto max-w-5xl px-6 md:px-8">
-        <div className="text-center mb-14">
-          <span className="text-xs font-bold tracking-widest text-muted-foreground uppercase mb-2 block">
-            About the Developer
-          </span>
-          <h2 className="text-[32px] md:text-5xl font-black uppercase tracking-tight text-foreground leading-none">
-            One Person, Directly Accountable.
-          </h2>
-        </div>
+        <SectionHeader
+          index="09"
+          eyebrow="The maker"
+          title="One person, directly accountable."
+          align="center"
+          className="mb-12 md:mb-14"
+        />
 
         <div
-          className="border border-border bg-card rounded-[12px] paper-card p-8 md:p-10 grid grid-cols-1 md:grid-cols-12 gap-8 items-center"
+          className="reveal border border-border bg-card rounded-[12px] paper-card p-8 md:p-10 grid grid-cols-1 md:grid-cols-12 gap-8 items-center"
         >
           {/* Portrait */}
           <div className="md:col-span-4 flex flex-col items-center gap-4">
@@ -53,14 +53,14 @@ export default function DeveloperSection() {
 
           {/* Story */}
           <div className="md:col-span-8 flex flex-col gap-5">
-            <p className="text-sm text-muted-foreground leading-relaxed font-normal">
+            <p className="text-base text-muted-foreground leading-relaxed">
               NO SUS is designed, built, and operated end-to-end by one developer:
               the Flutter client, the Postgres schema and its row-level-security
               policies, the edge functions, the cryptography, the CI pipeline, and
               this page. No growth team, no ad trackers (just cookieless visit
               counts on this site), no investors to please.
             </p>
-            <p className="text-sm text-muted-foreground leading-relaxed font-normal">
+            <p className="text-base text-muted-foreground leading-relaxed">
               The architecture is deliberately zero-budget: everything rides on
               free tiers, which forces the kind of design honesty this product
               preaches. The server stores ciphertext, holds a drop&apos;s key only

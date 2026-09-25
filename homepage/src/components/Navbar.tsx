@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Menu, X } from "lucide-react";
+import { ArrowRight, Menu, X } from "lucide-react";
 import Link from "next/link";
 
 import { APP_URL } from "@/lib/links";
@@ -10,10 +10,11 @@ import { ThemeToggle } from "./ui/ThemeToggle";
 import AppLink from "./AppLink";
 
 const navLinks = [
-  { name: "Address", href: "#doors" },
-  { name: "How it works", href: "#how-it-works" },
-  { name: "Try it", href: "#try" },
-  { name: "Security", href: "#security" },
+  { name: "Address", href: "/#doors" },
+  { name: "How it works", href: "/#how-it-works" },
+  { name: "Try it", href: "/#try" },
+  { name: "Sharing", href: "/#sharing" },
+  { name: "Security", href: "/#security" },
   { name: "FAQ", href: "/#faq" },
 ];
 
@@ -25,7 +26,7 @@ export default function Navbar() {
     const handleScroll = () => {
       setScrolled(window.scrollY > 20);
     };
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
@@ -43,8 +44,8 @@ export default function Navbar() {
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-200 ease-out border-b ${
           scrolled
-            ? "bg-background/90 border-border py-3 backdrop-blur-md"
-            : "bg-background/90 border-transparent py-5"
+            ? "bg-background/85 border-border py-3 backdrop-blur-md"
+            : "bg-transparent border-transparent py-5"
         }`}
       >
         <div className="mx-auto max-w-7xl px-6 md:px-8">
@@ -54,10 +55,6 @@ export default function Navbar() {
                 sizeClass="text-lg md:text-xl"
                 className="!text-foreground"
               />
-              <span className="hidden sm:inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground border border-border px-2 py-0.5 rounded-[4px] bg-muted/40">
-                <span className="eink-live text-foreground" />
-                <span>v1.4.1</span>
-              </span>
             </Link>
 
             <ul className="hidden xl:flex items-center gap-7">
@@ -86,9 +83,10 @@ export default function Navbar() {
               </AppLink>
               <Link
                 href="/go"
-                className="btn btn-primary min-h-11 px-5 text-xs"
+                className="btn btn-primary group min-h-11 px-5 text-xs"
               >
                 Open on this computer
+                <ArrowRight className="nudge h-3.5 w-3.5" aria-hidden="true" />
               </Link>
             </div>
 

@@ -1,5 +1,3 @@
-"use client";
-
 import React from "react";
 
 interface LogoProps {
@@ -9,7 +7,7 @@ interface LogoProps {
 
 export default function NoSusLogo({ className = "", sizeClass = "text-xl" }: LogoProps) {
   return (
-    <span className={`font-sans font-black tracking-tighter text-white inline-flex items-baseline select-none whitespace-nowrap ${sizeClass} ${className}`}>
+    <span className={`font-sans font-black tracking-tighter text-foreground inline-flex items-baseline select-none whitespace-nowrap ${sizeClass} ${className}`}>
       NO SUS
       <span 
         className="inline-block bg-[#808080] ml-[0.08em] align-baseline"
