@@ -12,7 +12,7 @@ class AppConstants {
   // ─── App Identity ──────────────────────────────────────────────────────────
   static const String appName = 'NO SUS';
   static const String appTagline = 'See who opened it';
-  static const String appVersion = '1.4.1';
+  static const String appVersion = '1.4.2';
 
   // ─── Avatar Colors → Asset Paths ──────────────────────────────────────────
   static const String defaultAvatarColorStart = 'FF0072FF';

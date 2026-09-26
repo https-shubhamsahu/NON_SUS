@@ -36,7 +36,7 @@ the code wins — fix this file in the same commit.
 **NO SUS** — send a sensitive document and still see who opened it. Flutter app
 (web + Android) on a Supabase backend.
 
-Current version: **`1.4.1+12`** (`pubspec.yaml`). Latest migration: `20260924130000_burn_note_longer.sql`.
+Current version: **`1.4.2+13`** (`pubspec.yaml`). Latest migration: `20260925151031_harden_go_function_grants.sql`.
 
 Three sub-projects live in this repo:
 
@@ -559,6 +559,9 @@ codebase — assume still outstanding unless you know otherwise.
 > bottom rather than letting this section grow without bound.
 
 <!-- CHANGELOG:INSERT -->
+- **2026-09-26** · chore(release): bump to 1.4.2+13 — why: the Android App Link for `nosus.foo`
+  (burn/share links open the installed app; `/go`, `/to` and the site go back to a browser, with the
+  Android 11+ `<queries>` fix) only reaches users in a new build. Play needs a higher version code.
 - **2026-09-26** · feat(rollout): make Address, Drop and Group drops available to everyone — why:
   production flags `nosus_address_enabled`, `nosus_drop_enabled` and
   `nosus_group_drops_enabled` moved from 0% to 100% after the functions and Go-grants migration
