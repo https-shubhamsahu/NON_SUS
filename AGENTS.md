@@ -48,7 +48,10 @@ Three sub-projects live in this repo:
 - **`homepage/`** — Next.js marketing landing page, statically exported (`output: "export"`), served
   at the **`nosus.foo` root**. The Flutter web app lives at **`app.nosus.foo`** (deployed to a
   separate `nosus-app` repo). `.github/workflows/gh-pages.yml` has two independent jobs: `landing`
-  (this repo's gh-pages) and `app` (needs `APP_DEPLOY_TOKEN`). A pre-paint shim in
+  (public `nosus-site` repo, needs the `SITE_DEPLOY_KEY` deploy key) and `app` (public `nosus-app`
+  repo, needs `APP_DEPLOY_TOKEN`). **This source repo is closed source** (private, proprietary
+  `LICENSE`); the two public repos hold build output only — never push source to them, and never
+  put "open source" / "read the source" claims or links to this repo in any copy. A pre-paint shim in
   `homepage/src/app/layout.tsx` forwards legacy `nosus.foo/#/burn|burnfile|redeem|v|join/…` links and
   Supabase auth callbacks to the app subdomain (fragment preserved — **the AES key lives there**).
   The hero names every feature with equal weight (Burn, SecureSend, Go, Drop, Group drops, each
@@ -124,8 +127,9 @@ the user rather than chasing flaky rendering.
 - **`.github/workflows/play-store-release.yml`** — on `v*.*.*` tags: analyzes, **runs `flutter test`**
   (release-gating — a broken suite blocks the build, not just local dev), builds a signed AAB
   (keystore from the `ANDROID_KEYSTORE_BASE64` secret; **without `android/key.properties` the Gradle
-  config silently falls back to debug signing**), publishes a GitHub Release with the APK (what the
-  `releases/latest` download buttons serve), then uploads to the Play internal track.
+  config silently falls back to debug signing**), publishes a GitHub Release with the APK **on the
+  public `nosus-app` repo** (what the `releases/latest` download buttons and the `app_download_url`
+  remote config serve — releases on this private repo would be invisible), then uploads to the Play internal track.
 
 **After tagging a release**, bump the `app_latest_version` row in `remote_configs` — it drives the
 in-app update banner (`lib/features/config/presentation/providers/app_update_provider.dart`).

@@ -50,7 +50,6 @@ const SPEC_STRIP = [
   "No account on either side",
   "Watermarked to the viewer",
   "No Google token on a borrowed PC",
-  "Open-source client",
   "Android app + web app",
   "No ad trackers",
 ];

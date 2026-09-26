@@ -3,7 +3,7 @@
 import Image from "next/image";
 
 import { Mail, ArrowUpRight } from "lucide-react";
-import { DEVELOPER, GITHUB_URL } from "@/lib/links";
+import { DEVELOPER } from "@/lib/links";
 import SectionHeader from "./ui/SectionHeader";
 
 const stack = [
@@ -65,8 +65,8 @@ export default function DeveloperSection() {
               free tiers, which forces the kind of design honesty this product
               preaches. The server stores ciphertext, holds a drop&apos;s key only
               while its 2-digit code is valid, deletes it atomically on first view, and keeps a hash-chained ledger nobody can
-              quietly edit. The entire client is open source; check the claims
-              yourself.
+              quietly edit. The Burn crypto runs in your browser, so you can
+              check that part yourself.
             </p>
 
             <div className="flex flex-wrap gap-1.5">
@@ -97,14 +97,6 @@ export default function DeveloperSection() {
                 className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-foreground hover:text-muted-foreground transition-colors"
               >
                 <Mail className="h-3.5 w-3.5" /> Contact
-              </a>
-              <a
-                href={GITHUB_URL}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-foreground hover:text-muted-foreground transition-colors"
-              >
-                Project Source <ArrowUpRight className="h-3.5 w-3.5" />
               </a>
               {DEVELOPER.socials.map((s) => (
                 <a

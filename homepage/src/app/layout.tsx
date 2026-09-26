@@ -5,7 +5,6 @@ import {
   APP_URL,
   CLOUDFLARE_WEB_ANALYTICS_TOKEN,
   DEVELOPER,
-  GITHUB_URL,
   SUPABASE_URL,
 } from "@/lib/links";
 import { legacyLinkShim } from "@/lib/legacyLinkShim";
@@ -119,7 +118,6 @@ const structuredData = {
         height: 512,
       },
       founder: { "@id": `${SITE_URL}#founder` },
-      sameAs: [GITHUB_URL],
     },
     {
       "@type": "Person",
