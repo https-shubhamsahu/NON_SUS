@@ -23,8 +23,8 @@ This change only addresses contrast and llms.txt links. Cache TTL, unused JS, an
 | Sitemap: remove `new Date()` `lastModified`; keep four indexable URLs only | Build-time “freshness” was false; `/go` and `/to` stay out (noindex) |
 | Add `public/llms.txt` | Concise factual machine summary; no citation guarantee |
 | FAQ `id="faq"` + Navbar/Footer link to `/#faq` | Crawlable/deep-linkable FAQ section |
-| Schema: `operatingSystem` → `Android, Web`; soften Go availability in SoftwareApplication description | Web app is real; Go is flag-gated (~0% / testers), not GA for all visitors |
-| ThreeDoors badge: “Available now” → “In app when enabled” | Matches `nosus_address_enabled` rollout honesty |
+| Schema: `operatingSystem` → `Android, Web`; describe Go availability accurately | Web app is real; Go is available in the app for signed-in users |
+| ThreeDoors badge: “In the app” | Matches the 100% rollout for Address, Drop and Group drops |
 | Terms §1 opening sentence only | Align positioning with live product (not “study group workspace”) |
 
 ## Files changed
@@ -48,7 +48,7 @@ This change only addresses contrast and llms.txt links. Cache TTL, unused JS, an
 - Sitemap lists only `/`, `/privacy.html`, `/terms.html`, `/account-deletion.html`; no `lastModified: new Date()`
 - FAQ section has `id="faq"`; nav + footer link `/#faq`
 - Schema `operatingSystem` includes Android and Web; description does not claim Go is available to all visitors
-- “Available now” removed from ThreeDoors; badge reads “In app when enabled”
+- Address doors are available in the app; public Drop URLs currently use `nosus.foo/to?h=<handle>`
 - Terms opening matches Saved / watermarked docs / self-destructing notes positioning
 - Live site already matches hero “Your Drive on any screen.” Favicon, og-image, apple-touch-icon, app_icon, founder.webp already HTTP 200 — not “fixed” here
 - `http→https` redirect was **not** checked

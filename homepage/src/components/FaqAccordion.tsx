@@ -11,7 +11,7 @@ export default function FaqAccordion() {
     },
     {
       q: "What is Saved?",
-      a: "A chat with yourself stored in your Google Drive, in a NO SUS/ folder. The phone is the Drive client. Saved and Go are early access, available only when enabled for your account.",
+      a: "A chat with yourself stored in your Google Drive, in a NO SUS/ folder. The phone is the Drive client. Saved and Go are available in the app.",
     },
     {
       q: "What happens on a borrowed computer?",
@@ -19,11 +19,11 @@ export default function FaqAccordion() {
     },
     {
       q: "Is Drop available?",
-      a: "Coming soon. The door at yourname.nosus.foo is planned to stay closed until you preview and accept. It does not work yet.",
+      a: "Yes. Create a Drop link in the app. Its current public address is nosus.foo/to?h=<handle>. The door stays closed until you preview and accept, so nothing reaches your Drive without your approval.",
     },
     {
       q: "Are group drops available?",
-      a: "Coming soon. Planned: a group feed where each member's copy is saved to their own Drive. Not available yet.",
+      a: "Yes, in the app. A group feed saves each member's copy to their own Drive. Messages and files are encrypted for the group; watermark attribution for leaked group files is not available yet.",
     },
     {
       q: "Do I need an account to try a burn note?",

@@ -8,18 +8,18 @@ const goLimits = [
   "Only approve a code on a screen in front of you.",
 ];
 
-const upcoming = [
+const addressDoors = [
   {
     icon: Inbox,
     door: "Door 02",
     title: "Drop",
-    text: "People will send you files at yourname.nosus.foo without your phone number. The door stays closed by default — you preview and accept before anything reaches your Drive.",
+    text: "Share your Drop link from the app, without your phone number. The current public address is nosus.foo/to?h=<handle>. The door stays closed by default — you preview and accept before anything reaches your Drive.",
   },
   {
     icon: Users,
     door: "Door 03",
     title: "Group drops",
-    text: "A planned group feed where each member's copy is saved to their own Drive, end-to-end encrypted. Watermarks that show who leaked a file come later.",
+    text: "A group feed in the app where each member's copy is saved to their own Drive. Group messages and files are encrypted for the group; watermarks that identify a leaked file are a later addition.",
   },
 ];
 
@@ -35,7 +35,7 @@ export default function ThreeDoors() {
         />
 
         <div className="mt-12 grid grid-cols-1 gap-6 md:mt-16 lg:grid-cols-12">
-          {/* Door 01 — Go (the one that works today, when enabled) */}
+          {/* Door 01 — Go */}
           <article className="paper-card paper-card-interactive flex flex-col gap-6 p-6 md:p-10 lg:col-span-7 lg:row-span-2">
             <div className="flex items-start justify-between gap-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-[10px] border border-border bg-muted">
@@ -45,7 +45,7 @@ export default function ThreeDoors() {
                 <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">Door 01</span>
                 <span className="inline-flex items-center gap-1.5 rounded-pill border border-border bg-muted px-3 py-1 text-xs font-semibold uppercase tracking-wider text-foreground">
                   <span className="eink-live text-foreground" />
-                  In app when enabled
+                  In the app
                 </span>
               </div>
             </div>
@@ -78,8 +78,8 @@ export default function ThreeDoors() {
             </Link>
           </article>
 
-          {/* Doors 02–03 — planned */}
-          {upcoming.map((d) => (
+          {/* Doors 02–03 — in the app */}
+          {addressDoors.map((d) => (
             <article
               key={d.title}
               className="reveal flex flex-col gap-4 rounded-[12px] border border-dashed border-border bg-background p-6 md:p-8 lg:col-span-5"
@@ -91,7 +91,7 @@ export default function ThreeDoors() {
                 <div className="flex flex-col items-end gap-2">
                   <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">{d.door}</span>
                   <span className="rounded-pill border border-border px-3 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Coming soon
+                    In the app
                   </span>
                 </div>
               </div>
