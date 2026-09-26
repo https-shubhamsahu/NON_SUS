@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Link2, Flame, ListTree } from "lucide-react";
+import { Link2, Flame, ListTree, ArrowRight } from "lucide-react";
 
 import { GITHUB_URL } from "@/lib/links";
+import SectionHeader from "./ui/SectionHeader";
 
 export default function DevSection() {
   const [activeTab, setActiveTab] = useState<"link" | "claim" | "ledger">("link");
@@ -14,11 +15,21 @@ export default function DevSection() {
     { id: "ledger", name: "Audit Chain", icon: ListTree },
   ];
 
+  const onTabKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+    if (!step) return;
+    e.preventDefault();
+    const i = tabs.findIndex((t) => t.id === activeTab);
+    const next = tabs[(i + step + tabs.length) % tabs.length].id as typeof activeTab;
+    setActiveTab(next);
+    document.getElementById(`dev-tab-${next}`)?.focus();
+  };
+
   // Real mechanics, verbatim from the open-source client and schema — not a
   // product API. NO SUS has no public HTTP API, SDK, or CLI today.
   const codeBlocks = {
     link: `# A real Burn Note link, piece by piece:
-https://nosus.foo/#/burn/<uuid>?k=<key>&v=<iv>
+https://app.nosus.foo/#/burn/<uuid>?k=<key>&v=<iv>
               │       │        │       │
               │       │        │       └─ 128-bit AES IV (32 hex chars)
               │       │        └─ 256-bit AES key (64 hex chars)
@@ -28,7 +39,9 @@ https://nosus.foo/#/burn/<uuid>?k=<key>&v=<iv>
                  only in your and your recipient's browsers.
 
 # The ciphertext in the database is useless without the
-# fragment: the server cannot decrypt what it stores.`,
+# fragment. (Each single note or file also mints a
+# two-digit pairing code, which holds the key server-side
+# while the code is valid: 20 minutes by default.)`,
     claim: `-- Claiming a burn note is one atomic statement:
 DELETE FROM burn_notes
  WHERE id = <note_id>
@@ -47,65 +60,67 @@ entry_hash = sha256(
 )
 
 -- Inserted only via a SECURITY DEFINER RPC; direct
--- writes and edits are revoked. Tampering with any row
--- breaks every hash after it, so the chain can be
--- re-verified end-to-end at any time.`,
+-- writes and edits are revoked. Changing a row's actor,
+-- event type or time breaks every hash after it, so the
+-- chain can be re-verified end-to-end at any time.`,
   };
 
   return (
-    <section id="developers" className="py-24 bg-brand-black border-b border-brand-gray/80 relative">
+    <section id="developers" className="relative border-b border-border bg-background py-20 md:py-28">
       <div className="mx-auto max-w-7xl px-6 md:px-8">
         
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           
-          {/* Left Text Detail column */}
           <div className="lg:col-span-4 flex flex-col gap-6">
-            <div>
-              <span className="text-[10px] font-bold tracking-widest text-brand-gray-light uppercase mb-2 block">
-                Under the Hood
-              </span>
-              <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tight text-white leading-none">
-                Open Mechanics. <br />
-                No Trust Required.
-              </h2>
-            </div>
+            <SectionHeader
+              index="06"
+              eyebrow="Under the hood"
+              title="Open mechanics."
+            />
 
-            <p className="text-xs text-brand-gray-light leading-relaxed font-medium">
+            <p className="reveal text-base text-muted-foreground leading-relaxed">
               Security claims you can check, not marketing copy. These are the actual
               link format, claim semantics, and ledger construction used in production.
               The client is open source, so every one of them is inspectable.
             </p>
 
-            <div className="flex gap-4 border-t border-brand-gray/60 pt-6">
+            <div className="flex gap-4 border-t border-border pt-6">
               <a
                 href={GITHUB_URL}
                 target="_blank"
                 rel="noreferrer"
-                className="text-xs font-bold uppercase tracking-wider text-white hover:text-brand-gray-light transition-colors"
+                className="group inline-flex min-h-11 items-center gap-2 text-sm font-bold uppercase tracking-wider text-foreground hover:text-muted-foreground transition-colors"
               >
-                Read the Source on GitHub
+                Read the source on GitHub
+                <ArrowRight className="nudge h-4 w-4" aria-hidden />
               </a>
             </div>
           </div>
 
           {/* Right Code Display Tab View (Column 8) */}
-          <div className="lg:col-span-8 border border-brand-gray bg-brand-gray-dark/40 rounded overflow-hidden flex flex-col justify-between min-h-[380px]">
+          <div className="reveal lg:col-span-8 border border-border bg-card rounded-[12px] overflow-hidden flex flex-col justify-between min-h-[380px] paper-card">
             
             {/* Tabs Header menu */}
-            <div className="flex border-b border-brand-gray bg-brand-black/30">
+            <div role="tablist" aria-label="Mechanics" onKeyDown={onTabKey} className="flex overflow-x-auto border-b border-border bg-muted">
               {tabs.map((tab) => {
                 const isActive = activeTab === tab.id;
                 return (
                   <button
                     key={tab.id}
+                    id={`dev-tab-${tab.id}`}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    aria-controls="dev-panel"
+                    tabIndex={isActive ? 0 : -1}
                     onClick={() => setActiveTab(tab.id as "link" | "claim" | "ledger")}
-                    className={`flex items-center gap-2 px-6 py-4 text-[10px] font-bold uppercase tracking-widest transition-colors border-r border-brand-gray focus:outline-none ${
+                    className={`flex shrink-0 items-center gap-2 whitespace-nowrap px-5 py-4 text-xs font-bold uppercase tracking-widest transition-colors border-r border-border ${
                       isActive
-                        ? "bg-brand-gray-dark text-white border-b-2 border-b-white"
-                        : "text-brand-gray-light hover:text-white bg-transparent"
+                        ? "bg-card text-foreground border-b-2 border-b-foreground"
+                        : "text-muted-foreground hover:text-foreground bg-transparent"
                     }`}
                   >
-                    <tab.icon className="h-3.5 w-3.5" />
+                    <tab.icon className="h-4 w-4" />
                     {tab.name}
                   </button>
                 );
@@ -113,14 +128,20 @@ entry_hash = sha256(
             </div>
 
             {/* Code Panel contents */}
-            <div className="flex-1 bg-brand-black p-6 font-mono text-[11px] text-brand-gray-light leading-relaxed overflow-x-auto relative">
-              <div className="absolute right-4 top-4 text-[9px] text-brand-gray/40 select-none uppercase font-bold">
+            <div
+              id="dev-panel"
+              role="tabpanel"
+              aria-labelledby={`dev-tab-${activeTab}`}
+              tabIndex={0}
+              className="flex-1 bg-brand-black p-6 font-mono text-xs text-white leading-relaxed overflow-x-auto relative"
+            >
+              <div aria-hidden="true" className="absolute right-4 top-4 text-[10px] text-white select-none uppercase font-bold">
                 {activeTab} block
               </div>
               <>
                 <pre
                   key={activeTab}
-                  className="whitespace-pre"
+                  className="whitespace-pre font-mono text-xs text-white"
                 >
                   <code>{codeBlocks[activeTab]}</code>
                 </pre>

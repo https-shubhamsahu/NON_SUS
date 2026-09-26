@@ -1,19 +1,19 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Menu, X } from "lucide-react";
+import { ArrowRight, Menu, X } from "lucide-react";
 import Link from "next/link";
 
-import { APP_URL } from "@/lib/links";
+import { APP_URL, RELEASES_URL } from "@/lib/links";
 import NoSusLogo from "./ui/Logo";
 import { ThemeToggle } from "./ui/ThemeToggle";
-import AppLink from "./AppLink";
 
 const navLinks = [
-  { name: "Address", href: "#doors" },
-  { name: "How it works", href: "#how-it-works" },
-  { name: "Try it", href: "#try" },
-  { name: "Security", href: "#security" },
+  { name: "Try it", href: "/#try" },
+  { name: "SecureSend", href: "/#sharing" },
+  { name: "Address", href: "/#doors" },
+  { name: "Go", href: "/#how-it-works" },
+  { name: "Security", href: "/#security" },
   { name: "FAQ", href: "/#faq" },
 ];
 
@@ -25,8 +25,14 @@ export default function Navbar() {
     const handleScroll = () => {
       setScrolled(window.scrollY > 20);
     };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    // A deep link (/#faq) or restored scroll position lands below the top
+    // without firing a scroll event, so read the position once after mount.
+    const frame = requestAnimationFrame(handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", handleScroll);
+    };
   }, []);
 
   useEffect(() => {
@@ -41,19 +47,23 @@ export default function Navbar() {
   return (
     <>
       <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-200 ease-out border-b ${
+        className={`fixed top-0 left-0 right-0 z-50 py-4 border-b transition-[background-color,border-color] duration-200 ease-out motion-reduce:transition-none ${
           scrolled
-            ? "bg-background/90 border-border py-3 backdrop-blur-md"
-            : "bg-background/90 border-transparent py-5"
+            ? "bg-background border-border"
+            : "bg-background border-transparent"
         }`}
       >
         <div className="mx-auto max-w-7xl px-6 md:px-8">
           <nav className="flex items-center justify-between gap-4">
-            <Link href="/" className="flex shrink-0 items-center min-h-11">
+            <Link href="/" className="flex shrink-0 items-center gap-2.5 min-h-11">
               <NoSusLogo
                 sizeClass="text-lg md:text-xl"
                 className="!text-foreground"
               />
+              <span className="hidden sm:inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground border border-border px-2 py-0.5 rounded-[4px] bg-muted">
+                <span className="eink-live text-foreground" />
+                <span>v1.4.1</span>
+              </span>
             </Link>
 
             <ul className="hidden xl:flex items-center gap-7">
@@ -61,7 +71,7 @@ export default function Navbar() {
                 <li key={link.name}>
                   <Link
                     href={link.href}
-                    className="text-xs font-medium uppercase tracking-wider text-muted-foreground hover:text-foreground whitespace-nowrap"
+                    className="text-xs font-mono font-medium uppercase tracking-wider text-muted-foreground hover:text-foreground whitespace-nowrap transition-colors duration-150"
                   >
                     {link.name}
                   </Link>
@@ -77,14 +87,15 @@ export default function Navbar() {
               >
                 Sign in
               </a>
-              <AppLink className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground min-h-11 inline-flex items-center">
+              <a href={RELEASES_URL} className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground min-h-11 inline-flex items-center">
                 Get the app
-              </AppLink>
+              </a>
               <Link
                 href="/go"
-                className="btn btn-primary min-h-11 px-5 text-xs"
+                className="btn btn-primary group min-h-11 px-5 text-xs"
               >
                 Open on this computer
+                <ArrowRight className="nudge h-3.5 w-3.5" aria-hidden="true" />
               </Link>
             </div>
 
@@ -109,7 +120,7 @@ export default function Navbar() {
       </header>
 
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-40 bg-background/98 pt-28 px-6 xl:hidden flex flex-col justify-between gap-8 pb-8 overflow-y-auto">
+        <div className="fixed inset-0 z-40 bg-background pt-28 px-6 xl:hidden flex flex-col justify-between gap-8 pb-8 overflow-y-auto">
           <div className="flex flex-col gap-6">
             <div className="flex justify-end">
               <button
@@ -145,12 +156,13 @@ export default function Navbar() {
             >
               Sign in
             </a>
-            <AppLink
-              onNavigate={() => setMobileMenuOpen(false)}
+            <a
+              href={RELEASES_URL}
+              onClick={() => setMobileMenuOpen(false)}
               className="btn btn-ghost min-h-11 w-full"
             >
               Get the app
-            </AppLink>
+            </a>
             <Link
               href="/go"
               onClick={() => setMobileMenuOpen(false)}

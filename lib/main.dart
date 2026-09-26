@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -482,6 +483,12 @@ void main() async {
           return;
         }
 
+        final opened = unwrapAppOpenLink(uri);
+        if (opened != null) {
+          _routeIncomingWebLink(opened);
+          return;
+        }
+
         if (uri.scheme == 'io.supabase.nosus') {
           await handleOAuthCallback(uri);
         } else if (uri.scheme == 'foo.nosus.app' && uri.host == 'v') {
@@ -504,6 +511,11 @@ void main() async {
           if (inviteCode != null) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               _handleInAppInviteLink(inviteCode);
+            });
+          } else if (unwrapAppOpenLink(initialUri) != null) {
+            final opened = unwrapAppOpenLink(initialUri)!;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _routeIncomingWebLink(opened);
             });
           } else if (initialUri.scheme == 'io.supabase.nosus') {
             await handleOAuthCallback(initialUri);
@@ -1278,5 +1290,36 @@ bool _routeIncomingWebLink(Uri uri) {
     return true;
   }
 
+  // nosus.foo is an App Link so a tap opens the app. The desk, the Drop
+  // door, and the marketing pages are websites — hand those back to a
+  // browser instead of leaving the person on the home screen.
+  if (!kIsWeb && _isPublicSite(uri)) {
+    unawaited(_openPublicSiteInBrowser(uri));
+  }
+
   return false;
+}
+
+/// `foo.nosus.app://open?u=<https url>` from the website's Android handoff.
+Uri? unwrapAppOpenLink(Uri uri) {
+  if (uri.scheme != 'foo.nosus.app' || uri.host != 'open') return null;
+  final raw = uri.queryParameters['u'];
+  if (raw == null || raw.isEmpty) return null;
+  return Uri.tryParse(raw);
+}
+
+bool _isPublicSite(Uri uri) {
+  final host = uri.host.toLowerCase();
+  return host == 'nosus.foo' || host == 'www.nosus.foo';
+}
+
+Future<void> _openPublicSiteInBrowser(Uri uri) async {
+  try {
+    await const MethodChannel('co.nosus.app/share').invokeMethod<bool>(
+      'openInBrowser',
+      {'url': uri.toString()},
+    );
+  } catch (e) {
+    debugLog('NO SUS: could not hand $uri back to the browser: $e');
+  }
 }

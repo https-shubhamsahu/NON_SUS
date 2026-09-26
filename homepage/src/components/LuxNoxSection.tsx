@@ -1,8 +1,7 @@
-"use client";
-
 import Image from "next/image";
-import { useState } from "react";
 import { Sun, Moon } from "lucide-react";
+
+import SectionHeader from "./ui/SectionHeader";
 
 /**
  * The lab mark: Lux (light guide) and Nox (dark guard) — the app's mascot
@@ -13,8 +12,6 @@ import { Sun, Moon } from "lucide-react";
  * the mascots' reducedMotion input.
  */
 export default function LuxNoxSection() {
-  const [awake, setAwake] = useState(false);
-
   const characters = [
     {
       icon: Sun,
@@ -35,17 +32,13 @@ export default function LuxNoxSection() {
   ];
 
   return (
-    <section id="mascots" className="py-24 bg-background border-b border-border relative">
+    <section id="mascots" className="relative border-b border-border bg-background py-20 md:py-28">
       <div className="mx-auto max-w-7xl px-6 md:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-          <div className="lg:col-span-5 flex flex-col items-center gap-6">
-            <div
-              className="relative flex items-center justify-center select-none"
-              onMouseEnter={() => setAwake(true)}
-              onMouseLeave={() => setAwake(false)}
-            >
+          <div className="group/mark lg:col-span-5 flex flex-col items-center gap-6">
+            <div className="group relative flex items-center justify-center select-none">
               <div className="absolute inset-[-28px] rounded-full border border-dashed border-border luxnox-ring motion-reduce:animate-none" />
-              <div className="absolute inset-[-14px] rounded-full border border-border/60" />
+              <div className="absolute inset-[-14px] rounded-full border border-border" />
               <div className="luxnox-breathe motion-reduce:animate-none rounded-full overflow-hidden bg-card border border-border">
                 <Image
                   src="/luxandnox.webp"
@@ -57,28 +50,24 @@ export default function LuxNoxSection() {
               </div>
             </div>
             <span className="text-xs font-mono text-muted-foreground uppercase tracking-widest">
-              {awake ? "MOOD 02 · WAKE" : "MOOD 00 · IDLE (BREATHING)"}
+              <span className="group-hover/mark:hidden">MOOD 00 · IDLE (BREATHING)</span>
+              <span className="hidden group-hover/mark:inline">MOOD 02 · WAKE</span>
             </span>
           </div>
 
           <div className="lg:col-span-7 flex flex-col gap-8">
-            <div>
-              <h2 className="text-[32px] md:text-5xl font-black uppercase tracking-tight text-foreground leading-none">
-                Meet Lux &amp; Nox.
-              </h2>
-              <p className="text-base text-muted-foreground mt-4 leading-relaxed max-w-lg">
-                Two cats, one mark. Inside the app they are living characters with a
-                19-mood animation language, from a breathing idle loop to a sentinel
-                guard stance, driven by what is actually happening to your documents.
-                And they respect your reduced-motion settings, always.
-              </p>
-            </div>
+            <SectionHeader
+              index="07"
+              eyebrow="The mark"
+              title="Meet Lux & Nox."
+              lede="Two cats, one mark. Inside the app they are living characters with a 19-mood animation language, from a breathing idle loop to a sentinel guard stance, driven by what is actually happening to your documents. And they respect your reduced-motion settings, always."
+            />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               {characters.map((c) => (
                 <div
                   key={c.name}
-                  className="paper-card p-6 flex flex-col gap-3"
+                  className="reveal paper-card p-6 flex flex-col gap-3"
                 >
                   <div className="flex items-center gap-2.5">
                     <c.icon className="h-5 w-5 text-foreground stroke-[1.5]" />

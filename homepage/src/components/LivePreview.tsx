@@ -3,6 +3,25 @@
 import { useState } from "react";
 import { Eye, ShieldAlert, Ban, CheckCircle, RefreshCw, Smartphone } from "lucide-react";
 
+import SectionHeader from "./ui/SectionHeader";
+
+// What the product is built for — not customer quotes. Never add invented
+// testimonials or usage numbers here.
+const SCENARIOS = [
+  {
+    who: "Researchers",
+    what: "Send a preprint to reviewers with each page tied to the person it was sent to.",
+  },
+  {
+    who: "Study groups",
+    what: "Share solution sets behind touch-to-reveal blur, with a ledger of who opened what.",
+  },
+  {
+    who: "Freelancers",
+    what: "Close the deck after the pitch. Expiry and view limits keep it from living forever.",
+  },
+];
+
 export default function LivePreview() {
   const [activeTab, setActiveTab] = useState<"watermark" | "revoke" | "audit" | "device">("watermark");
   const [isWatermarked, setIsWatermarked] = useState(true);
@@ -10,9 +29,9 @@ export default function LivePreview() {
   const [deviceScanState, setDeviceScanState] = useState<"idle" | "scanning" | "clean">("clean");
 
   const [previewLogs, setPreviewLogs] = useState([
-    { time: "11:23:05", event: "FILE_VIEWED", actor: "stud_01@tsec.edu", status: "Clean" },
-    { time: "11:23:18", event: "SCREENSHOT_ATTEMPT", actor: "stud_01@tsec.edu", status: "Blocked" },
-    { time: "11:23:20", event: "COPY_ATTEMPT", actor: "stud_01@tsec.edu", status: "Blocked" },
+    { time: "11:23:05", event: "LINK_OPENED", actor: "viewer_01@example.edu", status: "Logged" },
+    { time: "11:23:18", event: "WATERMARK_STAMPED", actor: "viewer_01@example.edu", status: "Active" },
+    { time: "11:23:20", event: "NEW_DEVICE_FLAGGED", actor: "viewer_01@example.edu", status: "Alert" },
   ]);
 
   const triggerDeviceScan = () => {
@@ -27,12 +46,12 @@ export default function LivePreview() {
   };
 
   const handleSimulateLeak = () => {
-    const timestamp = new Date().toLocaleTimeString();
+    const timestamp = new Date().toTimeString().slice(0, 8);
     const newLog = {
       time: timestamp,
-      event: "SCREENSHOT_ATTEMPT",
-      actor: "stud_01@tsec.edu",
-      status: "Blocked",
+      event: "VIEW_LIMIT_REACHED",
+      actor: "viewer_01@example.edu",
+      status: "Closed",
     };
     setPreviewLogs((prev) => [newLog, ...prev].slice(0, 4));
   };
@@ -41,76 +60,72 @@ export default function LivePreview() {
     `p-5 text-left border rounded-[12px] transition-colors duration-200 ease-out motion-reduce:transition-none flex items-start gap-4 min-h-[44px] ${
       activeTab === id
         ? "border-foreground bg-card"
-        : "border-border bg-transparent hover:border-foreground/40"
+        : "border-border bg-transparent hover:border-foreground"
     }`;
 
   return (
-    <section id="live-preview" className="py-24 bg-background border-b border-border relative">
+    <section id="sharing" className="relative border-b border-border bg-background py-20 md:py-28">
       <div className="mx-auto max-w-7xl px-6 md:px-8">
-        <div className="text-center max-w-2xl mx-auto mb-16">
-          <span className="text-xs font-bold tracking-widest text-muted-foreground uppercase mb-2 block">
-            Lightweight preview
-          </span>
-          <h2 className="text-[32px] md:text-5xl font-black uppercase tracking-tight text-foreground">
-            How sharing feels
-          </h2>
-          <p className="text-base text-muted-foreground mt-4 leading-relaxed">
-            A simple mock of watermarks, revocation, and activity — not a live dashboard.
-          </p>
-        </div>
+        <SectionHeader
+          index="01"
+          eyebrow="SecureSend · in the app"
+          title="Share a document. See who opened it."
+          lede="Watermarks show the email a viewer enters, giving you an attribution clue—not verified identity. Set view limits and expiry, revoke future access, and read the log. The panel below is a mock—not a live dashboard."
+          className="mb-12 md:mb-16"
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
           <div className="lg:col-span-4 flex flex-col gap-4">
-            <button type="button" onClick={() => setActiveTab("watermark")} className={tabBtn("watermark")}>
-              <Eye className="h-5 w-5 text-foreground shrink-0 mt-0.5" />
-              <div>
-                <h3 className="text-base font-bold uppercase tracking-wider text-foreground">
+            <button type="button" onClick={() => setActiveTab("watermark")} aria-pressed={activeTab === "watermark"} className={tabBtn("watermark")}>
+              <Eye className="h-5 w-5 text-foreground shrink-0 mt-0.5" aria-hidden />
+              <span className="block">
+                <span className="block text-base font-bold uppercase tracking-wider text-foreground">
                   Viewer watermarks
-                </h3>
-                <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
-                  Overlay the recipient’s identity on shared documents.
-                </p>
-              </div>
+                </span>
+                <span className="block text-sm text-muted-foreground mt-1 leading-relaxed">
+                  Overlay the viewer-entered email on shared documents.
+                </span>
+              </span>
             </button>
 
-            <button type="button" onClick={() => setActiveTab("revoke")} className={tabBtn("revoke")}>
-              <Ban className="h-5 w-5 text-foreground shrink-0 mt-0.5" />
-              <div>
-                <h3 className="text-base font-bold uppercase tracking-wider text-foreground">
+            <button type="button" onClick={() => setActiveTab("revoke")} aria-pressed={activeTab === "revoke"} className={tabBtn("revoke")}>
+              <Ban className="h-5 w-5 text-foreground shrink-0 mt-0.5" aria-hidden />
+              <span className="block">
+                <span className="block text-base font-bold uppercase tracking-wider text-foreground">
                   Instant revocation
-                </h3>
-                <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                </span>
+                <span className="block text-sm text-muted-foreground mt-1 leading-relaxed">
                   Turn off a share when you no longer want it open.
-                </p>
-              </div>
+                </span>
+              </span>
             </button>
 
-            <button type="button" onClick={() => setActiveTab("audit")} className={tabBtn("audit")}>
-              <ShieldAlert className="h-5 w-5 text-foreground shrink-0 mt-0.5" />
-              <div>
-                <h3 className="text-base font-bold uppercase tracking-wider text-foreground">
+            <button type="button" onClick={() => setActiveTab("audit")} aria-pressed={activeTab === "audit"} className={tabBtn("audit")}>
+              <ShieldAlert className="h-5 w-5 text-foreground shrink-0 mt-0.5" aria-hidden />
+              <span className="block">
+                <span className="block text-base font-bold uppercase tracking-wider text-foreground">
                   Activity log
-                </h3>
-                <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                </span>
+                <span className="block text-sm text-muted-foreground mt-1 leading-relaxed">
                   See opens and flagged attempt events on a share.
-                </p>
-              </div>
+                </span>
+              </span>
             </button>
 
-            <button type="button" onClick={() => setActiveTab("device")} className={tabBtn("device")}>
-              <Smartphone className="h-5 w-5 text-foreground shrink-0 mt-0.5" />
-              <div>
-                <h3 className="text-base font-bold uppercase tracking-wider text-foreground">
+            <button type="button" onClick={() => setActiveTab("device")} aria-pressed={activeTab === "device"} className={tabBtn("device")}>
+              <Smartphone className="h-5 w-5 text-foreground shrink-0 mt-0.5" aria-hidden />
+              <span className="block">
+                <span className="block text-base font-bold uppercase tracking-wider text-foreground">
                   Device checks
-                </h3>
-                <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                </span>
+                <span className="block text-sm text-muted-foreground mt-1 leading-relaxed">
                   Basic checks before opening sensitive material on mobile.
-                </p>
-              </div>
+                </span>
+              </span>
             </button>
           </div>
 
-          <div className="lg:col-span-8 paper-card p-6 flex flex-col justify-between min-h-[450px] relative overflow-hidden">
+          <div className="reveal lg:col-span-8 paper-card p-6 flex flex-col justify-between min-h-[450px] relative overflow-hidden">
             <div className="flex items-center justify-between border-b border-border pb-4 mb-6">
               <div className="flex items-center gap-2">
                 <span className="w-3 h-3 rounded-full bg-muted" />
@@ -153,7 +168,7 @@ export default function LivePreview() {
                     type="button"
                     onClick={triggerDeviceScan}
                     disabled={deviceScanState === "scanning"}
-                    className="btn btn-ghost text-xs disabled:opacity-40"
+                    className="btn btn-ghost text-xs disabled:bg-muted disabled:text-muted-foreground"
                   >
                     <RefreshCw
                       className={`h-4 w-4 ${
@@ -172,13 +187,13 @@ export default function LivePreview() {
               {activeTab === "watermark" && (
                 <div className="w-full max-w-md bg-card border border-border p-6 flex flex-col gap-4 relative rounded-[12px]">
                   {isWatermarked && (
-                    <div className="absolute inset-0 pointer-events-none grid grid-cols-3 grid-rows-3 select-none opacity-[0.08] rotate-[-12deg] scale-110">
+                    <div className="absolute inset-0 pointer-events-none grid grid-cols-3 grid-rows-3 select-none text-[color:var(--paper-dash)] rotate-[-12deg] scale-110">
                       {Array.from({ length: 9 }).map((_, i) => (
                         <div
                           key={i}
-                          className="text-xs font-mono text-foreground text-center flex items-center justify-center font-bold"
+                          className="text-xs font-mono text-center flex items-center justify-center font-bold"
                         >
-                          stud_01@tsec.edu
+                          viewer_01@example.edu
                         </div>
                       ))}
                     </div>
@@ -207,7 +222,7 @@ export default function LivePreview() {
                       </p>
                     </div>
                   ) : (
-                    <div className="bg-destructive/10 border border-destructive/40 p-6 max-w-sm rounded-[12px]">
+                    <div className="bg-card border-2 border-destructive p-6 max-w-sm rounded-[12px]">
                       <Ban className="h-10 w-10 text-destructive mb-3" />
                       <h4 className="text-base font-bold uppercase tracking-wider text-destructive">
                         Access revoked
@@ -233,13 +248,13 @@ export default function LivePreview() {
                     </thead>
                     <tbody>
                       {previewLogs.map((log, idx) => (
-                        <tr key={idx} className="border-b border-border/60 text-foreground">
+                        <tr key={idx} className="border-b border-border text-foreground">
                           <td className="py-2 text-muted-foreground">{log.time}</td>
                           <td className="py-2 font-bold tracking-tight">{log.event}</td>
                           <td className="py-2 text-muted-foreground">{log.actor}</td>
                           <td
                             className={`py-2 ${
-                              log.status === "Blocked" ? "text-destructive" : "text-foreground"
+                              log.status === "Alert" || log.status === "Closed" ? "text-destructive font-semibold" : "text-foreground"
                             }`}
                           >
                             {log.status}
@@ -278,6 +293,19 @@ export default function LivePreview() {
             </div>
           </div>
         </div>
+
+        <div className="mt-16 grid grid-cols-1 gap-px overflow-hidden rounded-[12px] border border-border bg-border md:grid-cols-3">
+          {SCENARIOS.map((s) => (
+            <div key={s.who} className="flex flex-col gap-2 bg-background p-6 md:p-8">
+              <h3 className="font-mono text-xs font-bold uppercase tracking-widest text-foreground">{s.who}</h3>
+              <p className="text-base leading-relaxed text-muted-foreground">{s.what}</p>
+            </div>
+          ))}
+        </div>
+        <p className="mt-6 text-sm leading-relaxed text-muted-foreground">
+          Also in the app: invite-only study groups and a vault for documents your
+          group opens under access control.
+        </p>
       </div>
     </section>
   );

@@ -51,7 +51,8 @@ Three sub-projects live in this repo:
   (this repo's gh-pages) and `app` (needs `APP_DEPLOY_TOKEN`). A pre-paint shim in
   `homepage/src/app/layout.tsx` forwards legacy `nosus.foo/#/burn|burnfile|redeem|v|join/…` links and
   Supabase auth callbacks to the app subdomain (fragment preserved — **the AES key lives there**).
-  The hero pitches a NO SUS Address (Saved on a borrowed computer). The real Burn Note/File tools sit in the Try it section; their WebCrypto (`homepage/src/lib/burnCrypto.ts`)
+  The hero names every feature with equal weight (Burn, SecureSend, Go, Drop, Group drops, each
+  with its real status) beside the real Burn Note/File tool (`#try`, inside its circle). The tools' WebCrypto (`homepage/src/lib/burnCrypto.ts`)
   is kept byte-compatible with the Dart app by `test/unit/burn_crypto_web_compat_test.dart` — never
   change one side without the other. Cross-product URLs + dev identity live in
   `homepage/src/lib/links.ts`. It has its own `homepage/CLAUDE.md` / `homepage/AGENTS.md`; the
@@ -81,8 +82,8 @@ Flutter app. It is disclosed in `web/privacy.html`; change both together.
 
 Homepage SEO: `layout.tsx` holds the metadata and one JSON-LD `@graph` (WebSite,
 Organization, Person, SoftwareApplication). `FaqAccordion.tsx` holds the FAQPage
-schema, so its answers stay in the static HTML and are only `hidden` while
-collapsed. Structured data follows the same honesty rule as the copy: no
+schema; it is native `<details>` (no JS), so every answer stays in the static
+HTML while collapsed. Structured data follows the same honesty rule as the copy: no
 ratings, reviews, or platforms that do not exist (the only native app is
 Android). `sitemap.ts` lists the home page and the three legal pages. Those
 pages come from `web/` and also ship in the app build, so their canonical and
@@ -237,14 +238,19 @@ already shared into the wild — silently changing what parses is a production o
 formats parsing.**
 
 **Android App Links are host-wide, and `_routeIncomingWebLink()` is what stops that being a bug.**
-`AndroidManifest.xml` carries an `android:autoVerify="true"` filter for `https://app.nosus.foo`,
-verified against `web/.well-known/assetlinks.json`. It **cannot** be path-scoped: an intent filter
+`AndroidManifest.xml` carries an `android:autoVerify="true"` filter for `https://app.nosus.foo`
+and for `https://nosus.foo` (burn and share links are minted on the public host). Each host is
+verified against its own `assetlinks.json`: `web/.well-known/` for the app, and
+`homepage/public/.well-known/` for the marketing site (`homepage/public/.nojekyll` keeps GitHub
+Pages from dropping that dot-directory). A `nosus.foo` link that is not a burn, share, redeem,
+join, or Go pairing is handed back to a browser, so `/go`, `/to`, and the homepage still render
+on the web. It **cannot** be path-scoped: an intent filter
 has no way to match a URL fragment, and every link the app mints is fragment-shaped at path `/`
 (`/#/burn/…`, `/#/burnfile/…`, `/#/burnfiles/…`, `/?cb=…#/v/…`, `/#/join/…`). So an installed app
 intercepts *every* link to that host. `_routeIncomingWebLink()` in `lib/main.dart` must therefore
-handle every shape the app can mint — **add a new link shape without adding it there and the link
-dead-ends on the home screen**, silently, with no browser fallback, because the system already chose
-the app over the web page. It is the native mirror of the `Uri.base` branches that run in `main()`
+handle every shape the app can mint — **add a new link shape without adding it there and, on
+`app.nosus.foo`, the link dead-ends on the home screen**, because that host has no browser
+fallback. On `nosus.foo`, an unrecognised link is opened in a browser instead. It is the native mirror of the `Uri.base` branches that run in `main()`
 on web. `web/.nojekyll` is load-bearing for the same feature: without it GitHub Pages drops the
 `.well-known` dot-directory and verification fails. `assetlinks.json` lists the Play **app signing**
 keys by SHA-256. The key was rotated to a quantum-ready one, so it carries **both** the previous key
@@ -553,6 +559,50 @@ codebase — assume still outstanding unless you know otherwise.
 > bottom rather than letting this section grow without bound.
 
 <!-- CHANGELOG:INSERT -->
+- **2026-09-26** · feat(applinks): claim nosus.foo in the Android app, hand non-app pages back to a
+  browser; land the Codex backend audit — why: burn and share links in the wild are
+  `https://nosus.foo/#/…`, which a website redirect cannot hand to the installed app. The app now
+  also verifies `nosus.foo` (assetlinks in `homepage/public/.well-known/`) and sends `/go`, `/to` and
+  the marketing site back to a browser via `openInBrowser`. That needs a `<queries>` VIEW/https entry:
+  without it Android 11+ hides every browser and the intent resolves back to the app in a loop.
+  Codex's backend fixes (explicit `verify_jwt`, Gemini hourly caps, Go helper grant revocation
+  migration `20260925151031`) are in 9982c12. **Not yet deployed:** that migration, and every function
+  except the four burn ones deployed earlier.
+- **2026-09-26** · perf(landing): equal-weight hero, warm burn backend on intent, lighter page —
+  why: the user asked for every feature to get equal weight and for sharing to be as fast as
+  possible. Measured from India: cold edge functions answer in ~450-650ms, warm in ~100-130ms, and
+  none sent `Access-Control-Max-Age`. `warmBurnBackend` (burnApi.ts) sends `{}` POSTs — rejected
+  400 before any DB read or rate counter — when a user points at, taps or focuses the tool, so the
+  real share hits warm isolates and a primed preflight. Pairing is still minted only after
+  confirm (burn-performance test pins it). `Access-Control-Max-Age: 7200` added to
+  burn-file-init, burn-file-confirm, create-redemption-code and redeem-code — **deployed
+  2026-09-26 from this branch** (verified live); merge it, or the next deploy from `main` drops it. FAQ is native
+  `<details>`, Lux & Nox is a server component, Geist Mono is not preloaded, speculation rules
+  prefetch /go, /to and the web app on hover. Title/description now cover every feature.
+- **2026-09-26** · fix(landing): review pass — honest burn/Go copy, CSS layering, a11y, lighter JS
+  — why: a five-agent review found copy that was already false on the live site. Every single
+  note/file mints a pairing code (`mintPairing`), so its key is always server-side while the code
+  is valid; the note expiry picker was never sent (`createBurnNote` has no expiry, notes live
+  7 days), so it is removed; Go approval is the phone's screen lock (`biometricOnly: false`) and
+  the phone shows the real code plus two decoys. Custom CSS moved into `@layer components` so
+  Tailwind utilities win. Dropped framer-motion, clsx, tailwind-merge and three dead files.
+  Theme choice is applied before paint (inline script after the legacy-link shim).
+- **2026-09-25** · feat(landing): burn tool is the hero again, back in its circle — why: the
+  user wanted the working tool first ("Send something that burns after reading"), in the circular
+  frame removed in 9f6be72. It is a circle from `sm` up (rounded card on phones, rounded rect once
+  a link is ready), with no text ring around it (the user turned that down); the note tab was compacted (counter inside
+  the textarea, expiry beside Paste) to fit. The Go pairing loop moved to How Go works
+  (`PairingDemo.tsx`). Sections renumbered 01–09. `layout.tsx` title/OG still say "Your Drive on
+  any screen" — not changed here.
+- **2026-09-25** · feat(landing): makeover — tighter story, section system, light CSS motion
+  (6d77954, on `feat/landing-makeover`, not deployed) — why: 16 sections repeated the same Go
+  facts. Now 11: Pillars/TrustMetrics fold into Security (always-visible "what stays where"
+  ledger), FeaturesGrid into Try it, Testimonials into SecureSend scenario tiles.
+  DeviceScreenshots is gone: it implied native tablet/laptop apps and a `nosus.foo/vault` URL.
+  Motion is CSS-only (hero pairing loop, spec strip, `animation-timeline: view()` reveals behind
+  `@supports`), documented in `homepage/DESIGN.md`. Local mobile Lighthouse: median perf 96 vs 80
+  for the live site. Builds on 2b5fbea, which carries the paper-theme/App Link homepage work that
+  was uncommitted in the main checkout.
 - **2026-09-24** · feat(landing): retell nosus.foo as Your NO SUS Address — why: the homepage still
   led with leak attribution. The first screen is now Saved on a borrowed computer, Drop and
   Group drops are marked coming soon, and burn / SecureSend stay as supporting sections.

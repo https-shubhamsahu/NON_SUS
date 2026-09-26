@@ -48,6 +48,32 @@ export type BurnResult = {
 // A share should never hang on the code: past this, fall back to the direct link.
 const PAIRING_TIMEOUT_MS = 8000;
 
+// ── Warm-up ───────────────────────────────────────────────────────────────
+// Measured 2026-09-26 from India (ap-south-1): a cold edge function answers in
+// ~450-650ms, a warm one in ~100-130ms. A file share calls three in a row.
+// When someone reaches for the tool we send each function an empty `{}` POST
+// with the real headers: every one of them rejects it with 400 before any
+// database read or rate-limit counter, so it is free of side effects. It boots
+// the isolate, opens the HTTP/2 connection, and primes the browser's CORS
+// preflight cache for the exact request the real share will make.
+type WarmTarget = "burn-file-init" | "burn-file-confirm" | "create-redemption-code" | "redeem-code";
+const WARM_TTL_MS = 4 * 60 * 1000;
+const warmedAt = new Map<WarmTarget, number>();
+
+export function warmBurnBackend(targets: WarmTarget[]): void {
+  const now = Date.now();
+  for (const fn of targets) {
+    if (now - (warmedAt.get(fn) ?? 0) < WARM_TTL_MS) continue;
+    warmedAt.set(fn, now);
+    fetch(`${SUPABASE_URL}/functions/v1/${fn}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY },
+      body: "{}",
+      priority: "low",
+    } as RequestInit).catch(() => warmedAt.delete(fn));
+  }
+}
+
 function shareLink(kind: "burn" | "burnfile", id: string, key: Uint8Array, iv: Uint8Array): string {
   // Key + IV live in the fragment, which browsers never send in a request.
   return `${APP_URL}#/${kind}/${id}?k=${bytesToHex(key)}&v=${bytesToHex(iv)}`;
@@ -215,9 +241,10 @@ export async function createBurnFile(
     throw new Error(confirm.error ?? "Could not seal this upload.");
   }
 
+  // Minted only after confirm (pinned by scripts/burn-performance.test.cjs):
+  // a failed upload or confirm must never send the key to the server.
   const keyHex = bytesToHex(key);
   const ivHex = bytesToHex(iv);
-  // Same as createBurnNote: not awaited, arrives after the "done" state.
   const pairingPromise = mintPairing("file", init.file_id, keyHex, ivHex);
   return { link: shareLink("burnfile", init.file_id, key, iv), pairingPromise };
 }

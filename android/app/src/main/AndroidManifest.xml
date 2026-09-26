@@ -100,6 +100,17 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="app.nosus.foo" />
             </intent-filter>
+            <!-- Same claim for the public site. Burn and share links in the
+                 wild are https://nosus.foo/#/…, and a browser redirect cannot
+                 hand those to the app. assetlinks.json is also served from
+                 homepage/public/.well-known/. Pages that are not app links
+                 (/go, /to, the marketing home) are sent back to a browser. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="nosus.foo" />
+            </intent-filter>
             <!-- Android Share Intent Filter -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
@@ -157,6 +168,15 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- Package visibility (API 30+) for MainActivity.openInBrowser: without
+             it queryIntentActivities sees no browser, the VIEW intent resolves
+             back to this app (it owns the nosus.foo App Link), and a marketing
+             link would bounce into the app forever. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <category android:name="android.intent.category.BROWSABLE"/>
+            <data android:scheme="https"/>
         </intent>
         <!-- Package visibility (API 30+) for the device-integrity scanner's
              root/hook-framework manager checks — see

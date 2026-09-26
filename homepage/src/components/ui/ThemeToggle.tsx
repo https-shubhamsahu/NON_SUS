@@ -2,7 +2,6 @@
 
 import { useEffect, useSyncExternalStore } from "react";
 import { Moon, Sun } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 const STORAGE_KEY = "nosus-theme";
 
@@ -90,10 +89,7 @@ export function ThemeToggle({ className }: { className?: string }) {
       aria-label="Switch color theme"
       aria-pressed={theme === "dark"}
       onClick={toggle}
-      className={cn(
-        "btn btn-ghost inline-flex h-11 w-11 shrink-0 items-center justify-center p-0 cursor-pointer",
-        className,
-      )}
+      className={`btn btn-ghost inline-flex h-11 w-11 shrink-0 items-center justify-center p-0 cursor-pointer ${className ?? ""}`}
     >
       {theme === "dark" ? (
         <Sun className="h-5 w-5" aria-hidden="true" />

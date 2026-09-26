@@ -1,10 +1,8 @@
-"use client";
+import { Plus } from "lucide-react";
 
-import { useState } from "react";
-import { Plus, Minus } from "lucide-react";
+import SectionHeader from "./ui/SectionHeader";
 
 export default function FaqAccordion() {
-  const [openIdx, setOpenIdx] = useState<number | null>(null);
 
   const faqs = [
     {
@@ -13,11 +11,11 @@ export default function FaqAccordion() {
     },
     {
       q: "What is Saved?",
-      a: "A chat with yourself stored in your Google Drive, in a NO SUS/ folder. The phone is the Drive client.",
+      a: "A chat with yourself stored in your Google Drive, in a NO SUS/ folder. The phone is the Drive client. Saved and Go are early access, available only when enabled for your account.",
     },
     {
       q: "What happens on a borrowed computer?",
-      a: "You open nosus.foo/go, scan, match the 2-digit code, approve with fingerprint or face. The computer does not get your Google password or token. It only shows items you approve, for at most 60 minutes. Downloads and prints may stay on that computer. Only approve a code on a screen in front of you.",
+      a: "You open nosus.foo/go, scan, pick the 2-digit code that computer shows, and approve with your phone's screen lock. The computer does not get your Google password or token. It only shows items you approve, for at most 60 minutes. Downloads and prints may stay on that computer. Only approve a code on a screen in front of you.",
     },
     {
       q: "Is Drop available?",
@@ -33,37 +31,33 @@ export default function FaqAccordion() {
     },
     {
       q: "How do Burn Notes and Burn Files work?",
-      a: "They are encrypted in your browser with 256-bit AES (CTR for notes, CBC for files). A normal burn link keeps the key in the URL fragment. A single note or file that uses the two-digit pairing code stores the key on the server for up to 20 minutes, then deletes it when the code is used or expires.",
+      a: "They are encrypted in your browser with 256-bit AES (CTR for notes, CBC for files). The direct link keeps the key in the URL fragment. Each single note or file also gets a two-digit pairing code, and while that code is valid (20 minutes by default) its key is stored on the server too. The key is swept within about 10 minutes after the code is used or expires.",
     },
     {
       q: "Can I share files without creating an account?",
-      a: "Yes. Burn Files and Burn Notes require no account on either the sender or recipient side. Sharing limits apply dynamically.",
+      a: "Yes. Burn Files and Burn Notes require no account on either the sender or recipient side. Size limits apply: one file up to 25 MB on this page.",
     },
     {
       q: "Can I revoke access?",
-      a: "Yes. In the SecureSend link sharing dashboard, you can revoke any active share link instantly, shutting down active sessions and rendering the shared file immediately inaccessible.",
+      a: "Yes. Revoking a SecureSend link stops new access through that link. Active viewers close when their next access check detects revocation. Previously issued download URLs may remain valid briefly, and downloaded files, prints, or screenshots cannot be recalled.",
     },
     {
       q: "Can I prevent screenshots?",
-      a: "On mobile clients, native screenshots and screen recorders are blocked with OS flag overrides. In browsers, screenshot blocking is not possible, so we use touch-to-reveal blur overlays and personalized identity watermarks to deter and trace leaks. That is deterrence and attribution, not a guarantee that nothing can be captured.",
+      a: "In the Android app, native screenshots and screen recorders are blocked with OS flag overrides. In browsers, screenshot blocking is not possible, so we use touch-to-reveal blur overlays and personalized identity watermarks to deter and trace leaks. That is deterrence and attribution, not a guarantee that nothing can be captured.",
     },
     {
       q: "Can governments read my files?",
-      a: "It depends on the feature. Burn Notes and Burn Files are encrypted in your browser. A single note or file that uses the two-digit pairing code stores the key on the server for up to 20 minutes, so a legal order in that window could in theory reach it; a normal burn link keeps the key in the URL fragment, and after the pairing window we hold only ciphertext with no key. Other shared documents (SecureSend, study group files) aren't end-to-end encrypted; they're protected by access-control policies, but a valid legal order compelling our infrastructure provider could theoretically reach them, the same as with any cloud storage service.",
+      a: "It depends on the feature. Burn Notes and Burn Files are encrypted in your browser. Each single note or file also gets a two-digit pairing code that keeps its key on the server while the code is valid (20 minutes by default), so a legal order in that window could in theory reach it. Once the code is used or expires and the key is swept, we hold only ciphertext with no key. Other shared documents (SecureSend, study group files) aren't end-to-end encrypted; they're protected by access-control policies, but a valid legal order compelling our infrastructure provider could theoretically reach them, the same as with any cloud storage service.",
     },
     {
       q: "What happens if your servers get hacked?",
-      a: "For Burn Notes and Burn Files, an attacker who breaks in while a drop's two-digit pairing code is still valid could find its key (stored for up to 20 minutes). Once the code is used or expires, only ciphertext with no key is left. A normal burn link keeps the key in the URL fragment, so it was never on the server. For other stored documents, access-control policies would need to be bypassed too, and since those files aren't end-to-end encrypted, a full breach of the storage layer could expose their contents.",
+      a: "For Burn Notes and Burn Files, an attacker who breaks in while a drop's two-digit pairing code is still valid (20 minutes by default) could find its key, whichever link you shared. Once the code is used or expires and the key is swept, only ciphertext with no key is left. For other stored documents, access-control policies would need to be bypassed too, and since those files aren't end-to-end encrypted, a full breach of the storage layer could expose their contents.",
     },
     {
       q: "Can AI companies train on my files?",
       a: "No. File content is never sent to or processed by any AI. We don't share data with AI companies.",
     },
   ];
-
-  const handleToggle = (idx: number) => {
-    setOpenIdx(openIdx === idx ? null : idx);
-  };
 
   // Structured FAQ Schema for SEO / AEO — must match visible answers.
   const faqSchema = {
@@ -82,7 +76,7 @@ export default function FaqAccordion() {
   return (
     <section
       id="faq"
-      className="py-24 bg-background border-b border-border relative"
+      className="relative border-b border-border bg-background py-20 md:py-28"
     >
       <div className="mx-auto max-w-4xl px-6 md:px-8">
         <script
@@ -92,51 +86,35 @@ export default function FaqAccordion() {
           }}
         />
 
-        <div className="text-center mb-16">
-          <h2 className="text-[32px] md:text-5xl font-black uppercase tracking-tight text-foreground leading-none">
-            Frequently Asked Questions
-          </h2>
-        </div>
+        <SectionHeader
+          index="09"
+          eyebrow="FAQ"
+          title="Straight answers."
+          lede="Including the uncomfortable ones: legal orders, breaches, and what a browser can't stop."
+          align="center"
+          className="mb-12 md:mb-16"
+        />
 
-        <div className="flex flex-col gap-4">
-          {faqs.map((faq, idx) => {
-            const isOpen = openIdx === idx;
-            return (
-              <div
-                key={idx}
-                className={`paper-card border overflow-hidden transition-colors duration-200 ease-out ${
-                  isOpen ? "border-foreground" : "border-border"
-                }`}
-              >
-                <h3>
-                  <button
-                    type="button"
-                    onClick={() => handleToggle(idx)}
-                    className="w-full min-h-[44px] px-6 py-4 text-left flex items-center justify-between gap-4 text-foreground font-bold uppercase text-xs tracking-wider focus-visible:ring-2 focus-visible:ring-ring"
-                    aria-expanded={isOpen}
-                    aria-controls={`faq-answer-${idx}`}
-                  >
-                    <span>{faq.q}</span>
-                    {isOpen ? (
-                      <Minus className="h-4 w-4 shrink-0" aria-hidden />
-                    ) : (
-                      <Plus className="h-4 w-4 shrink-0" aria-hidden />
-                    )}
-                  </button>
-                </h3>
-
-                {/* Always in the static HTML, only hidden while collapsed, so
-                    crawlers can read the answers the FAQPage schema describes. */}
-                <div
-                  id={`faq-answer-${idx}`}
-                  hidden={!isOpen}
-                  className="px-6 pb-6 pt-1 text-base text-muted-foreground leading-[1.5] border-t border-border font-medium"
-                >
-                  {faq.a}
-                </div>
-              </div>
-            );
-          })}
+        <div className="flex flex-col border-t border-border">
+          {/* Native <details>: no JavaScript, and every answer the FAQPage schema
+              describes is in the static HTML. name="faq" keeps one open at a
+              time where supported. */}
+          {faqs.map((faq, idx) => (
+            <details key={idx} name="faq" className="group border-b border-border">
+              <summary className="flex min-h-[56px] cursor-pointer list-none items-center justify-between gap-6 py-5 text-left text-base font-bold tracking-[-0.01em] text-foreground transition-colors duration-150 hover:text-muted-foreground md:text-lg [&::-webkit-details-marker]:hidden">
+                <h3>{faq.q}</h3>
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border text-foreground">
+                  <Plus
+                    className="h-4 w-4 transition-transform duration-200 ease-out group-open:rotate-45 motion-reduce:transition-none"
+                    aria-hidden
+                  />
+                </span>
+              </summary>
+              <p className="max-w-3xl pb-6 pr-12 text-base leading-relaxed text-muted-foreground">
+                {faq.a}
+              </p>
+            </details>
+          ))}
         </div>
       </div>
     </section>

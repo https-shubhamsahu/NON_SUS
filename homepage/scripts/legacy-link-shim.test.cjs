@@ -29,6 +29,7 @@ function load(url, token = 'abc123def456') {
   const scripts = [];
   const listeners = {};
   const window = {
+    navigator: { userAgent: start.searchParams.get('ua') || '' },
     location,
     history: {
       replaceState(_state, _title, next) {
@@ -51,6 +52,16 @@ function load(url, token = 'abc123def456') {
     changeHash(hash) { location.hash = hash; listeners.hashchange?.(); },
   };
 }
+
+test('an Android burn link asks the installed app to open, and falls back to the web app', () => {
+  const page = load('https://nosus.foo/?ua=Android' + KEY_LINK);
+  const target = page.location.replaced.target;
+  assert.match(target, /^intent:\/\/open\?u=/);
+  assert.match(target, /scheme=foo\.nosus\.app/);
+  assert.match(target, /package=foo\.nosus\.app/);
+  assert.match(decodeURIComponent(target), new RegExp('browser_fallback_url=.*app\\.nosus\\.foo/'));
+  assert.equal(page.scripts.length, 0);
+});
 
 test('a legacy burn link forwards to the app with its key and never loads analytics', () => {
   const page = load('https://nosus.foo/' + KEY_LINK);
@@ -83,6 +94,23 @@ test('the Go desk does not load analytics', () => {
   const page = load('https://nosus.foo/go');
   assert.equal(page.location.replaced, null);
   assert.equal(page.scripts.length, 0);
+});
+
+test('exported private HTML pages never load analytics', () => {
+  for (const path of ['/go.html', '/to.html?h=alice']) {
+    const page = load('https://nosus.foo' + path);
+    assert.equal(page.location.replaced, null);
+    assert.equal(page.scripts.length, 0);
+  }
+});
+
+test('Go pairing links reach the app but the ordinary Go desk stays on the website', () => {
+  for (const path of ['/#/go/1.session.publickey', '/go/1.session.publickey']) {
+    const page = load('https://nosus.foo' + path);
+    assert.equal(page.location.replaced.target, 'https://app.nosus.foo' + path);
+    assert.equal(page.scripts.length, 0);
+  }
+  assert.equal(load('https://nosus.foo/go').location.replaced, null);
 });
 
 test('the Drop page and handle subdomains do not load analytics', () => {

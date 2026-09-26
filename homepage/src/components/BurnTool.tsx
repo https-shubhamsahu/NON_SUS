@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, DragEvent } from "react";
+import { useRef, useState, DragEvent, KeyboardEvent } from "react";
 import {
   FileUp,
   Lock,
@@ -17,12 +17,12 @@ import {
   createBurnNote,
   linkToShare,
   redeemCode,
+  warmBurnBackend,
   FILE_MAX_BYTES,
   NOTE_MAX_CHARS,
   type RedemptionPairing,
 } from "@/lib/burnApi";
 import ShareQr from "./ShareQr";
-
 type Tab = "note" | "file" | "redeem";
 type Phase = "idle" | "working" | "done" | "error";
 
@@ -33,6 +33,12 @@ function timeLeft(expiresAt: string | null): string | null {
   if (!Number.isFinite(minutes) || minutes <= 0) return null;
   return minutes < 90 ? `${minutes} min` : `${Math.round(minutes / 60)} hours`;
 }
+
+const TABS: { id: Tab; label: string }[] = [
+  { id: "note", label: "Note" },
+  { id: "file", label: "File" },
+  { id: "redeem", label: "Redeem" },
+];
 
 const EXPIRY_CHOICES = [
   { hours: 1, label: "1 HOUR" },
@@ -98,11 +104,35 @@ export default function BurnTool() {
     setCopyError("");
     setStatusLabel("");
     setRedeemInput("");
+    setPasteError("");
   };
+
+  // Intent (pointer, touch, focus, tab switch) warms exactly the edge
+  // functions this tab is about to call — see warmBurnBackend.
+  const warmFor = (t: Tab) =>
+    warmBurnBackend(
+      t === "file"
+        ? ["burn-file-init", "burn-file-confirm", "create-redemption-code"]
+        : t === "note"
+          ? ["create-redemption-code"]
+          : ["redeem-code"],
+    );
 
   const switchTab = (next: Tab) => {
     setTab(next);
     reset();
+    warmFor(next);
+  };
+
+  // WAI-ARIA tabs: arrow keys move between tabs (one Tab stop for the set).
+  const onTabKey = (e: KeyboardEvent<HTMLDivElement>) => {
+    const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+    if (!step) return;
+    e.preventDefault();
+    const i = TABS.findIndex((t) => t.id === tab);
+    const next = TABS[(i + step + TABS.length) % TABS.length].id;
+    switchTab(next);
+    document.getElementById(`burn-tab-${next}`)?.focus();
   };
 
   const fail = (e: unknown) => {
@@ -231,22 +261,18 @@ export default function BurnTool() {
   };
 
   return (
-    <section id="try" className="relative w-full max-w-xl mx-auto py-6">
-      <div className="mb-8 text-center px-2">
-        <h2 className="text-[32px] font-black uppercase tracking-tight text-foreground leading-tight">
-          No account needed. Try it now.
-        </h2>
-        <p className="mt-4 text-base leading-relaxed text-muted-foreground max-w-md mx-auto">
-          Burn a note or file in the browser. The key for a normal link stays in
-          the URL fragment. If you use a two-digit pairing code on a single note
-          or file, that key is stored for up to 20 minutes.
-        </p>
-      </div>
-
+    <div
+      className="relative mx-auto flex w-full items-center justify-center sm:w-fit"
+      onPointerEnter={() => warmFor(tab)}
+      onTouchStart={() => warmFor(tab)}
+      onFocusCapture={() => warmFor(tab)}
+    >
       <div
-        className={`relative z-10 w-full paper-card text-left flex flex-col items-center justify-center p-6 sm:p-8 transition-colors duration-200 ease-out motion-reduce:transition-none ${
-          phase === "done" ? "min-h-[380px] py-8" : "min-h-[380px]"
-        } ${dragOver ? "ring-2 ring-ring" : ""}`}
+        className={`relative z-10 flex w-full flex-col items-center justify-center border-4 border-foreground bg-card p-6 text-left shadow-[8px_8px_0_0_var(--muted)] transition-[border-radius,border-color] duration-200 ease-out motion-reduce:transition-none sm:w-[480px] xl:w-[520px] ${
+          phase === "done"
+            ? "min-h-[380px] rounded-[40px] py-8 sm:min-h-[480px] sm:rounded-[56px] xl:min-h-[520px]"
+            : "min-h-[400px] rounded-[40px] sm:h-[480px] sm:rounded-full sm:px-14 xl:h-[520px]"
+        } ${dragOver ? "border-foreground ring-4 ring-ring" : ""}`}
       >
           {phase === "working" ? (
             <div
@@ -262,7 +288,7 @@ export default function BurnTool() {
                   <Lock className="h-5 w-5 text-foreground" />
                 </div>
               </div>
-              <span className="text-xs font-mono tracking-widest text-muted-foreground animate-pulse motion-reduce:animate-none text-center max-w-[240px] uppercase">
+              <span className="text-xs font-mono tracking-widest text-muted-foreground  motion-reduce:animate-none text-center max-w-[240px] uppercase">
                 {statusLabel}
               </span>
             </div>
@@ -294,7 +320,7 @@ export default function BurnTool() {
                   </button>
                 ) : !pairingSettled ? (
                   <span
-                    className="text-[52px] sm:text-[60px] leading-none font-black tabular-nums tracking-[0.18em] text-muted-foreground/40 animate-pulse motion-reduce:animate-none"
+                    className="text-[52px] sm:text-[60px] leading-none font-black tabular-nums tracking-[0.18em] text-muted-foreground  motion-reduce:animate-none"
                     aria-label="Generating confirmation code"
                   >
                     ··
@@ -319,7 +345,7 @@ export default function BurnTool() {
                 <div
                   role="img"
                   aria-label="Preparing the share link"
-                  className="w-[120px] h-[120px] rounded-[12px] bg-muted animate-pulse motion-reduce:animate-none"
+                  className="w-[120px] h-[120px] rounded-[12px] bg-muted  motion-reduce:animate-none"
                 />
               )}
 
@@ -327,7 +353,7 @@ export default function BurnTool() {
                 type="button"
                 onClick={copyLink}
                 disabled={!sharedLink}
-                className="btn btn-primary disabled:opacity-40 disabled:pointer-events-none"
+                className="btn btn-primary disabled:bg-muted disabled:text-muted-foreground disabled:pointer-events-none"
               >
                 {copied ? (
                   <>
@@ -388,58 +414,43 @@ export default function BurnTool() {
               <div
                 role="tablist"
                 aria-label="Burn tool mode"
-                className="flex border border-border bg-muted rounded-full overflow-hidden mb-6"
+                onKeyDown={onTabKey}
+                className="flex border border-border bg-muted p-1 rounded-[10px] mb-4 w-full max-w-[320px]"
               >
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={tab === "note"}
-                  onClick={() => switchTab("note")}
-                  className={`min-h-[44px] px-5 text-sm font-bold uppercase tracking-wider transition-colors duration-200 ease-out motion-reduce:transition-none ${
-                    tab === "note"
-                      ? "bg-accent text-accent-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Note
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={tab === "file"}
-                  onClick={() => switchTab("file")}
-                  className={`min-h-[44px] px-5 text-sm font-bold uppercase tracking-wider transition-colors duration-200 ease-out motion-reduce:transition-none ${
-                    tab === "file"
-                      ? "bg-accent text-accent-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  File
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={tab === "redeem"}
-                  onClick={() => switchTab("redeem")}
-                  className={`min-h-[44px] px-5 text-sm font-bold uppercase tracking-wider transition-colors duration-200 ease-out motion-reduce:transition-none ${
-                    tab === "redeem"
-                      ? "bg-accent text-accent-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Redeem
-                </button>
+                {TABS.map((t, i) => (
+                  <button
+                    key={t.id}
+                    id={`burn-tab-${t.id}`}
+                    type="button"
+                    role="tab"
+                    aria-selected={tab === t.id}
+                    aria-controls="burn-panel"
+                    tabIndex={tab === t.id ? 0 : -1}
+                    onClick={() => switchTab(t.id)}
+                    className={`flex-1 min-h-[44px] whitespace-nowrap px-2 sm:px-3 text-xs font-mono font-bold uppercase tracking-wider transition-colors duration-150 motion-reduce:transition-none rounded-[6px] ${
+                      tab === t.id
+                        ? "bg-card text-foreground shadow-sm border border-border"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <span className="hidden sm:inline">{`${String(i + 1).padStart(2, "0")} // `}</span>{t.label}
+                  </button>
+                ))}
               </div>
 
+              <div id="burn-panel" role="tabpanel" aria-labelledby={`burn-tab-${tab}`} className="w-full">
               {tab === "note" ? (
                 <div className="flex flex-col items-center w-full">
                   <textarea
                     ref={noteRef}
                     value={noteText}
-                    onChange={(e) => setNoteText(e.target.value.slice(0, NOTE_MAX_CHARS))}
+                    onChange={(e) => {
+                      setNoteText(e.target.value.slice(0, NOTE_MAX_CHARS));
+                      setPasteError("");
+                    }}
                     placeholder="Write or paste a secret note…"
                     aria-label="Secret note"
-                    className="w-full max-w-[360px] h-[160px] overflow-y-auto bg-background border border-border hover:border-foreground/40 focus:border-foreground p-4 text-base font-mono text-left text-foreground resize-y rounded-[12px] leading-relaxed"
+                    className="block w-full max-w-[360px] h-[128px] overflow-y-auto bg-background border border-border hover:border-foreground focus:border-foreground p-4 text-base font-mono text-left text-foreground resize-none rounded-[12px] leading-relaxed"
                   />
                   <div className="flex flex-wrap items-center gap-2 w-full max-w-[360px] mt-3">
                     <button
@@ -452,34 +463,30 @@ export default function BurnTool() {
                     {noteText.length > 0 && (
                       <button
                         type="button"
-                        onClick={() => setNoteText("")}
+                        onClick={() => {
+                          setNoteText("");
+                          setPasteError("");
+                        }}
                         className="min-h-[44px] px-4 rounded-[12px] border border-border text-sm font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground"
                       >
                         Clear
                       </button>
                     )}
-                    {pasteError && <span className="text-sm text-muted-foreground" role="alert">{pasteError}</span>}
-                  </div>
-                  <div className="flex items-center justify-between w-full max-w-[360px] mt-3 text-sm font-mono text-muted-foreground">
-                    <span>{noteText.length.toLocaleString()}/{NOTE_MAX_CHARS.toLocaleString()}</span>
-                    <select
-                      value={expiryHours}
-                      onChange={(e) => setExpiryHours(Number(e.target.value))}
-                      className="min-h-[44px] bg-background border border-border text-foreground rounded-[12px] px-3 py-2"
-                    >
-                      {EXPIRY_CHOICES.map((c) => (
-                        <option key={c.hours} value={c.hours}>{c.label}</option>
-                      ))}
-                    </select>
+                    {/* Notes always expire unread after 7 days (burn_notes.expires_at
+                        default) — createBurnNote sends no expiry, so no picker here. */}
+                    <span className="ml-auto font-mono text-xs text-muted-foreground">
+                      {noteText.length.toLocaleString("en-US")}/{NOTE_MAX_CHARS.toLocaleString("en-US")}
+                    </span>
+                    {pasteError && <span className="w-full text-sm text-muted-foreground" role="alert">{pasteError}</span>}
                   </div>
                   <button
                     type="button"
                     onClick={handleCreateNote}
                     disabled={!noteText.trim()}
-                    className={`btn mt-6 ${
+                    className={`btn mt-4 ${
                       noteText.trim()
                         ? "btn-primary"
-                        : "opacity-40 cursor-not-allowed"
+                        : "text-muted-foreground cursor-not-allowed"
                     }`}
                   >
                     Burn Note
@@ -500,10 +507,10 @@ export default function BurnTool() {
                     }}
                     role="button"
                     tabIndex={0}
-                    className={`w-full max-w-[360px] min-h-[160px] border-2 border-dashed rounded-[12px] flex flex-col items-center justify-center cursor-pointer transition-colors duration-200 ease-out motion-reduce:transition-none p-6 ${
+                    className={`w-full max-w-[360px] min-h-[140px] border-2 border-dashed rounded-[12px] flex flex-col items-center justify-center cursor-pointer transition-colors duration-200 ease-out motion-reduce:transition-none p-6 ${
                       dragOver
                         ? "border-foreground bg-muted"
-                        : "border-border hover:border-foreground/40 bg-transparent"
+                        : "border-border hover:border-foreground bg-transparent"
                     }`}
                   >
                     <input
@@ -521,7 +528,7 @@ export default function BurnTool() {
                     </p>
                   </div>
 
-                  <div className="flex flex-wrap items-center justify-center gap-2 mt-5">
+                  <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
                     <span className="text-sm font-mono text-muted-foreground uppercase tracking-wider">
                       Expires in:
                     </span>
@@ -553,7 +560,7 @@ export default function BurnTool() {
                     autoCapitalize="characters"
                     autoCorrect="off"
                     spellCheck={false}
-                    className="w-full max-w-[320px] min-h-[44px] bg-background border border-border hover:border-foreground/40 focus:border-foreground py-3 px-4 text-center text-base font-mono tracking-[0.2em] text-foreground rounded-[12px] uppercase"
+                    className="w-full max-w-[320px] min-h-[44px] bg-background border border-border hover:border-foreground focus:border-foreground py-3 px-4 text-center text-base font-mono tracking-[0.2em] text-foreground rounded-[12px] uppercase"
                   />
                   <p className="text-sm font-mono text-muted-foreground mt-4 text-center max-w-[280px] leading-relaxed">
                     Paste the link you were sent. If it came with a 2-digit code, you&apos;ll type it next.
@@ -565,16 +572,17 @@ export default function BurnTool() {
                     className={`btn mt-6 ${
                       redeemInput.trim()
                         ? "btn-primary"
-                        : "opacity-40 cursor-not-allowed"
+                        : "text-muted-foreground cursor-not-allowed"
                     }`}
                   >
                     Unlock
                   </button>
                 </div>
               )}
+              </div>
             </div>
           )}
       </div>
-    </section>
+    </div>
   );
 }

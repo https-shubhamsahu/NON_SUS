@@ -17,6 +17,7 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-ring: var(--ring);
+  --color-signal: var(--signal);
   --color-destructive: var(--destructive);
 
   /* Fixed ink utilities — do not use for theme-flipping page surfaces */
@@ -60,10 +61,10 @@ html {
   --accent-foreground: #080808;
   --ring: #ffffff;
   --destructive: #dc2626;
+  --signal: #ff765c;
   --shadow-card-value: none;
-  --grid-line: rgba(255, 255, 255, 0.03);
-  --pixel-divider: #ffffff;
-  --paper-dash: rgba(255, 255, 255, 0.07);
+  --grid-line: #202020;
+  --paper-dash: #303030;
 }
 
 @media (prefers-color-scheme: light) {
@@ -76,15 +77,15 @@ html {
     --muted: #ebe6dc;
     /* ≥4.5:1 on warm paper */
     --muted-foreground: #4a453f;
-    --border: rgba(20, 20, 20, 0.12);
+    --border: #d8d3ca;
     --accent: #141414;
     --accent-foreground: #f4f1ea;
     --ring: #141414;
     --destructive: #b91c1c;
-    --shadow-card-value: 0 1px 3px rgba(20, 20, 20, 0.08);
-    --grid-line: rgba(20, 20, 20, 0.06);
-    --pixel-divider: #141414;
-    --paper-dash: rgba(20, 20, 20, 0.08);
+  --signal: #ad3524;
+    --shadow-card-value: none;
+    --grid-line: #e4dfd6;
+      --paper-dash: #d8d3ca;
   }
 }
 
@@ -96,15 +97,15 @@ html[data-theme="light"] {
   --card-foreground: #141414;
   --muted: #ebe6dc;
   --muted-foreground: #4a453f;
-  --border: rgba(20, 20, 20, 0.12);
+  --border: #d8d3ca;
   --accent: #141414;
   --accent-foreground: #f4f1ea;
   --ring: #141414;
   --destructive: #b91c1c;
-  --shadow-card-value: 0 1px 3px rgba(20, 20, 20, 0.08);
-  --grid-line: rgba(20, 20, 20, 0.06);
-  --pixel-divider: #141414;
-  --paper-dash: rgba(20, 20, 20, 0.08);
+  --signal: #ad3524;
+  --shadow-card-value: none;
+  --grid-line: #e4dfd6;
+  --paper-dash: #d8d3ca;
 }
 
 html[data-theme="dark"] {
@@ -120,10 +121,10 @@ html[data-theme="dark"] {
   --accent-foreground: #080808;
   --ring: #ffffff;
   --destructive: #dc2626;
+  --signal: #ff765c;
   --shadow-card-value: none;
-  --grid-line: rgba(255, 255, 255, 0.03);
-  --pixel-divider: #ffffff;
-  --paper-dash: rgba(255, 255, 255, 0.07);
+  --grid-line: #202020;
+  --paper-dash: #303030;
 }
 
 body {
@@ -150,25 +151,12 @@ body {
   background: var(--muted-foreground);
 }
 
+/* Component classes live in a layer so Tailwind utilities (px-*, text-*,
+   cursor-*) on the same element win, as they would for any utility. */
+@layer components {
 /* Swiss typography / Grid styles */
 .swiss-grid {
-  background-size: 40px 40px;
-  background-image:
-    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
-}
-
-/* Pixel divider */
-.pixel-divider {
-  height: 4px;
-  background-image: repeating-linear-gradient(
-    90deg,
-    var(--pixel-divider),
-    var(--pixel-divider) 4px,
-    transparent 4px,
-    transparent 8px
-  );
-  opacity: 0.15;
+  border-top: 1px dotted var(--border);
 }
 
 /* Paper card — theme surfaces (not hardcoded ink) */
@@ -218,9 +206,10 @@ main > section:not(:first-child) {
   border: 1px solid var(--border);
   cursor: pointer;
   transition:
-    background-color 200ms ease-out,
-    color 200ms ease-out,
-    border-color 200ms ease-out;
+    transform 120ms ease-out,
+    background-color 180ms ease-out,
+    color 180ms ease-out,
+    border-color 180ms ease-out;
 }
 
 .btn-primary {
@@ -230,7 +219,9 @@ main > section:not(:first-child) {
 }
 
 .btn-primary:hover {
-  opacity: 0.92;
+  background: var(--muted);
+  color: var(--foreground);
+  border-color: var(--foreground);
 }
 
 .btn-ghost {
@@ -282,29 +273,231 @@ main > section:not(:first-child) {
   }
 }
 
-/* Custom ink spread effect utility */
-@keyframes inkSpread {
-  from {
-    transform: scale(0);
-    opacity: 0.6;
-  }
-  to {
-    transform: scale(3);
-    opacity: 0;
-  }
+/* ── Makeover: instrument details + light motion ─────────────────────────
+   Every animation below is CSS-only and uses transforms and discrete visibility (or an
+   SVG stroke offset), so nothing blocks the main thread or shifts layout.
+   All of it stops under prefers-reduced-motion. */
+
+/* Live status dot (e-ink blink) */
+@keyframes einkBlink {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(0.75); }
 }
 
-.ink-dot {
-  position: absolute;
+.eink-live {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  background: var(--foreground);
-  pointer-events: none;
-  animation: inkSpread 0.8s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+  background-color: var(--signal);
+  animation: einkBlink 2.2s ease-in-out infinite;
+}
+
+.paper-card-interactive {
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), border-color 180ms ease-out;
+}
+
+.paper-card-interactive:hover {
+  transform: translateY(-2px);
+  border-color: var(--foreground);
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+/* Arrow that nudges on hover inside a button or link (.group) */
+.nudge {
+  transition: transform 180ms ease-out;
+}
+.group:hover .nudge {
+  transform: translateX(3px);
+}
+
+.tech-badge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  background: var(--muted);
+  color: var(--foreground);
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Section eyebrow: "01 — Address" */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.eyebrow-index {
+  color: var(--signal);
+}
+.eyebrow-rule {
+  width: 24px;
+  height: 1px;
+  background: var(--muted-foreground);
+}
+
+/* Hero: soft ink spotlight behind the grid (no chroma, no image) */
+.hero-mark {
+  width: 72px;
+  height: 12px;
+  border-left: 12px solid var(--signal);
+  border-right: 36px double var(--foreground);
+}
+
+/* Hero entrance: supporting lines rise in. The h1 is never hidden, so it
+   paints (and counts for LCP) on the first frame. */
+@keyframes riseIn {
+  from { transform: translateY(10px); }
+  to { transform: none; }
+}
+.rise {
+  animation: riseIn 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Spec strip: a slow ticker of protocol facts */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee 48s linear infinite;
+}
+.marquee:hover .marquee-track {
+  animation-play-state: paused;
+}
+.marquee { border-bottom: 3px solid var(--signal); }
+
+/* Pairing loop (How Go works): one 10s cycle — scan, match, approve, connected.
+   Stage groups switch without fading; labels under the device track the stage. */
+.pg { --pg: 10s; }
+.pg-mono { font-family: var(--font-mono); }
+.pg-s1 { animation: pgS1 var(--pg) infinite both; }
+.pg-s2 { animation: pgS2 var(--pg) infinite both; }
+.pg-s3 { animation: pgS3 var(--pg) infinite both; }
+.pg-b1 { animation: pgB1 var(--pg) infinite both; }
+.pg-b2 { animation: pgB2 var(--pg) infinite both; }
+.pg-b3 { animation: pgB3 var(--pg) infinite both; }
+.pg-scan { animation: pgScan var(--pg) infinite both; }
+.pg-packet-a { animation: pgPacketA var(--pg) infinite both; }
+.pg-packet-b { animation: pgPacketB var(--pg) infinite both; }
+.pg-press { animation: pgPress var(--pg) infinite both; transform-box: fill-box; transform-origin: center; }
+.pg-l1 { animation: pgL1 var(--pg) infinite both; }
+.pg-l2 { animation: pgL2 var(--pg) infinite both; }
+.pg-l3 { animation: pgL3 var(--pg) infinite both; }
+
+@keyframes pgS1 { 0%, 28% { visibility: visible; } 31%, 97% { visibility: hidden; } 100% { visibility: visible; } }
+@keyframes pgS2 { 0%, 28% { visibility: hidden; } 31%, 58% { visibility: visible; } 61%, 100% { visibility: hidden; } }
+@keyframes pgS3 { 0%, 58% { visibility: hidden; } 61%, 97% { visibility: visible; } 100% { visibility: hidden; } }
+@keyframes pgB1 { 0%, 63% { visibility: hidden; transform: translateY(4px); } 66%, 97% { visibility: visible; transform: none; } 100% { visibility: hidden; } }
+@keyframes pgB2 { 0%, 71% { visibility: hidden; transform: translateY(4px); } 74%, 97% { visibility: visible; transform: none; } 100% { visibility: hidden; } }
+@keyframes pgB3 { 0%, 79% { visibility: hidden; transform: translateY(4px); } 82%, 97% { visibility: visible; transform: none; } 100% { visibility: hidden; } }
+@keyframes pgScan {
+  0% { transform: translateY(0); visibility: visible; }
+  14% { transform: translateY(58px); }
+  28% { transform: translateY(0); visibility: visible; }
+  31%, 100% { visibility: hidden; }
+}
+@keyframes pgPacketA {
+  0%, 62% { visibility: hidden; transform: translateX(0); }
+  63% { visibility: visible; }
+  70% { visibility: visible; transform: translateX(-62px); }
+  71%, 100% { visibility: hidden; transform: translateX(-62px); }
+}
+@keyframes pgPacketB {
+  0%, 70% { visibility: hidden; transform: translateX(0); }
+  71% { visibility: visible; }
+  78% { visibility: visible; transform: translateX(-62px); }
+  79%, 100% { visibility: hidden; transform: translateX(-62px); }
+}
+@keyframes pgPress {
+  0%, 48% { transform: scale(1); }
+  51% { transform: scale(0.94); }
+  54%, 100% { transform: scale(1); }
+}
+/* Step labels swap colour rather than fade, so the resting label keeps
+   muted-foreground contrast (≥4.5:1 in both themes). */
+@keyframes pgL1 { 0%, 28% { color: var(--foreground); } 31%, 97% { color: var(--muted-foreground); } 100% { color: var(--foreground); } }
+@keyframes pgL2 { 0%, 28% { color: var(--muted-foreground); } 31%, 58% { color: var(--foreground); } 61%, 100% { color: var(--muted-foreground); } }
+@keyframes pgL3 { 0%, 58% { color: var(--muted-foreground); } 61%, 97% { color: var(--foreground); } 100% { color: var(--muted-foreground); } }
+
+/* Scroll reveal — progressive enhancement. Browsers without scroll-driven
+   animations (or with reduced motion) simply show the content. */
+@supports (animation-timeline: view()) {
+  @media screen and (prefers-reduced-motion: no-preference) {
+    @keyframes revealUp {
+      from { transform: translateY(18px); }
+      to { transform: none; }
+    }
+    .reveal {
+      animation: revealUp linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+    }
+
+    /* How-it-works: the rail fills as the steps scroll through */
+    @keyframes railFill {
+      from { transform: scaleX(0); }
+      to { transform: scaleX(1); }
+    }
+    .rail-fill {
+      transform-origin: left center;
+      animation: railFill linear both;
+      animation-timeline: view();
+      animation-range: entry 30% cover 55%;
+    }
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ink-dot {
+  .eink-live,
+  .rise,
+  .marquee-track {
     animation: none;
-    opacity: 0;
+  }
+  .paper-card-interactive:hover,
+  .btn:active,
+  .group:hover .nudge {
+    transform: none;
+  }
+  /* Pairing loop holds on its finished state. */
+  .pg-s1, .pg-s2, .pg-scan, .pg-packet-a, .pg-packet-b {
+    animation: none;
+    visibility: hidden;
+  }
+  .pg-s3, .pg-b1, .pg-b2, .pg-b3 {
+    animation: none;
+    visibility: visible;
+    transform: none;
+  }
+  .pg-l1, .pg-l2, .pg-l3 {
+    animation: none;
+    color: var(--foreground);
+  }
+  .pg-press {
+    animation: none;
   }
 }
+}
+
+
+/* Solid ink details; no fades, glass, or gradient surfaces. */
+html { scroll-padding-top: 96px; }
+::selection { background: var(--signal); color: var(--background); }
+.marquee:focus-within .marquee-track { animation-play-state: paused; }

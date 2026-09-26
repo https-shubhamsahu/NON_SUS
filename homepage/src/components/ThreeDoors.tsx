@@ -1,151 +1,106 @@
-import { DoorOpen, Inbox, Users } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, DoorOpen, Inbox, Users } from "lucide-react";
 
-const limits = [
-  "Safer than logging into Google on that PC: this computer only sees what you approve, for at most 60 minutes.",
+import SectionHeader from "./ui/SectionHeader";
+
+const goLimits = [
   "Anything you download or print may stay on that computer.",
   "Only approve a code on a screen in front of you.",
-  "The computer never receives your Google password or Google token.",
+];
+
+const upcoming = [
+  {
+    icon: Inbox,
+    door: "Door 02",
+    title: "Drop",
+    text: "People will send you files at yourname.nosus.foo without your phone number. The door stays closed by default — you preview and accept before anything reaches your Drive.",
+  },
+  {
+    icon: Users,
+    door: "Door 03",
+    title: "Group drops",
+    text: "A planned group feed where each member's copy is saved to their own Drive, end-to-end encrypted. Watermarks that show who leaked a file come later.",
+  },
 ];
 
 export default function ThreeDoors() {
   return (
-    <section
-      id="doors"
-      className="relative border-b border-border bg-background py-16 md:py-24"
-    >
+    <section id="doors" className="relative border-b border-border bg-background py-20 md:py-28">
       <div className="mx-auto w-full max-w-7xl px-6 md:px-8">
-        <h2 className="mb-12 text-[32px] font-black uppercase leading-none tracking-tight text-foreground md:mb-16">
-          Three doors
-        </h2>
+        <SectionHeader
+          index="02"
+          eyebrow="NO SUS Address"
+          title="One address. Three doors."
+          lede="Share your address, not your number. Each door opens onto your own Google Drive — and only when you say so."
+        />
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3 md:gap-8">
-          {/* 1. You (Go) — in app when flag enabled */}
-          <article
-            className="paper-card door-card flex flex-col gap-6 p-6 md:p-8"
-            style={{ animationDelay: "0ms" }}
-          >
+        <div className="mt-12 grid grid-cols-1 gap-6 md:mt-16 lg:grid-cols-12">
+          {/* Door 01 — Go (the one that works today, when enabled) */}
+          <article className="paper-card paper-card-interactive flex flex-col gap-6 p-6 md:p-10 lg:col-span-7 lg:row-span-2">
             <div className="flex items-start justify-between gap-4">
-              <div className="flex h-11 w-11 items-center justify-center border border-border bg-muted">
-                <DoorOpen
-                  className="h-5 w-5 text-foreground"
-                  strokeWidth={1.5}
-                  aria-hidden
-                />
+              <div className="flex h-12 w-12 items-center justify-center rounded-[10px] border border-border bg-muted">
+                <DoorOpen className="h-5 w-5 text-foreground" strokeWidth={1.5} aria-hidden />
               </div>
-              <span className="rounded-pill bg-muted px-3 py-1 text-xs font-semibold uppercase tracking-wider text-foreground">
-                In app when enabled
-              </span>
+              <div className="flex flex-col items-end gap-2">
+                <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">Door 01</span>
+                <span className="inline-flex items-center gap-1.5 rounded-pill border border-border bg-muted px-3 py-1 text-xs font-semibold uppercase tracking-wider text-foreground">
+                  <span className="eink-live text-foreground" />
+                  In app when enabled
+                </span>
+              </div>
             </div>
 
-            <div className="flex flex-1 flex-col gap-3">
-              <h3 className="text-xl font-black uppercase tracking-tight text-foreground">
-                You (Go)
+            <div className="flex flex-1 flex-col gap-4">
+              <h3 className="text-3xl font-black tracking-[-0.03em] text-foreground md:text-4xl">
+                Go — you, on any computer.
               </h3>
-              <p className="text-base leading-relaxed text-muted-foreground">
-                Open nosus.foo/go on a borrowed computer (cyber cafe, college
-                lab, print shop). Scan the QR with the NO SUS phone app, confirm
-                a 2-digit match code, approve with fingerprint or face. Your
-                Saved chat opens there. Saved is a chat with yourself, stored in
-                YOUR Google Drive under a NO SUS/ folder. Send files both ways.
-                Print without saving a copy into that computer&apos;s Google
-                account. Close the tab or tap End on the phone and the session
-                ends.
+              <p className="max-w-xl text-base leading-relaxed text-muted-foreground md:text-lg">
+                Open nosus.foo/go on a borrowed computer, scan with the phone app
+                and approve. Your Saved chat opens there — a chat with yourself,
+                stored in your own Google Drive under a NO SUS/ folder. Send files
+                both ways, print without signing in, and tap End when you&apos;re
+                done.
               </p>
 
-              <ul className="mt-2 flex flex-col gap-2 border-t border-border pt-4">
-                {limits.map((line) => (
-                  <li
-                    key={line}
-                    className="text-sm leading-relaxed text-muted-foreground"
-                  >
-                    {line}
+              <ul className="mt-2 flex flex-col gap-2 border-t border-border pt-5">
+                {goLimits.map((line) => (
+                  <li key={line} className="flex items-start gap-3 text-sm leading-relaxed text-muted-foreground">
+                    <span className="mt-2 h-1 w-1 shrink-0 bg-foreground" aria-hidden />
+                    <span>{line}</span>
                   </li>
                 ))}
               </ul>
             </div>
 
-            <a href="/go" className="btn btn-primary mt-auto w-full sm:w-auto">
+            <Link href="/go" className="btn btn-primary group w-full sm:w-fit">
               Open on this computer
-            </a>
+              <ArrowRight className="nudge h-4 w-4" aria-hidden />
+            </Link>
           </article>
 
-          {/* 2. Drop — coming soon */}
-          <article
-            className="paper-card door-card flex flex-col gap-6 p-6 md:p-8"
-            style={{ animationDelay: "80ms" }}
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex h-11 w-11 items-center justify-center border border-border bg-muted">
-                <Inbox
-                  className="h-5 w-5 text-foreground"
-                  strokeWidth={1.5}
-                  aria-hidden
-                />
+          {/* Doors 02–03 — planned */}
+          {upcoming.map((d) => (
+            <article
+              key={d.title}
+              className="reveal flex flex-col gap-4 rounded-[12px] border border-dashed border-border bg-background p-6 md:p-8 lg:col-span-5"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex h-11 w-11 items-center justify-center rounded-[10px] border border-border">
+                  <d.icon className="h-5 w-5 text-muted-foreground" strokeWidth={1.5} aria-hidden />
+                </div>
+                <div className="flex flex-col items-end gap-2">
+                  <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">{d.door}</span>
+                  <span className="rounded-pill border border-border px-3 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Coming soon
+                  </span>
+                </div>
               </div>
-              <span className="rounded-pill bg-muted px-3 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Coming soon
-              </span>
-            </div>
-
-            <div className="flex flex-1 flex-col gap-3">
-              <h3 className="text-xl font-black uppercase tracking-tight text-foreground">
-                Drop
-              </h3>
-              <p className="text-base leading-relaxed text-muted-foreground">
-                People will send you files at yourname.nosus.foo without your
-                phone number. The door stays closed by default — you will
-                preview and accept before anything reaches your Drive.
-              </p>
-            </div>
-          </article>
-
-          {/* 3. Group drops — coming soon */}
-          <article
-            className="paper-card door-card flex flex-col gap-6 p-6 md:p-8"
-            style={{ animationDelay: "160ms" }}
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex h-11 w-11 items-center justify-center border border-border bg-muted">
-                <Users
-                  className="h-5 w-5 text-foreground"
-                  strokeWidth={1.5}
-                  aria-hidden
-                />
-              </div>
-              <span className="rounded-pill bg-muted px-3 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Coming soon
-              </span>
-            </div>
-
-            <div className="flex flex-1 flex-col gap-3">
-              <h3 className="text-xl font-black uppercase tracking-tight text-foreground">
-                Group drops
-              </h3>
-              <p className="text-base leading-relaxed text-muted-foreground">
-                A group feed is planned where each member&apos;s copy is saved
-                to their own Drive. Later: watermarks so you can see who leaked
-                a file. The planned feed is end-to-end encrypted — coming soon,
-                not shipping today.
-              </p>
-            </div>
-          </article>
+              <h3 className="text-2xl font-black tracking-[-0.02em] text-foreground">{d.title}</h3>
+              <p className="text-base leading-relaxed text-muted-foreground">{d.text}</p>
+            </article>
+          ))}
         </div>
       </div>
-
-      <style>{`
-        @keyframes doorCardIn {
-          from { opacity: 0; transform: translateY(8px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .door-card {
-          animation: doorCardIn 200ms ease-out both;
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .door-card {
-            animation: none;
-          }
-        }
-      `}</style>
     </section>
   );
 }
