@@ -133,9 +133,13 @@ in-app update banner (`lib/features/config/presentation/providers/app_update_pro
 Paste-ready Play Console listing copy + data-safety answers live in `store_listing/` — **every claim
 there must map to a shipped feature.** Listing *images* and Fastlane metadata live in
 `fastlane/metadata/android/en-IN/` (title, short/full description, `icon.png`,
-`featureGraphic.png`). Phone screenshots are **not** in-repo — capture them from a real
-device (Play: ≥1080px per side, aspect ≤2:1) and drop them in
-`images/phoneScreenshots/`. Do not rasterize widgets as store screenshots. Verify icon and
+`featureGraphic.png`). Phone screenshots (4, 1080x1920) are captured from the **web build** at
+app.nosus.foo by `tool/store_assets/capture_web_screenshots.mjs` (puppeteer-core, 360x640 at
+dpr 3). That is the same Flutter UI, and it is the only way to capture it: `MainActivity` sets
+`FLAG_SECURE` app-wide, so Android screenshots and `adb screencap` come out black. A raw
+1080x2400 phone capture would be 20:9 and rejected anyway (Play wants aspect <=2:1). Never
+rasterize widgets as store screenshots, and never publish a shot containing a live Burn link —
+the key rides in the URL; `3_share_ready.png` has it redacted. Verify icon and
 feature graphic with `tool/verify_store_images.py`. Upload with
 `bundle exec fastlane android upload_listing` only when `PLAY_JSON_KEY` points at a
 Play Developer API service-account JSON (gitignored). Do not create that key ad hoc.
