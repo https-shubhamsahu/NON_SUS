@@ -238,14 +238,19 @@ already shared into the wild — silently changing what parses is a production o
 formats parsing.**
 
 **Android App Links are host-wide, and `_routeIncomingWebLink()` is what stops that being a bug.**
-`AndroidManifest.xml` carries an `android:autoVerify="true"` filter for `https://app.nosus.foo`,
-verified against `web/.well-known/assetlinks.json`. It **cannot** be path-scoped: an intent filter
+`AndroidManifest.xml` carries an `android:autoVerify="true"` filter for `https://app.nosus.foo`
+and for `https://nosus.foo` (burn and share links are minted on the public host). Each host is
+verified against its own `assetlinks.json`: `web/.well-known/` for the app, and
+`homepage/public/.well-known/` for the marketing site (`homepage/public/.nojekyll` keeps GitHub
+Pages from dropping that dot-directory). A `nosus.foo` link that is not a burn, share, redeem,
+join, or Go pairing is handed back to a browser, so `/go`, `/to`, and the homepage still render
+on the web. It **cannot** be path-scoped: an intent filter
 has no way to match a URL fragment, and every link the app mints is fragment-shaped at path `/`
 (`/#/burn/…`, `/#/burnfile/…`, `/#/burnfiles/…`, `/?cb=…#/v/…`, `/#/join/…`). So an installed app
 intercepts *every* link to that host. `_routeIncomingWebLink()` in `lib/main.dart` must therefore
-handle every shape the app can mint — **add a new link shape without adding it there and the link
-dead-ends on the home screen**, silently, with no browser fallback, because the system already chose
-the app over the web page. It is the native mirror of the `Uri.base` branches that run in `main()`
+handle every shape the app can mint — **add a new link shape without adding it there and, on
+`app.nosus.foo`, the link dead-ends on the home screen**, because that host has no browser
+fallback. On `nosus.foo`, an unrecognised link is opened in a browser instead. It is the native mirror of the `Uri.base` branches that run in `main()`
 on web. `web/.nojekyll` is load-bearing for the same feature: without it GitHub Pages drops the
 `.well-known` dot-directory and verification fails. `assetlinks.json` lists the Play **app signing**
 keys by SHA-256. The key was rotated to a quantum-ready one, so it carries **both** the previous key

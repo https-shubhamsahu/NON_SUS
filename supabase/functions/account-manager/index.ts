@@ -1,24 +1,40 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8";
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Content-Type": "application/json",
+};
+
 function isObjectNotFound(err: { message: string }): boolean {
   const m = err.message.toLowerCase();
   return m.includes("not found") || m.includes("does not exist") || m.includes("404");
 }
 
-Deno.serve(async (req: Request) => {
+export async function handleRequest(req: Request): Promise<Response> {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...corsHeaders, Allow: "POST, OPTIONS" },
+    });
+  }
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) {
+    return new Response(JSON.stringify({ error: "Missing Authorization header" }), {
+      status: 401,
+      headers: corsHeaders,
+    });
+  }
+
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
   const admin = createClient(supabaseUrl, serviceRoleKey);
-
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader) {
-    return new Response(JSON.stringify({ error: "Missing Authorization header" }), {
-      status: 401,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
 
   const userClient = createClient(supabaseUrl, supabaseAnonKey, {
     global: { headers: { Authorization: authHeader } },
@@ -27,7 +43,7 @@ Deno.serve(async (req: Request) => {
   if (authError || !user) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
-      headers: { "Content-Type": "application/json" },
+      headers: corsHeaders,
     });
   }
 
@@ -47,7 +63,7 @@ Deno.serve(async (req: Request) => {
   const respond = (success: boolean, status: number) =>
     new Response(JSON.stringify({ success, summary, errors }), {
       status,
-      headers: { "Content-Type": "application/json" },
+      headers: corsHeaders,
     });
 
   // ── 1. Find all groups where user is admin ──────────────────────────────────
@@ -90,6 +106,7 @@ Deno.serve(async (req: Request) => {
 
       if (filesErr) {
         addError(`Group ${groupId}: query files failed — ${filesErr.message}`);
+        continue;
       } else {
         summary.files.database_records += files.length;
 
@@ -102,6 +119,7 @@ Deno.serve(async (req: Request) => {
               summary.files.storage_objects_deleted += paths.length;
             } else {
               addError(`Group ${groupId}: storage remove error — ${storageErr.message}`);
+              continue;
             }
           } else {
             summary.files.storage_objects_deleted += paths.length;
@@ -138,6 +156,8 @@ Deno.serve(async (req: Request) => {
   }
 
   // ── 3. Remove remaining memberships (groups where user was a regular member) ──
+  // Keep the account usable for a retry if group cleanup or promotion failed.
+  if (errors.length > 0) return respond(false, 500);
   const { count: removedCount, error: rmErr } = await admin
     .from("study_group_members")
     .delete({ count: "exact" })
@@ -162,6 +182,7 @@ Deno.serve(async (req: Request) => {
   }
 
   // ── 5. Delete profile (cascade removes devices) ────────────────────────────
+  if (errors.length > 0) return respond(false, 500);
   const { error: profileErr } = await admin.from("profiles").delete().eq("id", uid);
   if (profileErr) {
     addError(`Delete profile: ${profileErr.message}`);
@@ -170,6 +191,7 @@ Deno.serve(async (req: Request) => {
   }
 
   // ── 6. Delete the auth user (last — after this, no more operations) ───────
+  if (errors.length > 0) return respond(false, 500);
   const { error: deleteUserErr } = await admin.auth.admin.deleteUser(uid);
   if (deleteUserErr) {
     if (isObjectNotFound(deleteUserErr)) {
@@ -183,4 +205,6 @@ Deno.serve(async (req: Request) => {
 
   const success = errors.length === 0;
   return respond(success, success ? 200 : 500);
-});
+}
+
+if (import.meta.main) Deno.serve(handleRequest);

@@ -2,7 +2,7 @@
 
 **Style:** Minimalism & Swiss Style (high contrast, grid, sans, low decoration).
 
-**Why:** Privacy tool for students in India — dark-first ink UI that feels serious and honest; light mode is warm paper, not pure white. No rose/lavender Soft UI, no green/blue brand accent.
+**Why:** Privacy tool for students in India — dark-first ink UI; light mode is warm paper. Restrained instrument-like details, not glass or an imitation of another brand. Solid vermilion signal accents only; no gradients, translucent surfaces, or opacity animation.
 
 Other agents **must** consume these tokens. Do not invent hex in sections.
 
@@ -17,6 +17,7 @@ Other agents **must** consume these tokens. Do not invent hex in sections.
 | `bg-accent` / `text-accent-foreground` | Primary CTA (ink↔paper, not chroma) |
 | `ring-ring` / focus via globals | Focus ring |
 | `text-destructive` / `bg-destructive` | Errors |
+| `text-signal` / `bg-signal` | Small editorial markers: #ff765c dark, #ad3524 light |
 
 **Do not** use `bg-brand-black` / `bg-brand-gray*` for surfaces that should flip in light mode. Brand utilities are fixed ink for marks and legacy sections.
 
@@ -84,7 +85,7 @@ No Google Fonts CDN, no second family, no emoji icons.
 
 - **Spacing:** 4, 8, 12, 16, 24, 32, 48, 64, 96
 - **Radii:** `0` swiss rules · `12px` cards (`.paper-card`) · `999px` pills
-- **Shadows:** almost none; soft card shadow in light only
+- **Shadows:** none on cards; the Burn frame uses a solid offset edge
 - **Motion:** 150–250ms `ease-out`; `prefers-reduced-motion` kills decorative animation (incl. luxnox)
 - **Touch:** 44×44px minimum hit targets
 
@@ -94,7 +95,7 @@ No Google Fonts CDN, no second family, no emoji icons.
 - `.btn`, `.btn-primary`, `.btn-ghost` — optional control chrome; add `.group` + an icon with `.nudge` for the hover arrow
 - `ThemeToggle` — `src/components/ui/ThemeToggle.tsx`
 - `SectionHeader` — `src/components/ui/SectionHeader.tsx`: every section opens with `NN — Eyebrow`, a sentence-case H2 and an optional lede. Number sections in page order.
-- `.hero-glow` — ink spotlight (color-mix of `--foreground`, no chroma)
+- `.hero-mark` — three solid geometric marks above the headline
 
 ## Motion helpers (CSS only — no animation library on the landing page)
 
@@ -104,13 +105,13 @@ No Google Fonts CDN, no second family, no emoji icons.
 | `.reveal` | Scroll reveal via `animation-timeline: view()`, behind `@supports` + `prefers-reduced-motion: no-preference`. Unsupported browsers just show the content. |
 | `.rail-fill` | How-it-works rail that fills on scroll (same guards as `.reveal`). |
 | `.marquee` / `.marquee-track` | Hero spec strip. The list is rendered twice; the copy is `aria-hidden`. Every item must be true of what ships. |
-| `.pg-*` | Pairing loop in How Go works (`PairingDemo.tsx`) (10s: scan → match → live). Opacity/transform only; step labels swap colour, not opacity, to keep contrast. Reduced motion holds on the finished state. |
+| `.pg-*` | Pairing loop in How Go works (`PairingDemo.tsx`) (10s: scan → match → live). Discrete visibility switches and transforms; no fades. Reduced motion holds on the finished state. |
 
-Animate only `opacity`/`transform` (or colour on a few small labels). No JS scroll listeners for motion.
+Animate transforms (or colour on a few small labels). No fading, gradients, or JS scroll listeners for motion.
 
 ## Do / don’t
 
 - **Do** stay cryptographically honest — no zero-knowledge / “server cannot see it” claims beyond what ships
 - **Do** draw QR in-browser — never a third-party QR API (AES key in fragment)
 - **Don’t** import external fonts or emoji-as-icons
-- **Don’t** use pure white page backgrounds or chromatic brand accents (green/blue/rose)
+- **Don’t** use pure white page backgrounds, extra accent palettes, gradients, or opacity effects

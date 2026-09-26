@@ -5,7 +5,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -17,7 +18,9 @@ function json(body: unknown, status = 200): Response {
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
   const apiKey = Deno.env.get("GEMINI_API_KEY");
@@ -25,14 +28,19 @@ Deno.serve(async (req: Request) => {
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
-  if (!supabaseUrl || !anonKey) return json({ error: "Not configured" }, 503);
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseUrl || !anonKey || !serviceRoleKey) {
+    return json({ error: "Not configured" }, 503);
+  }
 
   const authHeader = req.headers.get("Authorization") ?? "";
   const userClient = createClient(supabaseUrl, anonKey, {
     global: { headers: { Authorization: authHeader } },
   });
   const { data: userData, error: userErr } = await userClient.auth.getUser();
-  if (userErr || !userData.user) return json({ error: "Sign in required" }, 401);
+  if (userErr || !userData.user) {
+    return json({ error: "Sign in required" }, 401);
+  }
 
   let body: { text?: string; question?: string };
   try {
@@ -44,6 +52,24 @@ Deno.serve(async (req: Request) => {
   const text = String(body.text ?? "").trim();
   if (!text) return json({ error: "Missing text" }, 400);
   if (text.length > 20000) return json({ error: "Text too long" }, 413);
+
+  // Optional AI calls must have a server-side cost ceiling. This RPC is
+  // service-role-only and atomically consumes the account's hourly budget.
+  const admin = createClient(supabaseUrl, serviceRoleKey);
+  const { data: withinBudget, error: budgetError } = await admin.rpc(
+    "consume_optional_service_budget",
+    {
+      p_user_id: userData.user.id,
+      p_service: "document-intelligence",
+    },
+  );
+  if (budgetError) {
+    console.error("document-insights: budget check failed", budgetError);
+    return json({ error: "Service is temporarily unavailable" }, 503);
+  }
+  if (!withinBudget) {
+    return json({ error: "Hourly document-insight limit reached" }, 429);
+  }
 
   const question = String(body.question ?? "").trim();
   const prompt = question

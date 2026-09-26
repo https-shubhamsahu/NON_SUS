@@ -11,7 +11,7 @@ export default function FaqAccordion() {
     },
     {
       q: "What is Saved?",
-      a: "A chat with yourself stored in your Google Drive, in a NO SUS/ folder. The phone is the Drive client.",
+      a: "A chat with yourself stored in your Google Drive, in a NO SUS/ folder. The phone is the Drive client. Saved and Go are early access, available only when enabled for your account.",
     },
     {
       q: "What happens on a borrowed computer?",
@@ -39,7 +39,7 @@ export default function FaqAccordion() {
     },
     {
       q: "Can I revoke access?",
-      a: "Yes. In the SecureSend link sharing dashboard, you can revoke any active share link instantly, shutting down active sessions and rendering the shared file immediately inaccessible.",
+      a: "Yes. Revoking a SecureSend link stops new access through that link. Active viewers close when their next access check detects revocation. Previously issued download URLs may remain valid briefly, and downloaded files, prints, or screenshots cannot be recalled.",
     },
     {
       q: "Can I prevent screenshots?",

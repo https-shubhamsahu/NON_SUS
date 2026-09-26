@@ -268,11 +268,11 @@ export default function BurnTool() {
       onFocusCapture={() => warmFor(tab)}
     >
       <div
-        className={`relative z-10 flex w-full flex-col items-center justify-center border-4 border-foreground/85 bg-card p-6 text-left shadow-[8px_8px_0_0_var(--muted)] transition-[border-radius,border-color] duration-200 ease-out motion-reduce:transition-none sm:w-[480px] xl:w-[520px] ${
+        className={`relative z-10 flex w-full flex-col items-center justify-center border-4 border-foreground bg-card p-6 text-left shadow-[8px_8px_0_0_var(--muted)] transition-[border-radius,border-color] duration-200 ease-out motion-reduce:transition-none sm:w-[480px] xl:w-[520px] ${
           phase === "done"
             ? "min-h-[380px] rounded-[40px] py-8 sm:min-h-[480px] sm:rounded-[56px] xl:min-h-[520px]"
             : "min-h-[400px] rounded-[40px] sm:h-[480px] sm:rounded-full sm:px-14 xl:h-[520px]"
-        } ${dragOver ? "border-foreground ring-4 ring-ring/30" : ""}`}
+        } ${dragOver ? "border-foreground ring-4 ring-ring" : ""}`}
       >
           {phase === "working" ? (
             <div
@@ -288,7 +288,7 @@ export default function BurnTool() {
                   <Lock className="h-5 w-5 text-foreground" />
                 </div>
               </div>
-              <span className="text-xs font-mono tracking-widest text-muted-foreground animate-pulse motion-reduce:animate-none text-center max-w-[240px] uppercase">
+              <span className="text-xs font-mono tracking-widest text-muted-foreground  motion-reduce:animate-none text-center max-w-[240px] uppercase">
                 {statusLabel}
               </span>
             </div>
@@ -320,7 +320,7 @@ export default function BurnTool() {
                   </button>
                 ) : !pairingSettled ? (
                   <span
-                    className="text-[52px] sm:text-[60px] leading-none font-black tabular-nums tracking-[0.18em] text-muted-foreground/40 animate-pulse motion-reduce:animate-none"
+                    className="text-[52px] sm:text-[60px] leading-none font-black tabular-nums tracking-[0.18em] text-muted-foreground  motion-reduce:animate-none"
                     aria-label="Generating confirmation code"
                   >
                     ··
@@ -345,7 +345,7 @@ export default function BurnTool() {
                 <div
                   role="img"
                   aria-label="Preparing the share link"
-                  className="w-[120px] h-[120px] rounded-[12px] bg-muted animate-pulse motion-reduce:animate-none"
+                  className="w-[120px] h-[120px] rounded-[12px] bg-muted  motion-reduce:animate-none"
                 />
               )}
 
@@ -353,7 +353,7 @@ export default function BurnTool() {
                 type="button"
                 onClick={copyLink}
                 disabled={!sharedLink}
-                className="btn btn-primary disabled:opacity-40 disabled:pointer-events-none"
+                className="btn btn-primary disabled:bg-muted disabled:text-muted-foreground disabled:pointer-events-none"
               >
                 {copied ? (
                   <>
@@ -415,7 +415,7 @@ export default function BurnTool() {
                 role="tablist"
                 aria-label="Burn tool mode"
                 onKeyDown={onTabKey}
-                className="flex border border-border bg-muted/70 p-1 rounded-[10px] mb-4 w-full max-w-[320px]"
+                className="flex border border-border bg-muted p-1 rounded-[10px] mb-4 w-full max-w-[320px]"
               >
                 {TABS.map((t, i) => (
                   <button
@@ -429,7 +429,7 @@ export default function BurnTool() {
                     onClick={() => switchTab(t.id)}
                     className={`flex-1 min-h-[44px] whitespace-nowrap px-2 sm:px-3 text-xs font-mono font-bold uppercase tracking-wider transition-colors duration-150 motion-reduce:transition-none rounded-[6px] ${
                       tab === t.id
-                        ? "bg-card text-foreground shadow-sm border border-border/80"
+                        ? "bg-card text-foreground shadow-sm border border-border"
                         : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
@@ -450,7 +450,7 @@ export default function BurnTool() {
                     }}
                     placeholder="Write or paste a secret note…"
                     aria-label="Secret note"
-                    className="block w-full max-w-[360px] h-[128px] overflow-y-auto bg-background border border-border hover:border-foreground/40 focus:border-foreground p-4 text-base font-mono text-left text-foreground resize-none rounded-[12px] leading-relaxed"
+                    className="block w-full max-w-[360px] h-[128px] overflow-y-auto bg-background border border-border hover:border-foreground focus:border-foreground p-4 text-base font-mono text-left text-foreground resize-none rounded-[12px] leading-relaxed"
                   />
                   <div className="flex flex-wrap items-center gap-2 w-full max-w-[360px] mt-3">
                     <button
@@ -486,7 +486,7 @@ export default function BurnTool() {
                     className={`btn mt-4 ${
                       noteText.trim()
                         ? "btn-primary"
-                        : "opacity-40 cursor-not-allowed"
+                        : "text-muted-foreground cursor-not-allowed"
                     }`}
                   >
                     Burn Note
@@ -510,7 +510,7 @@ export default function BurnTool() {
                     className={`w-full max-w-[360px] min-h-[140px] border-2 border-dashed rounded-[12px] flex flex-col items-center justify-center cursor-pointer transition-colors duration-200 ease-out motion-reduce:transition-none p-6 ${
                       dragOver
                         ? "border-foreground bg-muted"
-                        : "border-border hover:border-foreground/40 bg-transparent"
+                        : "border-border hover:border-foreground bg-transparent"
                     }`}
                   >
                     <input
@@ -560,7 +560,7 @@ export default function BurnTool() {
                     autoCapitalize="characters"
                     autoCorrect="off"
                     spellCheck={false}
-                    className="w-full max-w-[320px] min-h-[44px] bg-background border border-border hover:border-foreground/40 focus:border-foreground py-3 px-4 text-center text-base font-mono tracking-[0.2em] text-foreground rounded-[12px] uppercase"
+                    className="w-full max-w-[320px] min-h-[44px] bg-background border border-border hover:border-foreground focus:border-foreground py-3 px-4 text-center text-base font-mono tracking-[0.2em] text-foreground rounded-[12px] uppercase"
                   />
                   <p className="text-sm font-mono text-muted-foreground mt-4 text-center max-w-[280px] leading-relaxed">
                     Paste the link you were sent. If it came with a 2-digit code, you&apos;ll type it next.
@@ -572,7 +572,7 @@ export default function BurnTool() {
                     className={`btn mt-6 ${
                       redeemInput.trim()
                         ? "btn-primary"
-                        : "opacity-40 cursor-not-allowed"
+                        : "text-muted-foreground cursor-not-allowed"
                     }`}
                   >
                     Unlock

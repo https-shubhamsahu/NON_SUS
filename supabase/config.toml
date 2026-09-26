@@ -415,6 +415,34 @@ s3_secret_key = "env(S3_SECRET_KEY)"
 [functions.drive-proxy]
 verify_jwt = false
 
+# Anonymous Burn flows are deliberate: the share credential is the opaque
+# URL token, and recipients do not need an account. Keep these explicit so a
+# future redeploy cannot silently restore the platform JWT gate.
+[functions.burn-file-init]
+verify_jwt = false
+
+[functions.burn-file-confirm]
+verify_jwt = false
+
+[functions.burn-file-fetch]
+verify_jwt = false
+
+[functions.create-redemption-code]
+verify_jwt = false
+
+[functions.redeem-code]
+verify_jwt = false
+
+[functions.share-fetch]
+verify_jwt = false
+
+[functions.share-heartbeat]
+verify_jwt = false
+
+# pg_cron invokes this through pg_net with x-cron-secret, not a user JWT.
+[functions.cleanup-burn-files]
+verify_jwt = false
+
 [functions.go-session-open]
 verify_jwt = false
 
@@ -448,3 +476,15 @@ verify_jwt = true
 
 [functions.document-insights]
 verify_jwt = true
+
+[functions.document-intelligence]
+verify_jwt = true
+
+# Integrity verdict requests originate from an authenticated app session.
+[functions.verify-play-integrity]
+verify_jwt = true
+
+# A scheduler authenticates this with x-sweep-secret. Requiring a JWT here
+# would reject the sweep before the function can validate that secret.
+[functions.send-push]
+verify_jwt = false

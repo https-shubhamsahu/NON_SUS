@@ -38,7 +38,7 @@ export default function LuxNoxSection() {
           <div className="group/mark lg:col-span-5 flex flex-col items-center gap-6">
             <div className="group relative flex items-center justify-center select-none">
               <div className="absolute inset-[-28px] rounded-full border border-dashed border-border luxnox-ring motion-reduce:animate-none" />
-              <div className="absolute inset-[-14px] rounded-full border border-border/60" />
+              <div className="absolute inset-[-14px] rounded-full border border-border" />
               <div className="luxnox-breathe motion-reduce:animate-none rounded-full overflow-hidden bg-card border border-border">
                 <Image
                   src="/luxandnox.webp"

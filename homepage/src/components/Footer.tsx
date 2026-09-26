@@ -9,7 +9,6 @@ import {
   RELEASES_URL,
 } from "@/lib/links";
 import NoSusLogo from "./ui/Logo";
-import AppLink from "./AppLink";
 
 const footerLinks = {
   Product: [
@@ -44,7 +43,6 @@ export default function Footer() {
     <footer className="relative border-t border-border bg-background">
       {/* Closing call to action */}
       <div className="relative overflow-hidden border-b border-border">
-        <div className="hero-glow pointer-events-none absolute inset-0" aria-hidden="true" />
         <div className="relative mx-auto flex max-w-7xl flex-col items-start gap-8 px-6 py-20 md:px-8 md:py-28">
           <p className="eyebrow">
             <span className="eyebrow-index" aria-hidden="true">→</span>
@@ -65,7 +63,7 @@ export default function Footer() {
               Try a burn note
               <ArrowRight className="nudge h-4 w-4" aria-hidden />
             </Link>
-            <AppLink className="btn btn-ghost min-h-12 px-6">Get the Android app</AppLink>
+            <a href={RELEASES_URL} className="btn btn-ghost min-h-12 px-6">Get the Android app</a>
             <a href={APP_URL} className="btn btn-ghost group min-h-12 px-6">
               Open the web app
               <ArrowUpRight className="nudge h-4 w-4" aria-hidden />

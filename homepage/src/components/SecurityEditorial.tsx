@@ -90,7 +90,7 @@ export default function SecurityEditorial() {
                   </div>
                 ))}
               </dl>
-              <p className="border-t border-border bg-muted/40 px-6 py-4 text-sm leading-relaxed text-muted-foreground">
+              <p className="border-t border-border bg-muted px-6 py-4 text-sm leading-relaxed text-muted-foreground">
                 Browsers can&apos;t block screenshots, so on the web NO SUS deters
                 and traces with watermarks and touch-to-reveal blur. The Android
                 app blocks screenshots and screen recording of protected documents.

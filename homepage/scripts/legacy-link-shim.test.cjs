@@ -96,6 +96,23 @@ test('the Go desk does not load analytics', () => {
   assert.equal(page.scripts.length, 0);
 });
 
+test('exported private HTML pages never load analytics', () => {
+  for (const path of ['/go.html', '/to.html?h=alice']) {
+    const page = load('https://nosus.foo' + path);
+    assert.equal(page.location.replaced, null);
+    assert.equal(page.scripts.length, 0);
+  }
+});
+
+test('Go pairing links reach the app but the ordinary Go desk stays on the website', () => {
+  for (const path of ['/#/go/1.session.publickey', '/go/1.session.publickey']) {
+    const page = load('https://nosus.foo' + path);
+    assert.equal(page.location.replaced.target, 'https://app.nosus.foo' + path);
+    assert.equal(page.scripts.length, 0);
+  }
+  assert.equal(load('https://nosus.foo/go').location.replaced, null);
+});
+
 test('the Drop page and handle subdomains do not load analytics', () => {
   for (const url of [
     'https://nosus.foo/to',

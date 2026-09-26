@@ -16,7 +16,7 @@ const FEATURES = [
   {
     icon: Stamp,
     name: "SecureSend",
-    text: "Documents watermarked to whoever opens them. Revoke any time.",
+    text: "Viewer-entered email watermarks, access history, and link revocation.",
     status: "In the app",
     href: "/#sharing",
   },
@@ -58,8 +58,6 @@ const SPEC_STRIP = [
 export default function Hero() {
   return (
     <section id="try" className="relative overflow-hidden border-b border-border bg-background">
-      <div className="hero-glow pointer-events-none absolute inset-0" aria-hidden="true" />
-      <div className="swiss-grid pointer-events-none absolute inset-0 [mask-image:linear-gradient(to_bottom,#000_40%,transparent)]" aria-hidden="true" />
 
       <div className="relative mx-auto w-full max-w-7xl px-6 pt-28 pb-16 md:px-8 md:pt-36 md:pb-24">
         {/* Phones read copy → tool → features; xl puts the tool in its own column. */}
@@ -72,13 +70,13 @@ export default function Hero() {
               </span>
             </div>
 
+            <div className="hero-mark" aria-hidden="true" />
             <h1 className="max-w-2xl text-[44px] font-black leading-[0.98] tracking-[-0.035em] text-foreground sm:text-6xl xl:text-[60px]">
               Burn it. Trace it. Open it anywhere.
             </h1>
 
             <p className="rise max-w-xl text-lg leading-relaxed text-muted-foreground sm:text-xl" style={{ animationDelay: "60ms" }}>
-              Self-destructing notes and files, documents watermarked to
-              whoever opens them, and your Drive on a borrowed computer. Try
+              Self-destructing notes and files, documents with viewer-email watermarks, and your Drive on a borrowed computer. Try
               the burn tool right here — no account.
             </p>
           </div>
@@ -96,7 +94,7 @@ export default function Hero() {
             <ul className="flex flex-col border-t border-border">
               {FEATURES.map((f) => (
                 <li key={f.name} className="border-b border-border">
-                  <Link href={f.href} className="group flex items-start gap-3 py-3.5 hover:bg-card/60">
+                  <Link href={f.href} className="group flex items-start gap-3 py-3.5 hover:bg-card">
                     <f.icon className="mt-0.5 h-5 w-5 shrink-0 text-foreground" strokeWidth={1.5} aria-hidden />
                     <span className="flex min-w-0 flex-1 flex-col">
                       <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -117,14 +115,14 @@ export default function Hero() {
       </div>
 
       {/* Spec strip */}
-      <div className="marquee relative overflow-hidden border-t border-border bg-card/60 py-3">
+      <div className="marquee relative overflow-hidden border-t border-border bg-card py-3">
         <div className="marquee-track">
           {[0, 1].map((copy) => (
             <ul key={copy} className="flex shrink-0 items-center" aria-hidden={copy === 1 ? true : undefined}>
               {SPEC_STRIP.map((item) => (
                 <li key={item} className="flex items-center gap-6 pr-6 font-mono text-xs uppercase tracking-widest text-muted-foreground whitespace-nowrap">
                   <span>{item}</span>
-                  <span className="h-1 w-1 bg-foreground/50" aria-hidden="true" />
+                  <span className="h-1 w-1 bg-foreground" aria-hidden="true" />
                 </li>
               ))}
             </ul>

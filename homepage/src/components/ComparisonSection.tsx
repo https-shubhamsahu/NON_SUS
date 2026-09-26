@@ -90,7 +90,7 @@ export default function ComparisonSection() {
             <div key={r.capability} className="reveal paper-card p-5">
               <h3 className="text-base font-bold text-foreground">{r.capability}</h3>
               <dl className="mt-4 flex flex-col gap-3 text-sm leading-relaxed">
-                <div className="rounded-[8px] border border-foreground/60 p-3">
+                <div className="rounded-[8px] border border-foreground p-3">
                   <dt className="font-mono text-[11px] font-bold uppercase tracking-widest text-foreground">{columns.nosus}</dt>
                   <dd className="mt-1 text-foreground">{r.nosus}</dd>
                 </div>

@@ -4,10 +4,9 @@ import { useState, useEffect } from "react";
 import { ArrowRight, Menu, X } from "lucide-react";
 import Link from "next/link";
 
-import { APP_URL } from "@/lib/links";
+import { APP_URL, RELEASES_URL } from "@/lib/links";
 import NoSusLogo from "./ui/Logo";
 import { ThemeToggle } from "./ui/ThemeToggle";
-import AppLink from "./AppLink";
 
 const navLinks = [
   { name: "Try it", href: "/#try" },
@@ -50,8 +49,8 @@ export default function Navbar() {
       <header
         className={`fixed top-0 left-0 right-0 z-50 py-4 border-b transition-[background-color,border-color] duration-200 ease-out motion-reduce:transition-none ${
           scrolled
-            ? "bg-background/95 border-border"
-            : "bg-transparent border-transparent"
+            ? "bg-background border-border"
+            : "bg-background border-transparent"
         }`}
       >
         <div className="mx-auto max-w-7xl px-6 md:px-8">
@@ -61,6 +60,10 @@ export default function Navbar() {
                 sizeClass="text-lg md:text-xl"
                 className="!text-foreground"
               />
+              <span className="hidden sm:inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground border border-border px-2 py-0.5 rounded-[4px] bg-muted">
+                <span className="eink-live text-foreground" />
+                <span>v1.4.1</span>
+              </span>
             </Link>
 
             <ul className="hidden xl:flex items-center gap-7">
@@ -84,9 +87,9 @@ export default function Navbar() {
               >
                 Sign in
               </a>
-              <AppLink className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground min-h-11 inline-flex items-center">
+              <a href={RELEASES_URL} className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground min-h-11 inline-flex items-center">
                 Get the app
-              </AppLink>
+              </a>
               <Link
                 href="/go"
                 className="btn btn-primary group min-h-11 px-5 text-xs"
@@ -117,7 +120,7 @@ export default function Navbar() {
       </header>
 
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-40 bg-background/98 pt-28 px-6 xl:hidden flex flex-col justify-between gap-8 pb-8 overflow-y-auto">
+        <div className="fixed inset-0 z-40 bg-background pt-28 px-6 xl:hidden flex flex-col justify-between gap-8 pb-8 overflow-y-auto">
           <div className="flex flex-col gap-6">
             <div className="flex justify-end">
               <button
@@ -153,12 +156,13 @@ export default function Navbar() {
             >
               Sign in
             </a>
-            <AppLink
-              onNavigate={() => setMobileMenuOpen(false)}
+            <a
+              href={RELEASES_URL}
+              onClick={() => setMobileMenuOpen(false)}
               className="btn btn-ghost min-h-11 w-full"
             >
               Get the app
-            </AppLink>
+            </a>
             <Link
               href="/go"
               onClick={() => setMobileMenuOpen(false)}

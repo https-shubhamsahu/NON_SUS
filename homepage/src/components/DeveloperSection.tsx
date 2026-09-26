@@ -73,7 +73,7 @@ export default function DeveloperSection() {
               {stack.map((s) => (
                 <span
                   key={s}
-                  className="text-[10px] font-mono uppercase tracking-widest border border-border bg-muted/40 px-2.5 py-1 rounded-sm text-muted-foreground"
+                  className="text-[10px] font-mono uppercase tracking-widest border border-border bg-muted px-2.5 py-1 rounded-sm text-muted-foreground"
                 >
                   {s}
                 </span>

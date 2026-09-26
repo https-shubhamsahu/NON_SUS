@@ -1,16 +1,23 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8";
-import { SignJWT, importPKCS8 } from "https://deno.land/x/jose@v4.13.1/index.ts";
+import {
+  importPKCS8,
+  SignJWT,
+} from "https://deno.land/x/jose@v4.13.1/index.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
 };
 
 // ─── Google OAuth2 Access Token Exchange ─────────────────────────────────────
-async function getGoogleAccessToken(email: string, privateKey: string): Promise<string> {
+async function getGoogleAccessToken(
+  email: string,
+  privateKey: string,
+): Promise<string> {
   const cleanedKey = privateKey.replace(/\\n/g, "\n");
-  
+
   const jwt = await new SignJWT({
     scope: "https://www.googleapis.com/auth/drive",
   })
@@ -129,10 +136,13 @@ Deno.serve(async (req: Request) => {
     // 2. Authenticate the incoming client JWT using Supabase auth
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Missing Authorization header" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Missing Authorization header" }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -158,7 +168,8 @@ Deno.serve(async (req: Request) => {
       const supabase = createClient(supabaseUrl, supabaseAnonKey, {
         global: { headers: { Authorization: authHeader } },
       });
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      const { data: { user }, error: authError } = await supabase.auth
+        .getUser();
       if (!authError && user) {
         isAuthorized = true;
         authedUserId = user.id;
@@ -166,10 +177,13 @@ Deno.serve(async (req: Request) => {
     }
 
     if (!isAuthorized) {
-      return new Response(JSON.stringify({ error: "Unauthorized session JWT" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Unauthorized session JWT" }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     // 3. Load Google Drive Service Account Secrets
@@ -180,13 +194,15 @@ Deno.serve(async (req: Request) => {
     if (!serviceAccountEmail || !serviceAccountKey) {
       return new Response(
         JSON.stringify({
-          error: "Google Drive proxy secrets are not configured in your Supabase dashboard.",
-          setupInstructions: "Set 'GD_SERVICE_ACCOUNT_EMAIL' and 'GD_PRIVATE_KEY' in your Supabase project secrets.",
+          error:
+            "Google Drive proxy secrets are not configured in your Supabase dashboard.",
+          setupInstructions:
+            "Set 'GD_SERVICE_ACCOUNT_EMAIL' and 'GD_PRIVATE_KEY' in your Supabase project secrets.",
         }),
         {
           status: 503,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
@@ -201,7 +217,10 @@ Deno.serve(async (req: Request) => {
     // 4. Handle Route: POST /upload
     if (req.method === "POST" && path === "upload") {
       const filename = url.searchParams.get("name") || `file_${Date.now()}.enc`;
-      const token = await getGoogleAccessToken(serviceAccountEmail, serviceAccountKey);
+      const token = await getGoogleAccessToken(
+        serviceAccountEmail,
+        serviceAccountKey,
+      );
 
       // Construct a raw multipart/related body to attach folder parent and file name
       const boundary = "boundary_nosus_gdrive_upload";
@@ -210,8 +229,12 @@ Deno.serve(async (req: Request) => {
         parents: parentFolderId ? [parentFolderId] : undefined,
       };
 
-      const metadataPart = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n`;
-      const mediaHeader = `--${boundary}\r\nContent-Type: application/octet-stream\r\n\r\n`;
+      const metadataPart =
+        `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${
+          JSON.stringify(metadata)
+        }\r\n`;
+      const mediaHeader =
+        `--${boundary}\r\nContent-Type: application/octet-stream\r\n\r\n`;
       const mediaFooter = `\r\n--${boundary}--`;
 
       const encoder = new TextEncoder();
@@ -222,29 +245,39 @@ Deno.serve(async (req: Request) => {
 
       // Combine parts
       const body = new Uint8Array(
-        metadataBytes.length + mediaHeaderBytes.length + fileBytes.length + mediaFooterBytes.length
+        metadataBytes.length + mediaHeaderBytes.length + fileBytes.length +
+          mediaFooterBytes.length,
       );
       let offset = 0;
-      body.set(metadataBytes, offset); offset += metadataBytes.length;
-      body.set(mediaHeaderBytes, offset); offset += mediaHeaderBytes.length;
-      body.set(fileBytes, offset); offset += fileBytes.length;
+      body.set(metadataBytes, offset);
+      offset += metadataBytes.length;
+      body.set(mediaHeaderBytes, offset);
+      offset += mediaHeaderBytes.length;
+      body.set(fileBytes, offset);
+      offset += fileBytes.length;
       body.set(mediaFooterBytes, offset);
 
-      const uploadResponse = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": `multipart/related; boundary=${boundary}`,
+      const uploadResponse = await fetch(
+        "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart",
+        {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": `multipart/related; boundary=${boundary}`,
+          },
+          body,
         },
-        body,
-      });
+      );
 
       if (!uploadResponse.ok) {
         const errorText = await uploadResponse.text();
-        return new Response(JSON.stringify({ error: `Google Drive upload failed: ${errorText}` }), {
-          status: uploadResponse.status,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return new Response(
+          JSON.stringify({ error: `Google Drive upload failed: ${errorText}` }),
+          {
+            status: uploadResponse.status,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
       }
 
       const data = await uploadResponse.json();
@@ -258,15 +291,23 @@ Deno.serve(async (req: Request) => {
     if (req.method === "GET" && path === "download") {
       const fileId = url.searchParams.get("fileId");
       if (!fileId) {
-        return new Response(JSON.stringify({ error: "Missing fileId parameter" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return new Response(
+          JSON.stringify({ error: "Missing fileId parameter" }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
       }
 
       if (!isServiceRole) {
         const allowed = authedUserId !== null &&
-          await callerMayAccessDriveFile(supabaseUrl, serviceRoleKey, fileId, authedUserId);
+          await callerMayAccessDriveFile(
+            supabaseUrl,
+            serviceRoleKey,
+            fileId,
+            authedUserId,
+          );
         if (!allowed) {
           return new Response(JSON.stringify({ error: "Forbidden" }), {
             status: 403,
@@ -275,19 +316,30 @@ Deno.serve(async (req: Request) => {
         }
       }
 
-      const token = await getGoogleAccessToken(serviceAccountEmail, serviceAccountKey);
-      const driveResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
-        headers: {
-          "Authorization": `Bearer ${token}`,
+      const token = await getGoogleAccessToken(
+        serviceAccountEmail,
+        serviceAccountKey,
+      );
+      const driveResponse = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+        {
+          headers: {
+            "Authorization": `Bearer ${token}`,
+          },
         },
-      });
+      );
 
       if (!driveResponse.ok) {
         const errorText = await driveResponse.text();
-        return new Response(JSON.stringify({ error: `Google Drive file retrieval failed: ${errorText}` }), {
-          status: driveResponse.status,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return new Response(
+          JSON.stringify({
+            error: `Google Drive file retrieval failed: ${errorText}`,
+          }),
+          {
+            status: driveResponse.status,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
       }
 
       // Pipe the Google Drive stream directly back to the client response
@@ -295,7 +347,8 @@ Deno.serve(async (req: Request) => {
         status: 200,
         headers: {
           ...corsHeaders,
-          "Content-Type": driveResponse.headers.get("Content-Type") || "application/octet-stream",
+          "Content-Type": driveResponse.headers.get("Content-Type") ||
+            "application/octet-stream",
           "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
           "Pragma": "no-cache",
         },
@@ -306,10 +359,13 @@ Deno.serve(async (req: Request) => {
     if (req.method === "DELETE" && path === "delete") {
       const fileId = url.searchParams.get("fileId");
       if (!fileId) {
-        return new Response(JSON.stringify({ error: "Missing fileId parameter" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return new Response(
+          JSON.stringify({ error: "Missing fileId parameter" }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
       }
 
       // Ordering note: this runs while the `secure_files` row still exists, so
@@ -318,7 +374,12 @@ Deno.serve(async (req: Request) => {
       // would be orphaned in Drive rather than deleted.
       if (!isServiceRole) {
         const allowed = authedUserId !== null &&
-          await callerMayAccessDriveFile(supabaseUrl, serviceRoleKey, fileId, authedUserId);
+          await callerMayAccessDriveFile(
+            supabaseUrl,
+            serviceRoleKey,
+            fileId,
+            authedUserId,
+          );
         if (!allowed) {
           return new Response(JSON.stringify({ error: "Forbidden" }), {
             status: 403,
@@ -327,20 +388,31 @@ Deno.serve(async (req: Request) => {
         }
       }
 
-      const token = await getGoogleAccessToken(serviceAccountEmail, serviceAccountKey);
-      const deleteResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
-        method: "DELETE",
-        headers: {
-          "Authorization": `Bearer ${token}`,
+      const token = await getGoogleAccessToken(
+        serviceAccountEmail,
+        serviceAccountKey,
+      );
+      const deleteResponse = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${fileId}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+          },
         },
-      });
+      );
 
       if (!deleteResponse.ok && deleteResponse.status !== 404) {
         const errorText = await deleteResponse.text();
-        return new Response(JSON.stringify({ error: `Google Drive file deletion failed: ${errorText}` }), {
-          status: deleteResponse.status,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return new Response(
+          JSON.stringify({
+            error: `Google Drive file deletion failed: ${errorText}`,
+          }),
+          {
+            status: deleteResponse.status,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
       }
 
       return new Response(JSON.stringify({ success: true }), {
@@ -353,9 +425,12 @@ Deno.serve(async (req: Request) => {
       status: 404,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    // Do not expose an unexpected upstream or SDK error to the caller. Such
+    // messages can include implementation details that do not help them
+    // recover; retain the original value only in server-side logs.
+    console.error("drive-proxy: unexpected failure", error);
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

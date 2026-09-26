@@ -26,7 +26,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   // Browsers cache the CORS preflight (Chrome caps at 2h) instead of paying
   // an extra round trip before every call from nosus.foo.
@@ -50,8 +51,14 @@ async function hmacHex(message: string, secret: string): Promise<string> {
     false,
     ["sign"],
   );
-  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(message));
-  return Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, "0")).join("");
+  const sig = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    new TextEncoder().encode(message),
+  );
+  return Array.from(new Uint8Array(sig)).map((b) =>
+    b.toString(16).padStart(2, "0")
+  ).join("");
 }
 
 function generatePairingCode(): string {
@@ -68,7 +75,9 @@ function generateRedeemToken(): string {
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -117,7 +126,9 @@ Deno.serve(async (req: Request) => {
     .from("remote_configs")
     .select("config_key, config_value")
     .eq("config_key", "redeem_code_ttl_minutes");
-  const ttlMinutes = configRows?.length ? Number(configRows[0].config_value) : 20;
+  const ttlMinutes = configRows?.length
+    ? Number(configRows[0].config_value)
+    : 20;
 
   // Verify the target still exists and hasn't already been consumed/expired
   // — a code for dead content would just be a confusing dead end.
@@ -128,7 +139,10 @@ Deno.serve(async (req: Request) => {
       .select("expires_at, consumed_at")
       .eq("id", targetId)
       .maybeSingle();
-    if (!fileRow || fileRow.consumed_at || new Date(fileRow.expires_at) <= new Date()) {
+    if (
+      !fileRow || fileRow.consumed_at ||
+      new Date(fileRow.expires_at) <= new Date()
+    ) {
       return json({ error: "This file is no longer available" }, 404);
     }
     targetExpiresAt = fileRow.expires_at;
@@ -144,9 +158,17 @@ Deno.serve(async (req: Request) => {
     targetExpiresAt = noteRow.expires_at;
   }
 
+  // The database column is non-null, but preserve the boundary here: a
+  // malformed or partially migrated row must never mint a code with an
+  // invalid expiry.
+  if (!targetExpiresAt) {
+    return json({ error: "This item is no longer available" }, 404);
+  }
+
   const ttlExpiry = new Date(Date.now() + ttlMinutes * 60 * 1000);
   const targetExpiry = new Date(targetExpiresAt);
-  const expiresAt = (ttlExpiry < targetExpiry ? ttlExpiry : targetExpiry).toISOString();
+  const expiresAt = (ttlExpiry < targetExpiry ? ttlExpiry : targetExpiry)
+    .toISOString();
 
   const code = generatePairingCode();
   const redeemToken = generateRedeemToken();
@@ -155,15 +177,17 @@ Deno.serve(async (req: Request) => {
     hmacHex(redeemToken, codeSalt),
   ]);
 
-  const { error: insertErr } = await admin.from("burn_redemption_codes").insert({
-    code_hash: codeHash,
-    redeem_token_hash: redeemTokenHash,
-    target_kind: targetKind,
-    target_id: targetId,
-    key_hex: keyHex,
-    iv_hex: ivHex,
-    expires_at: expiresAt,
-  });
+  const { error: insertErr } = await admin.from("burn_redemption_codes").insert(
+    {
+      code_hash: codeHash,
+      redeem_token_hash: redeemTokenHash,
+      target_kind: targetKind,
+      target_id: targetId,
+      key_hex: keyHex,
+      iv_hex: ivHex,
+      expires_at: expiresAt,
+    },
+  );
 
   if (insertErr) {
     console.error("create-redemption-code: failed to insert row", insertErr);

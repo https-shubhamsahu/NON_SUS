@@ -101,7 +101,7 @@ entry_hash = sha256(
           <div className="reveal lg:col-span-8 border border-border bg-card rounded-[12px] overflow-hidden flex flex-col justify-between min-h-[380px] paper-card">
             
             {/* Tabs Header menu */}
-            <div role="tablist" aria-label="Mechanics" onKeyDown={onTabKey} className="flex overflow-x-auto border-b border-border bg-muted/30">
+            <div role="tablist" aria-label="Mechanics" onKeyDown={onTabKey} className="flex overflow-x-auto border-b border-border bg-muted">
               {tabs.map((tab) => {
                 const isActive = activeTab === tab.id;
                 return (
@@ -133,15 +133,15 @@ entry_hash = sha256(
               role="tabpanel"
               aria-labelledby={`dev-tab-${activeTab}`}
               tabIndex={0}
-              className="flex-1 bg-brand-black p-6 font-mono text-xs text-white/90 leading-relaxed overflow-x-auto relative"
+              className="flex-1 bg-brand-black p-6 font-mono text-xs text-white leading-relaxed overflow-x-auto relative"
             >
-              <div aria-hidden="true" className="absolute right-4 top-4 text-[10px] text-white/60 select-none uppercase font-bold">
+              <div aria-hidden="true" className="absolute right-4 top-4 text-[10px] text-white select-none uppercase font-bold">
                 {activeTab} block
               </div>
               <>
                 <pre
                   key={activeTab}
-                  className="whitespace-pre font-mono text-xs text-white/90"
+                  className="whitespace-pre font-mono text-xs text-white"
                 >
                   <code>{codeBlocks[activeTab]}</code>
                 </pre>
