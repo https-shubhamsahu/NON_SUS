@@ -559,6 +559,15 @@ codebase — assume still outstanding unless you know otherwise.
 > bottom rather than letting this section grow without bound.
 
 <!-- CHANGELOG:INSERT -->
+- **2026-09-26** · feat(applinks): claim nosus.foo in the Android app, hand non-app pages back to a
+  browser; land the Codex backend audit — why: burn and share links in the wild are
+  `https://nosus.foo/#/…`, which a website redirect cannot hand to the installed app. The app now
+  also verifies `nosus.foo` (assetlinks in `homepage/public/.well-known/`) and sends `/go`, `/to` and
+  the marketing site back to a browser via `openInBrowser`. That needs a `<queries>` VIEW/https entry:
+  without it Android 11+ hides every browser and the intent resolves back to the app in a loop.
+  Codex's backend fixes (explicit `verify_jwt`, Gemini hourly caps, Go helper grant revocation
+  migration `20260925151031`) are in 9982c12. **Not yet deployed:** that migration, and every function
+  except the four burn ones deployed earlier.
 - **2026-09-26** · perf(landing): equal-weight hero, warm burn backend on intent, lighter page —
   why: the user asked for every feature to get equal weight and for sharing to be as fast as
   possible. Measured from India: cold edge functions answer in ~450-650ms, warm in ~100-130ms, and

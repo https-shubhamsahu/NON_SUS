@@ -114,6 +114,27 @@ class MainActivity : FlutterFragmentActivity() {
         sendSharedDataToFlutter()
     }
 
+    /** Opens [url] in a real browser. A plain VIEW intent would bounce back
+     *  into this app, because it owns the nosus.foo App Link. */
+    private fun openInBrowser(url: String) {
+        val target = Uri.parse(url)
+        val probe = Intent(Intent.ACTION_VIEW, Uri.parse("https://example.com"))
+        val browser = packageManager.queryIntentActivities(probe, 0)
+            .firstOrNull { it.activityInfo.packageName != packageName }
+            ?.activityInfo
+            ?.packageName
+        val intent = Intent(Intent.ACTION_VIEW, target).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        if (browser != null) {
+            intent.setPackage(browser)
+        } else {
+            // No browser visible: still never resolve to this app. The selector
+            // restricts resolution to apps in the browser category.
+            intent.addCategory(Intent.CATEGORY_BROWSABLE)
+            intent.selector = Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_BROWSER)
+        }
+        startActivity(intent)
+    }
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
@@ -137,6 +158,19 @@ class MainActivity : FlutterFragmentActivity() {
                         }
                     } else {
                         result.error("BAD_ARGS", "Missing url parameter", null)
+                    }
+                }
+                "openInBrowser" -> {
+                    val url = call.argument<String>("url")
+                    if (url == null) {
+                        result.error("BAD_ARGS", "Missing url parameter", null)
+                    } else {
+                        try {
+                            openInBrowser(url)
+                            result.success(true)
+                        } catch (e: Exception) {
+                            result.error("FAILED", e.message, null)
+                        }
                     }
                 }
                 else -> result.notImplemented()

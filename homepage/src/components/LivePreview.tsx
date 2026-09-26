@@ -60,7 +60,7 @@ export default function LivePreview() {
     `p-5 text-left border rounded-[12px] transition-colors duration-200 ease-out motion-reduce:transition-none flex items-start gap-4 min-h-[44px] ${
       activeTab === id
         ? "border-foreground bg-card"
-        : "border-border bg-transparent hover:border-foreground/40"
+        : "border-border bg-transparent hover:border-foreground"
     }`;
 
   return (
@@ -70,7 +70,7 @@ export default function LivePreview() {
           index="01"
           eyebrow="SecureSend · in the app"
           title="Share a document. See who opened it."
-          lede="Each viewer's identity is stamped across the page, so a leak traces back to a person. Set view limits and expiry, revoke any time, and read the log. The panel below is a mock — not a live dashboard."
+          lede="Watermarks show the email a viewer enters, giving you an attribution clue—not verified identity. Set view limits and expiry, revoke future access, and read the log. The panel below is a mock—not a live dashboard."
           className="mb-12 md:mb-16"
         />
 
@@ -83,7 +83,7 @@ export default function LivePreview() {
                   Viewer watermarks
                 </span>
                 <span className="block text-sm text-muted-foreground mt-1 leading-relaxed">
-                  Overlay the recipient’s identity on shared documents.
+                  Overlay the viewer-entered email on shared documents.
                 </span>
               </span>
             </button>
@@ -168,7 +168,7 @@ export default function LivePreview() {
                     type="button"
                     onClick={triggerDeviceScan}
                     disabled={deviceScanState === "scanning"}
-                    className="btn btn-ghost text-xs disabled:opacity-40"
+                    className="btn btn-ghost text-xs disabled:bg-muted disabled:text-muted-foreground"
                   >
                     <RefreshCw
                       className={`h-4 w-4 ${
@@ -187,11 +187,11 @@ export default function LivePreview() {
               {activeTab === "watermark" && (
                 <div className="w-full max-w-md bg-card border border-border p-6 flex flex-col gap-4 relative rounded-[12px]">
                   {isWatermarked && (
-                    <div className="absolute inset-0 pointer-events-none grid grid-cols-3 grid-rows-3 select-none opacity-[0.08] rotate-[-12deg] scale-110">
+                    <div className="absolute inset-0 pointer-events-none grid grid-cols-3 grid-rows-3 select-none text-[color:var(--paper-dash)] rotate-[-12deg] scale-110">
                       {Array.from({ length: 9 }).map((_, i) => (
                         <div
                           key={i}
-                          className="text-xs font-mono text-foreground text-center flex items-center justify-center font-bold"
+                          className="text-xs font-mono text-center flex items-center justify-center font-bold"
                         >
                           viewer_01@example.edu
                         </div>
@@ -222,7 +222,7 @@ export default function LivePreview() {
                       </p>
                     </div>
                   ) : (
-                    <div className="bg-destructive/10 border border-destructive/40 p-6 max-w-sm rounded-[12px]">
+                    <div className="bg-card border-2 border-destructive p-6 max-w-sm rounded-[12px]">
                       <Ban className="h-10 w-10 text-destructive mb-3" />
                       <h4 className="text-base font-bold uppercase tracking-wider text-destructive">
                         Access revoked
@@ -248,7 +248,7 @@ export default function LivePreview() {
                     </thead>
                     <tbody>
                       {previewLogs.map((log, idx) => (
-                        <tr key={idx} className="border-b border-border/60 text-foreground">
+                        <tr key={idx} className="border-b border-border text-foreground">
                           <td className="py-2 text-muted-foreground">{log.time}</td>
                           <td className="py-2 font-bold tracking-tight">{log.event}</td>
                           <td className="py-2 text-muted-foreground">{log.actor}</td>
