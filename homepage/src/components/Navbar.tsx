@@ -62,7 +62,7 @@ export default function Navbar() {
               />
               <span className="hidden sm:inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground border border-border px-2 py-0.5 rounded-[4px] bg-muted">
                 <span className="eink-live text-foreground" />
-                <span>v1.4.1</span>
+                <span>v1.4.2</span>
               </span>
             </Link>
 
