@@ -3,8 +3,8 @@ import { ArrowRight, Flame, Stamp, MonitorSmartphone, Inbox, Users } from "lucid
 
 import BurnTool from "./BurnTool";
 
-// Every feature gets the same row. Status must match what ships (AGENTS.md
-// §0.3): Go is flag-gated early access; Drop and Group drops are not public.
+// Every feature gets the same row. Status must match the production rollout:
+// Go, Drop and Group drops are on for every signed-in user.
 const FEATURES = [
   {
     icon: Flame,
@@ -24,21 +24,21 @@ const FEATURES = [
     icon: MonitorSmartphone,
     name: "Go",
     text: "Your Drive on a borrowed computer, without signing Google in.",
-    status: "Early access",
+    status: "In the app",
     href: "/#how-it-works",
   },
   {
     icon: Inbox,
     name: "Drop",
     text: "People send files to your address, not your number.",
-    status: "Coming soon",
+    status: "In the app",
     href: "/#doors",
   },
   {
     icon: Users,
     name: "Group drops",
     text: "Each member's copy lands in their own Drive.",
-    status: "Coming soon",
+    status: "In the app",
     href: "/#doors",
   },
 ];

@@ -519,7 +519,7 @@ codebase — assume still outstanding unless you know otherwise.
 | `migrate_device_id()` never exercised against a signed-in session | Open — needs a physical device; all `user_known_devices` rows are still legacy UUIDs |
 | Orphaned keystore `android/app/release_orphaned_2026-06-21.keystore` | On disk, git-ignored — delete once confirmed unneeded |
 | **Measure Android build never compiled locally** | Open — `flutter analyze` + `flutter test` are clean, and `Measure.init`/`MeasureConfig(autoStart, trackActivityIntentData)` were checked against the pinned `android-v0.18.0` tag, but `NoSusApplication.kt`, the manifest placeholders and the merged manifest have **not** been through a real Gradle build: this machine OOM'd (1.4 GB free of 15.6 GB, paging file too small for even a 1 GB JVM heap). First Android build after this must be watched |
-| **Address / Drop / Group drops rollout** | Code merged behind flags `nosus_address_enabled`, `nosus_drop_enabled`, `nosus_group_drops_enabled` — all `is_active=true`, **0%** rollout. Migrations `20260924100000`–`20260924130000` and functions `drop-*`, `cleanup-drops`, `cleanup-group-drops` are **deployed** (2026-09-24). Raise rollout or add tester ids in `feature_flags.targeted_user_ids` to try it |
+| **Address / Drop / Group drops rollout** | `nosus_address_enabled`, `nosus_drop_enabled`, `nosus_group_drops_enabled` are all `is_active=true`, **100%** rollout as of 2026-09-26. Migrations `20260924100000`–`20260924130000` and functions `drop-*`, `cleanup-drops`, `cleanup-group-drops` are deployed. The current public Drop URL is `nosus.foo/to?h=<handle>`; handle subdomains are not live. |
 | Google Auth Platform for Drive (`drive.file`) | ✅ Done 2026-09-24 — project `no-sus` is **In production** (no verification needed: only `drive.file`, no logo); branding links set; web client allows `https://app.nosus.foo`; Android clients exist for debug, upload, current and previous Play signing SHA-1s (see §5) |
 | **(manual)** `<handle>.nosus.foo` wildcard | DNS is at name.com. Needs Cloudflare DNS + the Worker in `infra/cloudflare/address-worker/` (see its README; keep apex/`app` records DNS-only for App Links). Then set `remote_configs.address_subdomain_live = true`. Until then addresses are `nosus.foo/to?h=<handle>` |
 | Group drops per-member watermarks (Canary-style) | Not built — needs per-member file copies with keys sealed to each member's devices (a protocol change: today every file key rides in a message all members can read) |
@@ -559,6 +559,11 @@ codebase — assume still outstanding unless you know otherwise.
 > bottom rather than letting this section grow without bound.
 
 <!-- CHANGELOG:INSERT -->
+- **2026-09-26** · feat(rollout): make Address, Drop and Group drops available to everyone — why:
+  production flags `nosus_address_enabled`, `nosus_drop_enabled` and
+  `nosus_group_drops_enabled` moved from 0% to 100% after the functions and Go-grants migration
+  were deployed. Homepage copy now says “In the app”; it uses the current Drop URL
+  `nosus.foo/to?h=<handle>` and does not claim that handle subdomains are live.
 - **2026-09-26** · feat(applinks): claim nosus.foo in the Android app, hand non-app pages back to a
   browser; land the Codex backend audit — why: burn and share links in the wild are
   `https://nosus.foo/#/…`, which a website redirect cannot hand to the installed app. The app now

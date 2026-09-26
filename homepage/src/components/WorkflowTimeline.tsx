@@ -39,8 +39,8 @@ export default function WorkflowTimeline() {
               lede="The phone does the signing-in. The borrowed computer only ever shows what you send it."
             />
             <p className="reveal text-sm leading-relaxed text-muted-foreground">
-              Go is in early access. It shows up in the app once it&apos;s
-              enabled for your account.
+              Go is available in the app. Open it when you need your Drive on
+              a borrowed computer without signing Google into that computer.
             </p>
           </div>
           <div className="reveal lg:col-span-7">

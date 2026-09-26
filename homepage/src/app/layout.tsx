@@ -139,7 +139,7 @@ const structuredData = {
       offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
       publisher: { "@id": `${SITE_URL}#organization` },
       description:
-        "Self-destructing notes and files encrypted in the browser, documents watermarked to whoever opens them, and Saved on a borrowed computer when Go is enabled for your account, without signing Google in there. Web app at app.nosus.foo; native Android app.",
+        "Self-destructing notes and files encrypted in the browser, documents watermarked to whoever opens them, and Saved on a borrowed computer without signing Google in there. Web app at app.nosus.foo; native Android app.",
     },
   ],
 };
