@@ -16,7 +16,7 @@ Native app: Android. Web app: [https://app.nosus.foo](https://app.nosus.foo)
 
 - Burn Notes / Burn Files: available to try on the site and in the app.
 - Go / Saved on a borrowed computer (`/go`): shipped in the product behind a server feature flag (`nosus_address_enabled`). Available in the app when enabled for the account — not generally rolled out to all users yet.
-- Drop (personal address door) and Group drops: coming soon — not shipping today.
+- Drop (personal address door) and Group drops: available in the app for all signed-in users. The current Drop URL is `https://nosus.foo/to?h=<handle>`; `yourname.nosus.foo` is not live yet.
 
 ## Important URLs
 
