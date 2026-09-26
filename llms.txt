@@ -10,7 +10,7 @@ NO SUS lets you open Saved on a borrowed computer without signing Google in ther
 
 Also in the app / site: watermarked document sharing (SecureSend) and client-encrypted self-destructing notes and files (Burn Notes, Burn Files). Burn tools on the marketing site need no account.
 
-Native app: Android. Web app: https://app.nosus.foo
+Native app: Android. Web app: [https://app.nosus.foo](https://app.nosus.foo)
 
 ## Availability (honest)
 
@@ -20,16 +20,16 @@ Native app: Android. Web app: https://app.nosus.foo
 
 ## Important URLs
 
-- Home: https://nosus.foo/
-- Web app: https://app.nosus.foo/
-- Privacy: https://nosus.foo/privacy.html
-- Terms: https://nosus.foo/terms.html
-- Account deletion: https://nosus.foo/account-deletion.html
+- [Home](https://nosus.foo/)
+- [Web app](https://app.nosus.foo/)
+- [Privacy](https://nosus.foo/privacy.html)
+- [Terms](https://nosus.foo/terms.html)
+- [Account deletion](https://nosus.foo/account-deletion.html)
 
 ## Utility pages (noindex)
 
-- https://nosus.foo/go — Open Saved on this computer (QR approve flow). Not a marketing landing page; robots noindex.
-- https://nosus.foo/to — Send-a-file drop door utility. Robots noindex.
+- [https://nosus.foo/go](https://nosus.foo/go) — Open Saved on this computer (QR approve flow). Not a marketing landing page; robots noindex.
+- [https://nosus.foo/to](https://nosus.foo/to) — Send-a-file drop door utility. Robots noindex.
 
 ## Do not claim
 
