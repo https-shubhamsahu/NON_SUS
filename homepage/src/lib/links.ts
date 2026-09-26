@@ -3,8 +3,10 @@
 // app.nosus.foo (see .github/workflows/gh-pages.yml). A shim in layout.tsx
 // forwards legacy nosus.foo/#/... deep links to the app subdomain.
 export const APP_URL = "https://app.nosus.foo/";
-export const GITHUB_URL = "https://github.com/https-shubhamsahu/NON_SUS";
-export const RELEASES_URL = `${GITHUB_URL}/releases/latest`;
+// The source repo is private. APK releases publish to the public nosus-app
+// repo, which holds build output only (see play-store-release.yml).
+export const RELEASES_URL =
+  "https://github.com/https-shubhamsahu/nosus-app/releases/latest";
 export const PRIVACY_URL = "/privacy.html";
 export const TERMS_URL = "/terms.html";
 export const ACCOUNT_DELETION_URL = "/account-deletion.html";

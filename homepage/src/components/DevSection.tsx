@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Link2, Flame, ListTree, ArrowRight } from "lucide-react";
 
-import { GITHUB_URL } from "@/lib/links";
+import { DEVELOPER } from "@/lib/links";
 import SectionHeader from "./ui/SectionHeader";
 
 export default function DevSection() {
@@ -25,7 +25,7 @@ export default function DevSection() {
     document.getElementById(`dev-tab-${next}`)?.focus();
   };
 
-  // Real mechanics, verbatim from the open-source client and schema — not a
+  // Real mechanics, verbatim from the client and schema — not a
   // product API. NO SUS has no public HTTP API, SDK, or CLI today.
   const codeBlocks = {
     link: `# A real Burn Note link, piece by piece:
@@ -81,17 +81,16 @@ entry_hash = sha256(
             <p className="reveal text-base text-muted-foreground leading-relaxed">
               Security claims you can check, not marketing copy. These are the actual
               link format, claim semantics, and ledger construction used in production.
-              The client is open source, so every one of them is inspectable.
+              The Burn crypto runs in your browser, so you can watch the key stay
+              in the link with your browser&apos;s own dev tools.
             </p>
 
             <div className="flex gap-4 border-t border-border pt-6">
               <a
-                href={GITHUB_URL}
-                target="_blank"
-                rel="noreferrer"
+                href={`mailto:${DEVELOPER.email}?subject=NO%20SUS%20security%20report`}
                 className="group inline-flex min-h-11 items-center gap-2 text-sm font-bold uppercase tracking-wider text-foreground hover:text-muted-foreground transition-colors"
               >
-                Read the source on GitHub
+                Report a security issue
                 <ArrowRight className="nudge h-4 w-4" aria-hidden />
               </a>
             </div>

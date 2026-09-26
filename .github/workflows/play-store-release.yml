@@ -102,7 +102,7 @@ jobs:
 
       # Direct-install APK attached to the GitHub Release — this is what the
       # in-app "Download App" button links to (remote config app_download_url
-      # → github.com/…/releases/latest).
+      # → github.com/https-shubhamsahu/nosus-app/releases/latest).
       - name: Build APK
         run: flutter build apk --release --dart-define-from-file=.env
 
@@ -113,6 +113,13 @@ jobs:
       # artifact to be uploaded manually through the Console UI before the
       # API is allowed to upload.
       - name: Create GitHub Release with APK
+        # Published to the PUBLIC nosus-app repo, not this private source
+        # repo: releases on a private repo are invisible to everyone else, so
+        # the download buttons would 404. APP_DEPLOY_TOKEN already has
+        # contents: write on nosus-app for the web deploy, which is also what
+        # creating a release there needs. The tag is created on nosus-app's
+        # gh-pages head; it marks the release, not the source.
+        #
         # v3 is a pure runtime bump (Node 20 -> Node 24); every input used
         # below exists unchanged in v3, and it creates the release over the
         # GitHub API rather than `git push`, so it has none of the credential
@@ -121,6 +128,9 @@ jobs:
         # so the first release cut after this is its first live exercise.
         uses: softprops/action-gh-release@v3
         with:
+          repository: https-shubhamsahu/nosus-app
+          token: ${{ secrets.APP_DEPLOY_TOKEN }}
+          target_commitish: gh-pages
           tag_name: ${{ github.ref_name || inputs.version }}
           name: Release ${{ github.ref_name || inputs.version }}
           files: build/app/outputs/flutter-apk/app-release.apk

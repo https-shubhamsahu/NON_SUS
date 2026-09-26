@@ -108,8 +108,8 @@ AI is not part of the normal product path. Any future Gemini or on-device capabi
 
 ## CI/CD
 
-- `.github/workflows/gh-pages.yml` — on push to `main`: analyze, build web, deploy (two jobs: `landing` for this repo's `gh-pages`, `app` for the `nosus-app` deploy target)
-- `.github/workflows/play-store-release.yml` — on `v*.*.*` tags: builds a signed AAB, publishes a GitHub Release with the APK, uploads to the Play internal track
+- `.github/workflows/gh-pages.yml` — on push to `main`: analyze, build web, deploy (two jobs: `landing` for the public `nosus-site` deploy target, `app` for the public `nosus-app` deploy target — both hold build output only)
+- `.github/workflows/play-store-release.yml` — on `v*.*.*` tags: builds a signed AAB, publishes a GitHub Release with the APK on the public `nosus-app` repo, uploads to the Play internal track
 
 ## Engineering Principles
 
@@ -121,4 +121,5 @@ See [`PROJECT_CONSTITUTION.md`](./PROJECT_CONSTITUTION.md) for the full product 
 
 ## License
 
-MIT — see [`LICENSE`](./LICENSE).
+Proprietary. © 2026 Shubham Sahu (NO SUS). All rights reserved — see [`LICENSE`](./LICENSE).
+This repository is private. Versions published before 26 September 2026 were MIT-licensed; later versions are not.

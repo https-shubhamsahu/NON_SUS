@@ -2,16 +2,22 @@ name: Deploy to GitHub Pages
 
 # Two independent deployments from one push:
 #
-#   landing  →  this repo's gh-pages branch  →  https://nosus.foo
+#   landing  →  https-shubhamsahu/nosus-site gh-pages  →  https://nosus.foo
 #               (Next.js static export of homepage/ + legal pages + shim that
-#                forwards legacy app links to the app subdomain)
+#                forwards legacy app links to the app subdomain; requires the
+#                SITE_DEPLOY_KEY repo secret — the private half of a write
+#                deploy key on nosus-site)
+#
+# This source repo is private. Both deploy targets are public repos that hold
+# build output only, because GitHub Pages on the free plan needs a public repo.
+# Never deploy anything but build output to them.
 #
 #   app      →  https-shubhamsahu/nosus-app gh-pages  →  https://app.nosus.foo
 #               (Flutter web build; requires the APP_DEPLOY_TOKEN repo secret —
 #                a PAT with `contents: write` on nosus-app — plus a DNS CNAME
 #                record `app` → https-shubhamsahu.github.io)
 #
-# The jobs are independent so a missing APP_DEPLOY_TOKEN or a Flutter failure
+# The jobs are independent so a missing deploy credential or a Flutter failure
 # never blocks the landing page deploy, and vice versa.
 
 on:
@@ -68,7 +74,7 @@ jobs:
           cp web/privacy.html web/terms.html web/account-deletion.html homepage/out/
           cp web/favicon.png homepage/out/
 
-      # This repo's Pages config is the legacy (branch-based) build type,
+      # nosus-site's Pages config is the legacy (branch-based) build type,
       # which reads the custom domain FROM this file on every deploy — the
       # deploy action's own `cname` input isn't a recognized parameter on
       # the pinned @v4 release, so relying on it silently does nothing and
@@ -76,11 +82,15 @@ jobs:
       - name: Write CNAME for custom domain
         run: echo "nosus.foo" > homepage/out/CNAME
 
-      - name: Deploy Landing to GitHub Pages
+      # Over SSH with a deploy key scoped to nosus-site alone, so this job
+      # holds no credential for any other repo.
+      - name: Deploy Landing to nosus.foo
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           folder: homepage/out
           branch: gh-pages
+          repository-name: https-shubhamsahu/nosus-site
+          ssh-key: ${{ secrets.SITE_DEPLOY_KEY }}
 
       # IndexNow: an open protocol (no Bing/Yandex account needed) — pinging
       # it tells participating search engines to recrawl immediately instead

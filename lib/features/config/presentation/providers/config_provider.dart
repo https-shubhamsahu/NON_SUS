@@ -92,7 +92,7 @@ class SecureSendConfigs {
     // GitHub Releases page — the play-store workflow attaches an APK to each
     // tagged release. (The old nosus.foo/app-release.apk was never actually
     // hosted; it 404'd in production.)
-    'https://github.com/https-shubhamsahu/NON_SUS/releases/latest',
+    'https://github.com/https-shubhamsahu/nosus-app/releases/latest',
   );
 
   static const appLatestVersion = _ConfigParam(

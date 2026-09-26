@@ -2,7 +2,7 @@ import { ArrowRight, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import {
   APP_URL,
-  GITHUB_URL,
+  DEVELOPER,
   PRIVACY_URL,
   TERMS_URL,
   ACCOUNT_DELETION_URL,
@@ -25,8 +25,7 @@ const footerLinks = {
     { name: "FAQ", href: "/#faq" },
   ],
   Project: [
-    { name: "Source on GitHub", href: GITHUB_URL },
-    { name: "Report an issue", href: `${GITHUB_URL}/issues` },
+    { name: "Report an issue", href: `mailto:${DEVELOPER.email}?subject=NO%20SUS%20issue` },
     { name: "About the maker", href: "/#developer" },
   ],
   Legal: [
@@ -104,7 +103,7 @@ export default function Footer() {
       </div>
 
       <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 border-t border-border px-6 py-6 font-mono text-xs text-muted-foreground sm:flex-row md:px-8">
-        <span>© {currentYear} NO SUS · Open-source client</span>
+        <span>© {currentYear} NO SUS · All rights reserved</span>
         <span className="uppercase tracking-widest">nosus.foo</span>
       </div>
     </footer>
