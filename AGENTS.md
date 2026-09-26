@@ -563,6 +563,12 @@ codebase — assume still outstanding unless you know otherwise.
 > bottom rather than letting this section grow without bound.
 
 <!-- CHANGELOG:INSERT -->
+- **2026-09-26** · chore: close the source (proprietary `LICENSE`, build-only public deploys) — why:
+  the owner is protecting the project from being copied. nosus.foo now serves from the public
+  `nosus-site` repo (deploy key `SITE_DEPLOY_KEY`) and APK releases publish to the public
+  `nosus-app` repo (`app_download_url` in `remote_configs` was repointed too), so this repo can go
+  private without breaking the site or the download buttons. Site copy no longer claims an
+  open-source client. MIT still covers copies published before this date.
 - **2026-09-26** · chore(release): bump to 1.4.2+13 — why: the Android App Link for `nosus.foo`
   (burn/share links open the installed app; `/go`, `/to` and the site go back to a browser, with the
   Android 11+ `<queries>` fix) only reaches users in a new build. Play needs a higher version code.
